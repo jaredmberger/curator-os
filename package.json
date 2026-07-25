@@ -1,9 +1,11 @@
 {
   "name": "curator-os",
-  "version": "5.3.0-alpha.6",
+  "version": "5.3.0-alpha.7",
   "private": true,
   "description": "Evidence-first institutional operating system for Ocean Liner Curator",
   "scripts": {
+    "start": "python3 -m http.server 4173",
+    "preview": "python3 -m http.server 4173",
     "build": "node scripts/build.js",
     "validate": "node scripts/validate.js",
     "test:smoke": "node tests/smoke.test.js",

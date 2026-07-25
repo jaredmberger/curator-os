@@ -13,7 +13,11 @@ export class RecordService {
     this.storage = options.storage || globalThis.localStorage;
     this.storageKey = options.storageKey || CuratorStorage.DEFAULT_KEY;
     this.seedRecords = Array.isArray(options.seedRecords) ? options.seedRecords : [];
+    this.historyLimit = Number(options.historyLimit || 50);
     this.database = this.load();
+    this.history = [];
+    this.future = [];
+    this.listeners = new Set();
   }
 
   load() {
@@ -65,10 +69,171 @@ export class RecordService {
     return [...byId.values()];
   }
 
-  replace(records) {
-    this.database = CuratorDatabase.createDatabase(records);
+  subscribe(listener) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  notify(event) {
+    this.listeners.forEach((listener) => listener(event));
+  }
+
+  snapshot() {
+    return CuratorDatabase.clone(this.database);
+  }
+
+  persist() {
+    CuratorDatabase.assertDatabase(this.database);
     if (this.storage?.setItem) CuratorStorage.save(this.database, this.storage, this.storageKey);
-    return this.all();
+  }
+
+  commit(nextDatabase, event) {
+    this.history.push(this.snapshot());
+    if (this.history.length > this.historyLimit) this.history.shift();
+    this.future = [];
+    this.database = nextDatabase;
+    this.persist();
+    this.notify(event);
+    return event.record ? CuratorDatabase.clone(event.record) : this.all();
+  }
+
+  update(id, patch = {}) {
+    const current = this.get(id);
+    if (!current) throw new Error(`Record not found: ${id}`);
+    const editablePatch = CuratorDatabase.clone(patch);
+    delete editablePatch.id;
+    const updated = CuratorDatabase.createRecord({
+      ...current,
+      ...editablePatch,
+      metadata: {
+        ...current.metadata,
+        ...(editablePatch.metadata || {}),
+        created: current.metadata?.created,
+        updated: new Date().toISOString()
+      }
+    });
+    const records = this.database.records.map((record) => record.id === id ? updated : record);
+    const nextDatabase = CuratorDatabase.createDatabase(records);
+    return this.commit(nextDatabase, { type: 'update', id, record: updated });
+  }
+
+  create(input = {}) {
+    const record = CuratorDatabase.createRecord(input);
+    if (this.get(record.id)) throw new Error(`Record already exists: ${record.id}`);
+    const nextDatabase = CuratorDatabase.createDatabase([...this.database.records, record]);
+    return this.commit(nextDatabase, { type: 'create', id: record.id, record });
+  }
+
+  remove(id) {
+    if (!this.get(id)) return false;
+    const nextDatabase = CuratorDatabase.createDatabase(this.database.records.filter((record) => record.id !== id));
+    this.commit(nextDatabase, { type: 'remove', id });
+    return true;
+  }
+
+  replace(records) {
+    const nextDatabase = CuratorDatabase.createDatabase(records);
+    return this.commit(nextDatabase, { type: 'replace' });
+  }
+
+  undo() {
+    if (!this.history.length) return false;
+    this.future.push(this.snapshot());
+    this.database = this.history.pop();
+    this.persist();
+    this.notify({ type: 'undo' });
+    return true;
+  }
+
+  redo() {
+    if (!this.future.length) return false;
+    this.history.push(this.snapshot());
+    this.database = this.future.pop();
+    this.persist();
+    this.notify({ type: 'redo' });
+    return true;
+  }
+
+  get canUndo() { return this.history.length > 0; }
+  get canRedo() { return this.future.length > 0; }
+}
+
+export class DraftService {
+  constructor(recordService, options = {}) {
+    this.recordService = recordService;
+    this.delay = Number(options.delay || 450);
+    this.drafts = new Map();
+    this.timers = new Map();
+    this.listeners = new Set();
+  }
+
+  subscribe(listener) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  notify(event) {
+    this.listeners.forEach((listener) => listener(event));
+  }
+
+  begin(id) {
+    const record = this.recordService.get(id);
+    if (!record) throw new Error(`Record not found: ${id}`);
+    this.drafts.set(id, { record, dirty: false, errors: [] });
+    return CuratorDatabase.clone(record);
+  }
+
+  get(id) {
+    const draft = this.drafts.get(id);
+    return draft ? CuratorDatabase.clone(draft) : null;
+  }
+
+  patch(id, patch = {}) {
+    const draft = this.drafts.get(id) || { record: this.begin(id), dirty: false, errors: [] };
+    draft.record = {
+      ...draft.record,
+      ...CuratorDatabase.clone(patch),
+      metadata: {
+        ...draft.record.metadata,
+        ...(patch.metadata || {})
+      }
+    };
+    draft.errors = CuratorDatabase.validateRecord({
+      ...draft.record,
+      metadata: { ...draft.record.metadata, schemaVersion: CuratorDatabase.SCHEMA_VERSION }
+    });
+    draft.dirty = true;
+    this.drafts.set(id, draft);
+    this.schedule(id);
+    this.notify({ type: 'draft', id, draft: this.get(id) });
+    return this.get(id);
+  }
+
+  schedule(id) {
+    clearTimeout(this.timers.get(id));
+    this.timers.set(id, setTimeout(() => this.save(id), this.delay));
+  }
+
+  save(id) {
+    clearTimeout(this.timers.get(id));
+    this.timers.delete(id);
+    const draft = this.drafts.get(id);
+    if (!draft || !draft.dirty) return this.recordService.get(id);
+    if (draft.errors.length) {
+      this.notify({ type: 'invalid', id, errors: [...draft.errors] });
+      return false;
+    }
+    const saved = this.recordService.update(id, draft.record);
+    this.drafts.set(id, { record: saved, dirty: false, errors: [] });
+    this.notify({ type: 'saved', id, record: saved });
+    return saved;
+  }
+
+  discard(id) {
+    clearTimeout(this.timers.get(id));
+    this.timers.delete(id);
+    this.drafts.delete(id);
+    this.notify({ type: 'discarded', id });
   }
 }
 
@@ -134,13 +299,18 @@ export function renderInspector(record, context = {}) {
 
   const relationships = context.relationships || { outgoing: [], incoming: [] };
   const sources = context.sources || record.sources || [];
+  const editing = Boolean(context.editing);
+  const draft = context.draft?.record || record;
+  const errors = context.draft?.errors || [];
 
   return `
     <div class="cos-inspector-breadcrumb">Collection Catalog <span>›</span> ${escapeHtml(record.type)} <span>›</span> ${escapeHtml(record.title)}</div>
     <header class="cos-inspector-header">
       <span class="cos-record-icon" aria-hidden="true">${ICONS[record.type] || '•'}</span>
       <div><h2>${escapeHtml(record.title)}</h2><p>${escapeHtml(record.id)}</p></div>
+      <button type="button" class="cos-edit-button" data-edit-record>${editing ? 'Close editor' : 'Edit record'}</button>
     </header>
+    ${editing ? renderEditor(draft, errors, context.draft?.dirty) : ''}
     ${renderProvenanceSummary(record, relationships, sources)}
     ${renderSection('Summary', `<p>${escapeHtml(record.summary || 'No summary recorded.')}</p>`, true)}
     ${renderRelationshipSection(relationships)}
@@ -149,6 +319,19 @@ export function renderInspector(record, context = {}) {
     ${renderListSection('Notes', record.notes)}
     ${renderSection('Metadata', `<dl>${Object.entries(record.metadata || {}).map(([key, value]) => `<div><dt>${escapeHtml(key)}</dt><dd>${escapeHtml(String(value))}</dd></div>`).join('')}</dl>`)}
   `;
+}
+
+function renderEditor(record, errors = [], dirty = false) {
+  return `<form class="cos-record-editor" data-record-editor novalidate>
+    <div class="cos-editor-status" aria-live="polite">${errors.length ? `${errors.length} validation issue${errors.length === 1 ? '' : 's'}` : dirty ? 'Unsaved changes' : 'All changes saved'}</div>
+    <label>Title<input name="title" value="${escapeHtml(record.title || '')}" required></label>
+    <label>Summary<textarea name="summary" rows="4">${escapeHtml(record.summary || '')}</textarea></label>
+    <label>Status<select name="status">${CuratorDatabase.RECORD_STATUSES.map((status) => `<option value="${status}"${record.status === status ? ' selected' : ''}>${status}</option>`).join('')}</select></label>
+    <label>Confidence<select name="confidence">${CuratorDatabase.CONFIDENCE_LEVELS.map((confidence) => `<option value="${confidence}"${record.metadata?.confidence === confidence ? ' selected' : ''}>${confidence}</option>`).join('')}</select></label>
+    <label>Tags<input name="tags" value="${escapeHtml((record.tags || []).join(', '))}" placeholder="comma separated"></label>
+    ${errors.length ? `<ul class="cos-validation-list">${errors.map((error) => `<li>${escapeHtml(error)}</li>`).join('')}</ul>` : ''}
+    <div class="cos-editor-actions"><button type="submit">Save now</button><button type="button" data-discard-draft>Discard</button></div>
+  </form>`;
 }
 
 function renderProvenanceSummary(record, relationships, sources) {
@@ -221,6 +404,7 @@ export function mountCollectionCatalogShell(root, options = {}) {
   if (!root) throw new Error('Collection Catalog root element is required.');
 
   const recordService = options.recordService || new RecordService(options);
+  const draftService = options.draftService || new DraftService(recordService, options);
   const searchService = options.searchService || new SearchService(recordService);
   const navigationService = options.navigationService || new NavigationService();
   const state = {
@@ -229,7 +413,8 @@ export function mountCollectionCatalogShell(root, options = {}) {
     status: 'all',
     results: searchService.search(),
     selectedId: null,
-    cursor: 0
+    cursor: 0,
+    editing: false
   };
 
   root.innerHTML = `
@@ -246,6 +431,7 @@ export function mountCollectionCatalogShell(root, options = {}) {
       <main class="cos-catalog-pane">
         <header class="cos-toolbar">
           <div><span class="cos-eyebrow">Voyage III</span><h1>Collection Catalog</h1></div>
+          <div class="cos-toolbar-actions"><button type="button" data-undo disabled>Undo</button><button type="button" data-redo disabled>Redo</button></div>
           <label class="cos-search"><span class="sr-only">Search records</span><input type="search" placeholder="Search records…" autocomplete="off" data-catalog-search></label>
         </header>
         <div class="cos-filter-bar">
@@ -264,11 +450,16 @@ export function mountCollectionCatalogShell(root, options = {}) {
   const list = root.querySelector('[data-record-list]');
   const inspector = root.querySelector('[data-inspector]');
   const count = root.querySelector('[data-result-count]');
+  const undoButton = root.querySelector('[data-undo]');
+  const redoButton = root.querySelector('[data-redo]');
 
   function updateResults() {
     state.results = searchService.search(state.query, { type: state.type, status: state.status });
     state.cursor = Math.min(state.cursor, Math.max(0, state.results.length - 1));
-    if (state.selectedId && !state.results.some((record) => record.id === state.selectedId)) state.selectedId = null;
+    if (state.selectedId && !state.results.some((record) => record.id === state.selectedId)) {
+      state.selectedId = null;
+      state.editing = false;
+    }
     render();
   }
 
@@ -280,16 +471,32 @@ export function mountCollectionCatalogShell(root, options = {}) {
     const selectedRecord = recordService.get(state.selectedId);
     inspector.innerHTML = renderInspector(selectedRecord, {
       relationships: recordService.resolveRelationships(selectedRecord),
-      sources: recordService.resolveSources(selectedRecord)
+      sources: recordService.resolveSources(selectedRecord),
+      editing: state.editing,
+      draft: draftService.get(state.selectedId)
     });
+    undoButton.disabled = !recordService.canUndo;
+    redoButton.disabled = !recordService.canRedo;
   }
 
   function selectAt(index) {
     if (!state.results.length) return;
     state.cursor = Math.max(0, Math.min(index, state.results.length - 1));
     state.selectedId = state.results[state.cursor].id;
+    state.editing = false;
     render();
     list.querySelector(`[data-record-id="${CSS.escape(state.selectedId)}"]`)?.focus();
+  }
+
+  function patchFromForm(form) {
+    const values = new FormData(form);
+    return {
+      title: String(values.get('title') || ''),
+      summary: String(values.get('summary') || ''),
+      status: String(values.get('status') || 'draft'),
+      tags: String(values.get('tags') || '').split(',').map((tag) => tag.trim()).filter(Boolean),
+      metadata: { confidence: String(values.get('confidence') || 'unknown') }
+    };
   }
 
   searchInput.addEventListener('input', (event) => { state.query = event.target.value; updateResults(); });
@@ -300,20 +507,71 @@ export function mountCollectionCatalogShell(root, options = {}) {
     if (!card) return;
     state.cursor = state.results.findIndex((record) => record.id === card.dataset.recordId);
     state.selectedId = card.dataset.recordId;
+    state.editing = false;
     render();
   });
 
+  inspector.addEventListener('click', (event) => {
+    if (event.target.closest('[data-edit-record]')) {
+      state.editing = !state.editing;
+      if (state.editing && state.selectedId && !draftService.get(state.selectedId)) draftService.begin(state.selectedId);
+      render();
+      return;
+    }
+    if (event.target.closest('[data-discard-draft]')) {
+      draftService.discard(state.selectedId);
+      state.editing = false;
+      render();
+    }
+  });
+
+  inspector.addEventListener('input', (event) => {
+    const form = event.target.closest('[data-record-editor]');
+    if (!form || !state.selectedId) return;
+    draftService.patch(state.selectedId, patchFromForm(form));
+    render();
+  });
+
+  inspector.addEventListener('submit', (event) => {
+    const form = event.target.closest('[data-record-editor]');
+    if (!form || !state.selectedId) return;
+    event.preventDefault();
+    draftService.patch(state.selectedId, patchFromForm(form));
+    const saved = draftService.save(state.selectedId);
+    if (saved) updateResults();
+    else render();
+  });
+
+  undoButton.addEventListener('click', () => { if (recordService.undo()) updateResults(); });
+  redoButton.addEventListener('click', () => { if (recordService.redo()) updateResults(); });
+
+  recordService.subscribe(() => updateResults());
+  draftService.subscribe((event) => {
+    if (event.id === state.selectedId) render();
+  });
   root.querySelectorAll('[data-module]').forEach((button) => button.addEventListener('click', () => navigationService.open(button.dataset.module)));
 
   root.addEventListener('keydown', (event) => {
     const isTyping = event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement;
+    const modifier = event.metaKey || event.ctrlKey;
+    if (modifier && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      if (event.shiftKey) recordService.redo(); else recordService.undo();
+      updateResults();
+      return;
+    }
     if (event.key === '/' && !isTyping) {
       event.preventDefault();
       searchInput.focus();
       return;
     }
     if (event.key === 'Escape') {
-      state.selectedId = null;
+      if (state.editing) {
+        draftService.discard(state.selectedId);
+        state.editing = false;
+      } else {
+        state.selectedId = null;
+      }
       render();
       searchInput.blur();
       return;
@@ -333,5 +591,5 @@ export function mountCollectionCatalogShell(root, options = {}) {
   });
 
   render();
-  return { state, recordService, searchService, navigationService, destroy() { root.innerHTML = ''; } };
+  return { state, recordService, draftService, searchService, navigationService, destroy() { root.innerHTML = ''; } };
 }

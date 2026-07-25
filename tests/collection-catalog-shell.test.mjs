@@ -12,6 +12,7 @@ loadCanonicalGlobal('../src/core/relationships.js', 'CuratorRelationships');
 
 const {
   RecordService,
+  DraftService,
   SearchService,
   NavigationService,
   renderRecordCard,
@@ -97,17 +98,50 @@ assert.equal(records.resolveSources(olympic)[0].title, 'Builder records');
 
 const inspector = renderInspector(olympic, {
   relationships,
-  sources: records.resolveSources(olympic)
+  sources: records.resolveSources(olympic),
+  editing: true,
+  draft: { record: olympic, dirty: false, errors: [] }
 });
 assert.match(inspector, /Collection Catalog/);
 assert.match(inspector, /Provenance summary/);
 assert.match(inspector, /White Star Line/);
 assert.match(inspector, /Builder records/);
 assert.match(inspector, /Linked claims/);
+assert.match(inspector, /Edit record|Close editor/);
+assert.match(inspector, /All changes saved/);
 assert.match(inspector, /Metadata/);
 
+const updated = records.update('ship.olympic', {
+  title: 'RMS Olympic — Revised',
+  status: 'review',
+  metadata: { confidence: 'probable' }
+});
+assert.equal(updated.title, 'RMS Olympic — Revised');
+assert.equal(records.get('ship.olympic').status, 'review');
+assert.equal(records.canUndo, true);
+assert.equal(records.undo(), true);
+assert.equal(records.get('ship.olympic').title, 'RMS Olympic');
+assert.equal(records.canRedo, true);
+assert.equal(records.redo(), true);
+assert.equal(records.get('ship.olympic').title, 'RMS Olympic — Revised');
+
+records.undo();
+const drafts = new DraftService(records, { delay: 60000 });
+drafts.begin('ship.olympic');
+const dirtyDraft = drafts.patch('ship.olympic', { title: 'RMS Olympic edited' });
+assert.equal(dirtyDraft.dirty, true);
+assert.equal(drafts.save('ship.olympic').title, 'RMS Olympic edited');
+assert.equal(records.get('ship.olympic').title, 'RMS Olympic edited');
+
+drafts.begin('ship.olympic');
+const invalidDraft = drafts.patch('ship.olympic', { title: '' });
+assert.equal(invalidDraft.errors.length > 0, true, 'validates draft while editing');
+assert.equal(drafts.save('ship.olympic'), false, 'does not persist invalid draft');
+drafts.discard('ship.olympic');
+assert.equal(records.get('ship.olympic').title, 'RMS Olympic edited');
+
 const reloaded = new RecordService({ storage });
-assert.equal(reloaded.get('ship.olympic').title, 'RMS Olympic', 'reloads canonical database from storage');
+assert.equal(reloaded.get('ship.olympic').title, 'RMS Olympic edited', 'reloads autosaved canonical database from storage');
 
 const nav = new NavigationService();
 let opened = null;
@@ -117,4 +151,4 @@ assert.equal(opened, 'atlas');
 assert.equal(nav.activeModule, 'atlas');
 unsubscribe();
 
-console.log('Collection Catalog relationship and provenance tests passed.');
+console.log('Collection Catalog editing, history, and provenance tests passed.');

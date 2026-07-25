@@ -34,6 +34,37 @@ export class RecordService {
     return CuratorDatabase.clone(this.database.records.find((record) => record.id === id) || null);
   }
 
+  incoming(id) {
+    if (!id) return [];
+    return CuratorRelationships.incoming(this.database, id).map((relationship) => ({
+      ...relationship,
+      sourceRecord: this.get(relationship.source)
+    }));
+  }
+
+  resolveRelationships(record) {
+    if (!record) return { outgoing: [], incoming: [] };
+    const outgoing = (record.relationships || []).map((relationship) => ({
+      ...CuratorDatabase.clone(relationship),
+      targetRecord: this.get(relationship.target)
+    }));
+    return { outgoing, incoming: this.incoming(record.id) };
+  }
+
+  resolveSources(record) {
+    if (!record) return [];
+    const direct = (record.sources || []).map((source) => CuratorDatabase.clone(source));
+    const relationshipSourceIds = (record.relationships || []).flatMap((relationship) => relationship.sourceIds || []);
+    const byId = new Map(direct.map((source) => [source.id, source]));
+    relationshipSourceIds.forEach((sourceId) => {
+      if (!byId.has(sourceId)) {
+        const sourceRecord = this.get(sourceId);
+        byId.set(sourceId, sourceRecord || { id: sourceId, title: sourceId });
+      }
+    });
+    return [...byId.values()];
+  }
+
   replace(records) {
     this.database = CuratorDatabase.createDatabase(records);
     if (this.storage?.setItem) CuratorStorage.save(this.database, this.storage, this.storageKey);
@@ -96,10 +127,13 @@ export function renderRecordCard(record, selected = false) {
     </button>`;
 }
 
-export function renderInspector(record) {
+export function renderInspector(record, context = {}) {
   if (!record) {
     return `<div class="cos-empty-state"><strong>No record selected</strong><span>Select a catalog record to open its dossier.</span></div>`;
   }
+
+  const relationships = context.relationships || { outgoing: [], incoming: [] };
+  const sources = context.sources || record.sources || [];
 
   return `
     <div class="cos-inspector-breadcrumb">Collection Catalog <span>›</span> ${escapeHtml(record.type)} <span>›</span> ${escapeHtml(record.title)}</div>
@@ -107,13 +141,60 @@ export function renderInspector(record) {
       <span class="cos-record-icon" aria-hidden="true">${ICONS[record.type] || '•'}</span>
       <div><h2>${escapeHtml(record.title)}</h2><p>${escapeHtml(record.id)}</p></div>
     </header>
+    ${renderProvenanceSummary(record, relationships, sources)}
     ${renderSection('Summary', `<p>${escapeHtml(record.summary || 'No summary recorded.')}</p>`, true)}
-    ${renderListSection('Relationships', record.relationships)}
-    ${renderListSection('Sources', record.sources)}
+    ${renderRelationshipSection(relationships)}
+    ${renderSourceSection(sources)}
     ${renderListSection('Media', record.media)}
     ${renderListSection('Notes', record.notes)}
     ${renderSection('Metadata', `<dl>${Object.entries(record.metadata || {}).map(([key, value]) => `<div><dt>${escapeHtml(key)}</dt><dd>${escapeHtml(String(value))}</dd></div>`).join('')}</dl>`)}
   `;
+}
+
+function renderProvenanceSummary(record, relationships, sources) {
+  const confidence = record.metadata?.confidence || 'unknown';
+  const reviewed = record.metadata?.reviewed || 'Not reviewed';
+  const linkedClaims = [...relationships.outgoing, ...relationships.incoming].length;
+  return `<section class="cos-provenance-summary" aria-label="Provenance summary">
+    <span><b>Confidence</b>${escapeHtml(confidence)}</span>
+    <span><b>Reviewed</b>${escapeHtml(reviewed)}</span>
+    <span><b>Sources</b>${sources.length}</span>
+    <span><b>Linked claims</b>${linkedClaims}</span>
+  </section>`;
+}
+
+function renderRelationshipSection(relationships) {
+  const outgoing = relationships.outgoing || [];
+  const incoming = relationships.incoming || [];
+  const content = `
+    <h3>Outgoing</h3>
+    ${renderRelationshipList(outgoing, 'targetRecord')}
+    <h3>Incoming</h3>
+    ${renderRelationshipList(incoming, 'sourceRecord')}`;
+  return renderSection('Relationships', content, true);
+}
+
+function renderRelationshipList(values, recordKey) {
+  if (!values.length) return '<p class="cos-muted">None recorded.</p>';
+  return `<ul class="cos-provenance-list">${values.map((value) => {
+    const linkedRecord = value[recordKey];
+    const label = linkedRecord?.title || value.target || value.source || 'Unknown record';
+    const type = value.relationship || 'related_to';
+    const confidence = value.confidence || 'unknown';
+    const sourceCount = (value.sourceIds || []).length;
+    return `<li><strong>${escapeHtml(label)}</strong><span>${escapeHtml(type)} · ${escapeHtml(confidence)} · ${sourceCount} source${sourceCount === 1 ? '' : 's'}</span>${value.note ? `<p>${escapeHtml(value.note)}</p>` : ''}</li>`;
+  }).join('')}</ul>`;
+}
+
+function renderSourceSection(sources = []) {
+  if (!sources.length) return renderSection('Sources', '<p class="cos-muted">None recorded.</p>');
+  const content = `<ul class="cos-provenance-list">${sources.map((source) => {
+    const title = source.title || source.label || source.id || 'Untitled source';
+    const id = source.id || 'unidentified';
+    const details = [source.type, source.date, source.url].filter(Boolean).join(' · ');
+    return `<li><strong>${escapeHtml(title)}</strong><span>${escapeHtml(id)}${details ? ` · ${escapeHtml(details)}` : ''}</span>${source.note ? `<p>${escapeHtml(source.note)}</p>` : ''}</li>`;
+  }).join('')}</ul>`;
+  return renderSection('Sources', content, true);
 }
 
 function renderListSection(title, values = []) {
@@ -196,7 +277,11 @@ export function mountCollectionCatalogShell(root, options = {}) {
     list.innerHTML = state.results.length
       ? state.results.map((record) => renderRecordCard(record, record.id === state.selectedId)).join('')
       : `<div class="cos-empty-state"><strong>No matching records</strong><span>Change the search or filters.</span></div>`;
-    inspector.innerHTML = renderInspector(recordService.get(state.selectedId));
+    const selectedRecord = recordService.get(state.selectedId);
+    inspector.innerHTML = renderInspector(selectedRecord, {
+      relationships: recordService.resolveRelationships(selectedRecord),
+      sources: recordService.resolveSources(selectedRecord)
+    });
   }
 
   function selectAt(index) {

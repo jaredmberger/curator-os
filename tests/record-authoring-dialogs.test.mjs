@@ -42,15 +42,62 @@ assert.equal(created.id, 'ship.test-liner');
 assert.equal(records.get('ship.test-liner').title, 'Test Liner');
 assert.deepEqual(records.get('ship.test-liner').tags, ['test', 'liner']);
 
-const structuredValues = new Map([
-  ['relationships', JSON.stringify({ target: 'ship.other', relationship: 'sister_of', confidence: 'probable', sourceIds: [], note: '' })],
-  ['sources', JSON.stringify({ id: 'source.test', title: 'Test source', type: 'archive' })],
-  ['media', JSON.stringify({ id: 'media.test', title: 'Test image', type: 'image' })],
-  ['notes', JSON.stringify({ body: 'Curatorial note', kind: 'curatorial' })]
-]);
+function mockRow(values) {
+  const fields = new Map(Object.entries(values).map(([name, value]) => [name, { value }]));
+  return {
+    querySelector(selector) {
+      const match = selector.match(/^\[name="(.+)"\]$/);
+      return match ? fields.get(match[1]) ?? null : null;
+    },
+    querySelectorAll(selector) {
+      return selector === 'input, textarea, select' ? [...fields.values()] : [];
+    }
+  };
+}
+
+function mockStructuredForm(rowsByType) {
+  return {
+    querySelectorAll(selector) {
+      const match = selector.match(/^\[data-structured-row="(.+)"\]$/);
+      return match ? rowsByType[match[1]] ?? [] : [];
+    }
+  };
+}
+
+const structuredForm = mockStructuredForm({
+  relationship: [mockRow({
+    'relationship.target': 'ship.other',
+    'relationship.kind': 'sister_of',
+    'relationship.confidence': 'probable',
+    'relationship.sourceIds': '',
+    'relationship.note': ''
+  })],
+  source: [mockRow({
+    'source.id': 'source.test',
+    'source.title': 'Test source',
+    'source.type': 'archive',
+    'source.date': '',
+    'source.url': '',
+    'source.note': ''
+  })],
+  media: [mockRow({
+    'media.id': 'media.test',
+    'media.title': 'Test image',
+    'media.type': 'image',
+    'media.url': '',
+    'media.alt': '',
+    'media.note': ''
+  })],
+  note: [mockRow({
+    'note.body': 'Curatorial note',
+    'note.kind': 'curatorial',
+    'note.author': '',
+    'note.created': ''
+  })]
+});
 
 records.create({ id: 'ship.other', type: 'ship', title: 'Other Ship' });
-controller.updateStructuredFromForm('ship.test-liner', structuredValues);
+controller.updateStructuredFromForm('ship.test-liner', structuredForm);
 const updated = records.get('ship.test-liner');
 assert.equal(updated.relationships[0].target, 'ship.other');
 assert.equal(updated.sources[0].title, 'Test source');
@@ -60,5 +107,7 @@ assert.equal(updated.notes[0].body, 'Curatorial note');
 assert.match(renderCreateRecordDialog(), /Create record/);
 assert.match(renderStructuredAuthoringDialog(updated), /Structured authoring/);
 assert.match(renderStructuredAuthoringDialog(updated), /Test source/);
+assert.match(renderStructuredAuthoringDialog(updated), /data-structured-row="relationship"/);
+assert.match(renderStructuredAuthoringDialog(updated), /data-add-row="source"/);
 
 console.log('Record authoring dialog tests passed.');

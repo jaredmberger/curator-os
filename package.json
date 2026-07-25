@@ -6,7 +6,9 @@
   "scripts": {
     "build": "node scripts/build.js",
     "validate": "node scripts/validate.js",
-    "test": "node tests/smoke.test.js",
+    "test:smoke": "node tests/smoke.test.js",
+    "test:database": "node tests/database.test.js",
+    "test": "npm run test:database && npm run test:smoke",
     "check": "npm run validate && npm run test && npm run build"
   },
   "engines": {

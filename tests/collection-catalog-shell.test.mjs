@@ -8,6 +8,7 @@ function loadCanonicalGlobal(path, name) {
 
 loadCanonicalGlobal('../src/core/database.js', 'CuratorDatabase');
 loadCanonicalGlobal('../src/core/storage.js', 'CuratorStorage');
+loadCanonicalGlobal('../src/core/relationships.js', 'CuratorRelationships');
 
 const {
   RecordService,
@@ -31,11 +32,17 @@ const seedRecords = [
     summary: 'Lead ship of the Olympic class.',
     status: 'published',
     tags: ['White Star Line', 'Olympic class'],
-    relationships: [{ type: 'operated_by', targetId: 'company.white-star-line' }],
-    sources: [{ id: 'source.builder-records', title: 'Builder records' }],
+    relationships: [{
+      target: 'company.white-star-line',
+      relationship: 'operated_by',
+      confidence: 'verified',
+      sourceIds: ['source.builder-records'],
+      note: 'Documented in builder and company records.'
+    }],
+    sources: [{ id: 'source.builder-records', title: 'Builder records', type: 'archive' }],
     media: [],
     notes: [],
-    metadata: { confidence: 'verified' }
+    metadata: { confidence: 'verified', reviewed: '2026-07-25' }
   },
   {
     id: 'company.white-star-line',
@@ -49,6 +56,19 @@ const seedRecords = [
     media: [],
     notes: [],
     metadata: { confidence: 'probable' }
+  },
+  {
+    id: 'source.builder-records',
+    type: 'source',
+    title: 'Builder records',
+    summary: 'Primary shipbuilder documentation.',
+    status: 'published',
+    tags: ['Primary source'],
+    relationships: [],
+    sources: [],
+    media: [],
+    notes: [],
+    metadata: { confidence: 'verified' }
   }
 ];
 
@@ -56,11 +76,11 @@ const storage = new MemoryStorage();
 const records = new RecordService({ storage, seedRecords });
 const search = new SearchService(records);
 
-assert.equal(records.all().length, 2, 'loads canonical seed records');
-assert.equal(search.search().length, 2, 'returns all canonical records without filters');
+assert.equal(records.all().length, 3, 'loads canonical seed records');
+assert.equal(search.search().length, 3, 'returns all canonical records without filters');
 assert.equal(search.search('olympic').length, 1, 'searches canonical titles and tags');
 assert.equal(search.search('', { type: 'ship' }).length, 1, 'filters by canonical type');
-assert.equal(search.search('', { status: 'published' }).length, 1, 'filters by canonical status');
+assert.equal(search.search('', { status: 'published' }).length, 2, 'filters by canonical status');
 assert.equal(search.search('does-not-exist').length, 0, 'returns no false positives');
 
 const olympic = records.get('ship.olympic');
@@ -70,9 +90,20 @@ assert.match(card, /is-selected/);
 assert.match(card, /ship\.olympic/);
 assert.match(card, /verified/);
 
-const inspector = renderInspector(olympic);
+const relationships = records.resolveRelationships(olympic);
+assert.equal(relationships.outgoing[0].targetRecord.title, 'White Star Line');
+assert.equal(records.incoming('company.white-star-line')[0].sourceRecord.title, 'RMS Olympic');
+assert.equal(records.resolveSources(olympic)[0].title, 'Builder records');
+
+const inspector = renderInspector(olympic, {
+  relationships,
+  sources: records.resolveSources(olympic)
+});
 assert.match(inspector, /Collection Catalog/);
-assert.match(inspector, /Relationships/);
+assert.match(inspector, /Provenance summary/);
+assert.match(inspector, /White Star Line/);
+assert.match(inspector, /Builder records/);
+assert.match(inspector, /Linked claims/);
 assert.match(inspector, /Metadata/);
 
 const reloaded = new RecordService({ storage });
@@ -86,4 +117,4 @@ assert.equal(opened, 'atlas');
 assert.equal(nav.activeModule, 'atlas');
 unsubscribe();
 
-console.log('Collection Catalog canonical record tests passed.');
+console.log('Collection Catalog relationship and provenance tests passed.');

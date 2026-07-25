@@ -1,29 +1,72 @@
 import assert from 'node:assert/strict';
 import {
+  RecordService,
   SearchService,
   NavigationService,
-  mockRecords,
   renderRecordCard,
   renderInspector
 } from '../src/ui/collection-catalog-shell.js';
 
-const search = new SearchService(mockRecords);
+class MemoryStorage {
+  constructor() { this.values = new Map(); }
+  getItem(key) { return this.values.has(key) ? this.values.get(key) : null; }
+  setItem(key, value) { this.values.set(key, String(value)); }
+}
 
-assert.equal(search.search().length, 4, 'returns all records without filters');
-assert.equal(search.search('olympic').length, 2, 'searches titles, tags, and metadata');
-assert.equal(search.search('', { type: 'ship' }).length, 2, 'filters by type');
-assert.equal(search.search('', { status: 'verified' }).length, 2, 'filters by status');
+const seedRecords = [
+  {
+    id: 'ship.olympic',
+    type: 'ship',
+    title: 'RMS Olympic',
+    summary: 'Lead ship of the Olympic class.',
+    status: 'published',
+    tags: ['White Star Line', 'Olympic class'],
+    relationships: [{ type: 'operated_by', targetId: 'company.white-star-line' }],
+    sources: [{ id: 'source.builder-records', title: 'Builder records' }],
+    media: [],
+    notes: [],
+    metadata: { confidence: 'verified' }
+  },
+  {
+    id: 'company.white-star-line',
+    type: 'company',
+    title: 'White Star Line',
+    summary: 'British shipping company.',
+    status: 'review',
+    tags: ['Shipping line'],
+    relationships: [],
+    sources: [],
+    media: [],
+    notes: [],
+    metadata: { confidence: 'probable' }
+  }
+];
+
+const storage = new MemoryStorage();
+const records = new RecordService({ storage, seedRecords });
+const search = new SearchService(records);
+
+assert.equal(records.all().length, 2, 'loads canonical seed records');
+assert.equal(search.search().length, 2, 'returns all canonical records without filters');
+assert.equal(search.search('olympic').length, 1, 'searches canonical titles and tags');
+assert.equal(search.search('', { type: 'ship' }).length, 1, 'filters by canonical type');
+assert.equal(search.search('', { status: 'published' }).length, 1, 'filters by canonical status');
 assert.equal(search.search('does-not-exist').length, 0, 'returns no false positives');
 
-const card = renderRecordCard(mockRecords[0], true);
+const olympic = records.get('ship.olympic');
+const card = renderRecordCard(olympic, true);
 assert.match(card, /RMS Olympic/);
 assert.match(card, /is-selected/);
-assert.match(card, /SHIP-000001/);
+assert.match(card, /ship\.olympic/);
+assert.match(card, /verified/);
 
-const inspector = renderInspector(mockRecords[0]);
+const inspector = renderInspector(olympic);
 assert.match(inspector, /Collection Catalog/);
 assert.match(inspector, /Relationships/);
 assert.match(inspector, /Metadata/);
+
+const reloaded = new RecordService({ storage });
+assert.equal(reloaded.get('ship.olympic').title, 'RMS Olympic', 'reloads canonical database from storage');
 
 const nav = new NavigationService();
 let opened = null;
@@ -33,4 +76,4 @@ assert.equal(opened, 'atlas');
 assert.equal(nav.activeModule, 'atlas');
 unsubscribe();
 
-console.log('Collection Catalog shell tests passed.');
+console.log('Collection Catalog canonical record tests passed.');

@@ -1,6 +1,6 @@
 {
   "name": "curator-os",
-  "version": "5.3.0-alpha.11",
+  "version": "5.3.0-alpha.12",
   "private": true,
   "description": "Evidence-first institutional operating system for Ocean Liner Curator",
   "scripts": {
@@ -13,7 +13,8 @@
     "test:catalog": "node tests/collection-catalog-shell.test.mjs",
     "test:authoring": "node tests/structured-record-authoring.test.mjs",
     "test:authoring-dialogs": "node tests/record-authoring-dialogs.test.mjs",
-    "test": "npm run test:database && npm run test:smoke && npm run test:catalog && npm run test:authoring && npm run test:authoring-dialogs",
+    "test:sync": "node tests/sync-state.test.mjs",
+    "test": "npm run test:database && npm run test:smoke && npm run test:catalog && npm run test:authoring && npm run test:authoring-dialogs && npm run test:sync",
     "check": "npm run validate && npm run test && npm run build"
   },
   "engines": {

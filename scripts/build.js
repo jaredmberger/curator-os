@@ -7,7 +7,14 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
 const html = read('views/shell.html');
 const css = read('styles/curatoros.css');
-const modules = ['src/core.js', 'src/registry.js', 'src/startup.js'];
+const modules = [
+  'src/core/database.js',
+  'src/core/storage.js',
+  'src/core/relationships.js',
+  'src/core.js',
+  'src/registry.js',
+  'src/startup.js'
+];
 const js = modules.map(read).join('\n\n');
 
 new vm.Script(js, { filename: 'curatoros-browser.js' });

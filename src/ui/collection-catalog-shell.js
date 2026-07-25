@@ -1,62 +1,3 @@
-export const mockRecords = [
-  {
-    id: 'SHIP-000001',
-    type: 'ship',
-    title: 'RMS Olympic',
-    summary: 'Lead ship of the Olympic class and a long-serving White Star liner.',
-    status: 'verified',
-    confidence: 96,
-    tags: ['White Star Line', 'Olympic class'],
-    relationships: ['Operated by White Star Line', 'Built by Harland & Wolff'],
-    sources: ['Builder records', 'Contemporary newspapers'],
-    media: ['Exterior profile', 'Promenade deck'],
-    notes: ['Inspector content is read-only in PR #3.'],
-    metadata: { created: '2026-07-25', updated: '2026-07-25', schema: 'v1' }
-  },
-  {
-    id: 'SHIP-000002',
-    type: 'ship',
-    title: 'RMS Titanic',
-    summary: 'Second Olympic-class liner, lost on her maiden voyage in April 1912.',
-    status: 'verified',
-    confidence: 99,
-    tags: ['White Star Line', 'Olympic class'],
-    relationships: ['Sister ship of RMS Olympic', 'Built by Harland & Wolff'],
-    sources: ['British inquiry', 'American inquiry'],
-    media: ['Launch photograph', 'General arrangement plan'],
-    notes: [],
-    metadata: { created: '2026-07-25', updated: '2026-07-25', schema: 'v1' }
-  },
-  {
-    id: 'COMP-000001',
-    type: 'company',
-    title: 'White Star Line',
-    summary: 'British shipping company associated with some of the best-known North Atlantic liners.',
-    status: 'reviewed',
-    confidence: 94,
-    tags: ['Shipping line', 'United Kingdom'],
-    relationships: ['Operated RMS Olympic', 'Operated RMS Titanic'],
-    sources: ['Company records'],
-    media: ['House flag'],
-    notes: [],
-    metadata: { created: '2026-07-25', updated: '2026-07-25', schema: 'v1' }
-  },
-  {
-    id: 'ORG-000001',
-    type: 'organization',
-    title: 'Harland & Wolff',
-    summary: 'Belfast shipbuilding firm responsible for the Olympic-class liners.',
-    status: 'reviewed',
-    confidence: 93,
-    tags: ['Shipbuilder', 'Belfast'],
-    relationships: ['Built RMS Olympic', 'Built RMS Titanic'],
-    sources: ['Builder records'],
-    media: ['Shipyard photograph'],
-    notes: [],
-    metadata: { created: '2026-07-25', updated: '2026-07-25', schema: 'v1' }
-  }
-];
-
 const ICONS = {
   ship: '🚢',
   company: '⚑',
@@ -67,17 +8,56 @@ const ICONS = {
   source: '⌘'
 };
 
+export class RecordService {
+  constructor(options = {}) {
+    this.storage = options.storage || globalThis.localStorage;
+    this.storageKey = options.storageKey || CuratorStorage.DEFAULT_KEY;
+    this.seedRecords = Array.isArray(options.seedRecords) ? options.seedRecords : [];
+    this.database = this.load();
+  }
+
+  load() {
+    let database = CuratorStorage.load(this.storage, this.storageKey);
+    if (!database.records.length && this.seedRecords.length) {
+      database = CuratorDatabase.createDatabase(this.seedRecords);
+      if (this.storage?.setItem) CuratorStorage.save(database, this.storage, this.storageKey);
+    }
+    CuratorDatabase.assertDatabase(database);
+    return database;
+  }
+
+  all() {
+    return CuratorDatabase.clone(this.database.records);
+  }
+
+  get(id) {
+    return CuratorDatabase.clone(this.database.records.find((record) => record.id === id) || null);
+  }
+
+  replace(records) {
+    this.database = CuratorDatabase.createDatabase(records);
+    if (this.storage?.setItem) CuratorStorage.save(this.database, this.storage, this.storageKey);
+    return this.all();
+  }
+}
+
 export class SearchService {
-  constructor(records = mockRecords) {
-    this.records = records;
+  constructor(recordService = new RecordService()) {
+    this.recordService = recordService;
   }
 
   search(query = '', filters = {}) {
     const needle = query.trim().toLowerCase();
-    return this.records.filter((record) => {
-      const haystack = [record.id, record.title, record.type, record.status, ...(record.tags || [])]
-        .join(' ')
-        .toLowerCase();
+    return this.recordService.all().filter((record) => {
+      const haystack = [
+        record.id,
+        record.title,
+        record.type,
+        record.status,
+        record.summary,
+        record.metadata?.confidence,
+        ...(record.tags || [])
+      ].join(' ').toLowerCase();
       const queryMatches = !needle || haystack.includes(needle);
       const typeMatches = !filters.type || filters.type === 'all' || record.type === filters.type;
       const statusMatches = !filters.status || filters.status === 'all' || record.status === filters.status;
@@ -110,7 +90,7 @@ export function renderRecordCard(record, selected = false) {
       <span class="cos-record-icon" aria-hidden="true">${ICONS[record.type] || '•'}</span>
       <span class="cos-record-body">
         <span class="cos-record-title">${escapeHtml(record.title)}</span>
-        <span class="cos-record-meta">${escapeHtml(record.type)} · ${escapeHtml(record.status)} · ${Number(record.confidence || 0)}%</span>
+        <span class="cos-record-meta">${escapeHtml(record.type)} · ${escapeHtml(record.status)} · ${escapeHtml(record.metadata?.confidence || 'unknown')}</span>
         <span class="cos-record-tags">${tags}</span>
       </span>
     </button>`;
@@ -138,7 +118,7 @@ export function renderInspector(record) {
 
 function renderListSection(title, values = []) {
   const content = values.length
-    ? `<ul>${values.map((value) => `<li>${escapeHtml(value)}</li>`).join('')}</ul>`
+    ? `<ul>${values.map((value) => `<li>${escapeHtml(typeof value === 'string' ? value : JSON.stringify(value))}</li>`).join('')}</ul>`
     : '<p class="cos-muted">None recorded.</p>';
   return renderSection(title, content);
 }
@@ -159,7 +139,8 @@ function escapeHtml(value) {
 export function mountCollectionCatalogShell(root, options = {}) {
   if (!root) throw new Error('Collection Catalog root element is required.');
 
-  const searchService = options.searchService || new SearchService();
+  const recordService = options.recordService || new RecordService(options);
+  const searchService = options.searchService || new SearchService(recordService);
   const navigationService = options.navigationService || new NavigationService();
   const state = {
     query: '',
@@ -179,7 +160,7 @@ export function mountCollectionCatalogShell(root, options = {}) {
             .map((label) => `<button type="button" data-module="${label === 'Collection Catalog' ? 'catalog' : label.toLowerCase().replaceAll(' ', '-')}">${label}</button>`)
             .join('')}
         </nav>
-        <footer><span>Database <b>Healthy</b></span><span>Schema <b>v1</b></span><span>Build <b>5.3 alpha</b></span></footer>
+        <footer><span>Database <b>Healthy</b></span><span>Schema <b>v${CuratorDatabase.SCHEMA_VERSION}</b></span><span>Build <b>5.3 alpha</b></span></footer>
       </aside>
       <main class="cos-catalog-pane">
         <header class="cos-toolbar">
@@ -187,8 +168,8 @@ export function mountCollectionCatalogShell(root, options = {}) {
           <label class="cos-search"><span class="sr-only">Search records</span><input type="search" placeholder="Search records…" autocomplete="off" data-catalog-search></label>
         </header>
         <div class="cos-filter-bar">
-          <label>Type<select data-filter-type><option value="all">All</option><option value="ship">Ships</option><option value="company">Companies</option><option value="organization">Organizations</option></select></label>
-          <label>Status<select data-filter-status><option value="all">All</option><option value="verified">Verified</option><option value="reviewed">Reviewed</option></select></label>
+          <label>Type<select data-filter-type><option value="all">All</option><option value="ship">Ships</option><option value="company">Companies</option><option value="organization">Organizations</option><option value="person">People</option><option value="object">Objects</option><option value="photo">Photos</option><option value="source">Sources</option></select></label>
+          <label>Status<select data-filter-status><option value="all">All</option><option value="draft">Draft</option><option value="review">Review</option><option value="published">Published</option><option value="archived">Archived</option></select></label>
           <span data-result-count></span>
         </div>
         <section class="cos-record-list" aria-label="Catalog records" data-record-list></section>
@@ -215,7 +196,7 @@ export function mountCollectionCatalogShell(root, options = {}) {
     list.innerHTML = state.results.length
       ? state.results.map((record) => renderRecordCard(record, record.id === state.selectedId)).join('')
       : `<div class="cos-empty-state"><strong>No matching records</strong><span>Change the search or filters.</span></div>`;
-    inspector.innerHTML = renderInspector(state.results.find((record) => record.id === state.selectedId));
+    inspector.innerHTML = renderInspector(recordService.get(state.selectedId));
   }
 
   function selectAt(index) {
@@ -267,5 +248,5 @@ export function mountCollectionCatalogShell(root, options = {}) {
   });
 
   render();
-  return { state, searchService, navigationService, destroy() { root.innerHTML = ''; } };
+  return { state, recordService, searchService, navigationService, destroy() { root.innerHTML = ''; } };
 }

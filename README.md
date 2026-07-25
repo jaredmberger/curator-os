@@ -4,14 +4,20 @@ CuratorOS is the evidence-first institutional operating system behind Ocean Line
 
 This repository is organized so development happens in modular source files while Cloudflare deployment remains a single generated Worker.
 
-## Developer preview
+## Hosted preview
+
+After GitHub Pages is enabled for this repository, the preview is deployed automatically from `main` and is available at:
+
+`https://jaredmberger.github.io/curator-os/preview/`
+
+The deployment workflow can also be run manually from the Actions tab.
+
+## Local developer preview
 
 1. Run `npm start` from the repository root.
 2. Open `http://localhost:4173/preview/`.
 
 The preview includes the Collection Catalog, canonical browser persistence, search and filters, record inspection, inline editing, undo/redo, record creation, and structured authoring dialogs.
-
-The same preview can be published through GitHub Pages or Cloudflare Pages for one-tap iPad access in the next deployment milestone.
 
 ## Release model
 
@@ -21,6 +27,6 @@ The same preview can be published through GitHub Pages or Cloudflare Pages for o
 
 ## Current milestone
 
-**CuratorOS 5.3 alpha — Developer Preview**
+**CuratorOS 5.3 alpha — Hosted Developer Preview**
 
-The current milestone turns the canonical catalog and authoring engine into a browser-launchable application surface while preserving Stable Keel validation and tests.
+The current milestone publishes the canonical catalog and authoring workspace as a browser application that can be opened directly on an iPad while preserving Stable Keel validation and tests.

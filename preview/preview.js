@@ -1,4 +1,6 @@
 import { mountCollectionCatalogShell, RecordService } from '../src/ui/collection-catalog-shell.js';
+import { LocalMockSyncProvider } from '../src/core/mock-sync-provider.js';
+import { installSyncStatus } from '../src/ui/sync-status.js';
 
 const seedRecords = [
   {
@@ -53,6 +55,10 @@ const recordService = new RecordService({ seedRecords });
 const app = mountCollectionCatalogShell(root, { recordService });
 
 installDataPortability(root, recordService, app);
+installSyncStatus(root, {
+  recordService,
+  provider: new LocalMockSyncProvider()
+});
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js'));

@@ -65,6 +65,8 @@ function installDataPortability(rootElement, service, mountedApp) {
   toolbar.insertAdjacentHTML('beforeend', `
     <button type="button" data-export-data>Export</button>
     <button type="button" data-import-data>Import</button>
+    <button type="button" data-create-snapshot>Snapshot</button>
+    <button type="button" data-restore-snapshot>Restore</button>
     <input type="file" accept="application/json,.json" data-import-file hidden>
   `);
 
@@ -76,16 +78,38 @@ function installDataPortability(rootElement, service, mountedApp) {
       schemaVersion: CuratorDatabase.SCHEMA_VERSION,
       records: service.all()
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `curatoros-export-${new Date().toISOString().slice(0, 10)}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadJson(payload, `curatoros-export-${new Date().toISOString().slice(0, 10)}.json`);
   });
 
   toolbar.querySelector('[data-import-data]').addEventListener('click', () => fileInput.click());
+
+  toolbar.querySelector('[data-create-snapshot]').addEventListener('click', () => {
+    const snapshot = {
+      createdAt: new Date().toISOString(),
+      schemaVersion: CuratorDatabase.SCHEMA_VERSION,
+      records: service.all()
+    };
+    localStorage.setItem('curatoros.snapshot.latest', JSON.stringify(snapshot));
+    alert(`Saved local snapshot with ${snapshot.records.length} record${snapshot.records.length === 1 ? '' : 's'}.`);
+  });
+
+  toolbar.querySelector('[data-restore-snapshot]').addEventListener('click', () => {
+    const stored = localStorage.getItem('curatoros.snapshot.latest');
+    if (!stored) return alert('No local snapshot is available.');
+    try {
+      const snapshot = JSON.parse(stored);
+      const records = snapshot.records;
+      if (!Array.isArray(records)) throw new Error('Stored snapshot does not contain a records array.');
+      CuratorDatabase.assertDatabase(CuratorDatabase.createDatabase(records));
+      const confirmed = confirm(`Restore the snapshot from ${formatDate(snapshot.createdAt)}? This will replace the current local database.`);
+      if (!confirmed) return;
+      service.replace(records);
+      resetMountedState(mountedApp);
+      alert(`Restored ${records.length} record${records.length === 1 ? '' : 's'} from the local snapshot.`);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : String(error));
+    }
+  });
 
   fileInput.addEventListener('change', async () => {
     const [file] = fileInput.files;
@@ -95,14 +119,43 @@ function installDataPortability(rootElement, service, mountedApp) {
       const records = Array.isArray(parsed) ? parsed : parsed.records;
       if (!Array.isArray(records)) throw new Error('Import file does not contain a records array.');
       CuratorDatabase.assertDatabase(CuratorDatabase.createDatabase(records));
+
+      const existingCount = service.all().length;
+      const confirmed = confirm(`Import ${records.length} record${records.length === 1 ? '' : 's'} and replace the current ${existingCount}-record local database?`);
+      if (!confirmed) return;
+
+      localStorage.setItem('curatoros.snapshot.before-import', JSON.stringify({
+        createdAt: new Date().toISOString(),
+        schemaVersion: CuratorDatabase.SCHEMA_VERSION,
+        records: service.all()
+      }));
       service.replace(records);
-      mountedApp.state.selectedId = null;
-      mountedApp.state.editing = false;
-      alert(`Imported ${records.length} record${records.length === 1 ? '' : 's'}.`);
+      resetMountedState(mountedApp);
+      alert(`Imported ${records.length} record${records.length === 1 ? '' : 's'}. A pre-import snapshot was saved locally.`);
     } catch (error) {
       alert(error instanceof Error ? error.message : String(error));
     } finally {
       fileInput.value = '';
     }
   });
+}
+
+function resetMountedState(mountedApp) {
+  mountedApp.state.selectedId = null;
+  mountedApp.state.editing = false;
+}
+
+function downloadJson(payload, filename) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function formatDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'an unknown date' : date.toLocaleString();
 }

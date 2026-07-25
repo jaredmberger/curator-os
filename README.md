@@ -17,7 +17,13 @@ The deployment workflow can also be run manually from the Actions tab.
 1. Run `npm start` from the repository root.
 2. Open `http://localhost:4173/preview/`.
 
-The preview includes the Collection Catalog, canonical browser persistence, search and filters, record inspection, inline editing, undo/redo, record creation, and structured authoring dialogs.
+The preview includes the Collection Catalog, canonical browser persistence, search and filters, record inspection, inline editing, undo/redo, record creation, structured authoring dialogs, local snapshots, and guarded import/restore flows.
+
+## Synchronization architecture
+
+CuratorOS remains local-first. The provider-neutral synchronization boundary, conflict states, recovery guarantees, and implementation sequence are defined in [`docs/synchronization-contract.md`](docs/synchronization-contract.md).
+
+The contract requires explicit authentication, visible sync state, canonical validation, recovery snapshots before replacement, and no silent last-write-wins behavior.
 
 ## Release model
 
@@ -27,6 +33,6 @@ The preview includes the Collection Catalog, canonical browser persistence, sear
 
 ## Current milestone
 
-**CuratorOS 5.3 alpha — Hosted Developer Preview**
+**CuratorOS 5.3 alpha — Local-first Hosted Developer Preview**
 
-The current milestone publishes the canonical catalog and authoring workspace as a browser application that can be opened directly on an iPad while preserving Stable Keel validation and tests.
+The current milestone provides a browser application designed for direct iPad use, with canonical authoring, portable backups, recovery snapshots, and an explicit architectural path toward optional authenticated synchronization while preserving Stable Keel validation and tests.

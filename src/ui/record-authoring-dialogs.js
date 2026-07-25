@@ -80,16 +80,20 @@ export function renderCreateRecordDialog() {
   </dialog>`;
 }
 
-export function renderStructuredAuthoringDialog(record) {
+export function renderStructuredAuthoringDialog(record, options = {}) {
   if (!record) return '';
+  const records = Array.isArray(options.records) ? options.records : [];
+  const sourceRecords = records.filter((item) => item.type === 'source');
   return `<dialog class="cos-authoring-dialog cos-authoring-dialog-wide" data-structured-record-dialog>
     <form method="dialog" class="cos-authoring-form" data-structured-record-form>
       <header><div><span class="cos-eyebrow">Structured authoring</span><h2>${escapeHtml(record.title)}</h2><p>${escapeHtml(record.id)}</p></div><button type="button" data-close-dialog aria-label="Close">×</button></header>
       <p class="cos-authoring-help">Add and edit canonical relationships, sources, media, and notes through guided fields. Empty rows are ignored.</p>
-      ${renderSection('Relationships', 'relationship', record.relationships || [], renderRelationshipRow)}
+      ${renderSection('Relationships', 'relationship', record.relationships || [], (value) => renderRelationshipRow(value, records, sourceRecords))}
       ${renderSection('Sources', 'source', record.sources || [], renderSourceRow)}
       ${renderSection('Media', 'media', record.media || [], renderMediaRow)}
       ${renderSection('Notes', 'note', record.notes || [], renderNoteRow)}
+      <datalist id="cos-record-options">${records.map((item) => `<option value="${attr(item.id)}">${escapeHtml(item.title || item.id)}</option>`).join('')}</datalist>
+      <datalist id="cos-source-options">${sourceRecords.map((item) => `<option value="${attr(item.id)}">${escapeHtml(item.title || item.id)}</option>`).join('')}</datalist>
       <p class="cos-form-error" data-authoring-error hidden></p>
       <footer><button type="button" data-close-dialog>Cancel</button><button type="submit">Save structured data</button></footer>
     </form>
@@ -105,7 +109,7 @@ export function installRecordAuthoringDialogs(root, context) {
     root.querySelectorAll('[data-create-record-dialog], [data-structured-record-dialog]').forEach((dialog) => dialog.remove());
     root.insertAdjacentHTML('beforeend', renderCreateRecordDialog());
     const record = currentRecord();
-    if (record) root.insertAdjacentHTML('beforeend', renderStructuredAuthoringDialog(record));
+    if (record) root.insertAdjacentHTML('beforeend', renderStructuredAuthoringDialog(record, { records: context.recordService.all() }));
   }
   function show(selector) { mountDialogs(); root.querySelector(selector)?.showModal(); }
 
@@ -116,11 +120,23 @@ export function installRecordAuthoringDialogs(root, context) {
     if (add) {
       const section = add.closest('[data-structured-section]');
       const type = add.dataset.addRow;
-      section.querySelector('[data-row-list]').insertAdjacentHTML('beforeend', rowRenderer(type)({}));
+      section.querySelector('[data-row-list]').insertAdjacentHTML('beforeend', rowRenderer(type)({}, context.recordService.all()));
       return;
     }
     const remove = event.target.closest('[data-remove-row]');
     if (remove) { remove.closest('[data-structured-row]')?.remove(); return; }
+    const appendSource = event.target.closest('[data-append-source]');
+    if (appendSource) {
+      const row = appendSource.closest('[data-structured-row="relationship"]');
+      const picker = row?.querySelector('[data-source-picker]');
+      const input = row?.querySelector('[name="relationship.sourceIds"]');
+      const selected = text(picker?.value);
+      if (selected && input) {
+        input.value = [...new Set([...splitTags(input.value), selected])].join(', ');
+        picker.value = '';
+      }
+      return;
+    }
     if (event.target.closest('[data-close-dialog]')) event.target.closest('dialog')?.close();
   });
 
@@ -161,10 +177,11 @@ function renderSection(title, type, values, renderer) {
   </section>`;
 }
 
-function renderRelationshipRow(value = {}) {
+function renderRelationshipRow(value = {}, records = [], sourceRecords = records.filter((item) => item.type === 'source')) {
   return row('relationship', `
-    <div class="cos-authoring-grid"><label>Target record ID<input name="relationship.target" value="${attr(value.target)}" placeholder="company.example"></label><label>Relationship<input name="relationship.kind" value="${attr(value.relationship)}" placeholder="operated_by"></label></div>
-    <div class="cos-authoring-grid"><label>Confidence<select name="relationship.confidence">${confidenceOptions(value.confidence)}</select></label><label>Source IDs<input name="relationship.sourceIds" value="${attr((value.sourceIds || []).join(', '))}" placeholder="source.one, source.two"></label></div>
+    <div class="cos-authoring-grid"><label>Target record ID<input name="relationship.target" list="cos-record-options" value="${attr(value.target)}" placeholder="Start typing a record ID"></label><label>Relationship<input name="relationship.kind" value="${attr(value.relationship)}" placeholder="operated_by"></label></div>
+    <div class="cos-authoring-grid"><label>Confidence<select name="relationship.confidence">${confidenceOptions(value.confidence)}</select></label><label>Source IDs<input name="relationship.sourceIds" list="cos-source-options" value="${attr((value.sourceIds || []).join(', '))}" placeholder="source.one, source.two"></label></div>
+    <div class="cos-source-assist"><label>Attach source<select data-source-picker><option value="">Choose a source record</option>${sourceRecords.map((item) => `<option value="${attr(item.id)}">${escapeHtml(item.title || item.id)}</option>`).join('')}</select></label><button type="button" data-append-source>Add source ID</button></div>
     <label>Note<textarea name="relationship.note" rows="2">${escapeHtml(value.note || '')}</textarea></label>`);
 }
 function renderSourceRow(value = {}) {

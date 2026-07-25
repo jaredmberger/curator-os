@@ -69,7 +69,7 @@ const structuredForm = mockStructuredForm({
     'relationship.target': 'ship.other',
     'relationship.kind': 'sister_of',
     'relationship.confidence': 'probable',
-    'relationship.sourceIds': '',
+    'relationship.sourceIds': 'source.test',
     'relationship.note': ''
   })],
   source: [mockRow({
@@ -97,17 +97,23 @@ const structuredForm = mockStructuredForm({
 });
 
 records.create({ id: 'ship.other', type: 'ship', title: 'Other Ship' });
+records.create({ id: 'source.catalog', type: 'source', title: 'Catalog source' });
 controller.updateStructuredFromForm('ship.test-liner', structuredForm);
 const updated = records.get('ship.test-liner');
 assert.equal(updated.relationships[0].target, 'ship.other');
+assert.deepEqual(updated.relationships[0].sourceIds, ['source.test']);
 assert.equal(updated.sources[0].title, 'Test source');
 assert.equal(updated.media[0].title, 'Test image');
 assert.equal(updated.notes[0].body, 'Curatorial note');
 
+const structuredDialog = renderStructuredAuthoringDialog(updated, { records: records.all() });
 assert.match(renderCreateRecordDialog(), /Create record/);
-assert.match(renderStructuredAuthoringDialog(updated), /Structured authoring/);
-assert.match(renderStructuredAuthoringDialog(updated), /Test source/);
-assert.match(renderStructuredAuthoringDialog(updated), /data-structured-row="relationship"/);
-assert.match(renderStructuredAuthoringDialog(updated), /data-add-row="source"/);
+assert.match(structuredDialog, /Structured authoring/);
+assert.match(structuredDialog, /Test source/);
+assert.match(structuredDialog, /data-structured-row="relationship"/);
+assert.match(structuredDialog, /data-add-row="source"/);
+assert.match(structuredDialog, /list="cos-record-options"/);
+assert.match(structuredDialog, /data-append-source/);
+assert.match(structuredDialog, /Catalog source/);
 
 console.log('Record authoring dialog tests passed.');

@@ -1,5 +1,4 @@
 import { mountCollectionCatalogShell, RecordService } from '../src/ui/collection-catalog-shell.js';
-import { installRecordAuthoringDialogs } from '../src/ui/record-authoring-dialogs.js';
 
 const seedRecords = [
   {
@@ -51,16 +50,4 @@ const seedRecords = [
 
 const root = document.querySelector('#curatoros-preview');
 const recordService = new RecordService({ seedRecords });
-const app = mountCollectionCatalogShell(root, { recordService });
-
-const authoring = installRecordAuthoringDialogs(root, {
-  recordService,
-  get selectedId() { return app.state.selectedId; },
-  onCreated(record) {
-    app.state.selectedId = record.id;
-    app.state.editing = false;
-  },
-  onUpdated() {}
-});
-
-recordService.subscribe(() => authoring.setSelectedId(app.state.selectedId));
+mountCollectionCatalogShell(root, { recordService });

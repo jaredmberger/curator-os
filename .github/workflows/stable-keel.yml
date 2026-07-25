@@ -1,0 +1,27 @@
+name: Stable Keel
+
+on:
+  push:
+    branches: [main, feature/stable-keel]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate-build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate, test, and build
+        run: npm run check
+      - name: Upload deployable Worker
+        uses: actions/upload-artifact@v4
+        with:
+          name: curatoros-worker
+          path: |
+            dist/curatoros-worker.js
+            dist/curatoros-worker.json

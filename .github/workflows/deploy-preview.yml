@@ -1,0 +1,52 @@
+name: Deploy CuratorOS Preview
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'preview/**'
+      - 'src/core/**'
+      - 'src/ui/**'
+      - 'src/styles/**'
+      - '.github/workflows/deploy-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Assemble static preview
+        run: |
+          mkdir -p site/preview site/src/core site/src/ui site/src/styles
+          cp preview/index.html preview/preview.js site/preview/
+          cp src/core/database.js src/core/storage.js src/core/relationships.js site/src/core/
+          cp src/ui/collection-catalog-shell.js src/ui/structured-record-authoring.js src/ui/record-authoring-dialogs.js site/src/ui/
+          cp src/styles/collection-catalog-shell.css site/src/styles/
+          touch site/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

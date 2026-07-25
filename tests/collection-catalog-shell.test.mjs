@@ -1,11 +1,21 @@
 import assert from 'node:assert/strict';
-import {
+import { readFileSync } from 'node:fs';
+
+function loadCanonicalGlobal(path, name) {
+  const source = readFileSync(new URL(path, import.meta.url), 'utf8');
+  globalThis[name] = Function(`${source}\nreturn ${name};`)();
+}
+
+loadCanonicalGlobal('../src/core/database.js', 'CuratorDatabase');
+loadCanonicalGlobal('../src/core/storage.js', 'CuratorStorage');
+
+const {
   RecordService,
   SearchService,
   NavigationService,
   renderRecordCard,
   renderInspector
-} from '../src/ui/collection-catalog-shell.js';
+} = await import('../src/ui/collection-catalog-shell.js');
 
 class MemoryStorage {
   constructor() { this.values = new Map(); }

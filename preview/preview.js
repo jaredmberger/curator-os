@@ -9,6 +9,7 @@ import { installReferenceObjectAuthoring } from '../src/ui/reference-object-auth
 import { installPhotoMediaAuthoring } from '../src/ui/photo-media-authoring.js';
 import { installReviewDashboard } from '../src/ui/review-dashboard.js';
 import { installPublicationPreview } from '../src/ui/publication-preview.js';
+import { installRelationshipExplorer } from '../src/ui/relationship-explorer.js';
 
 const seedRecords = [
   {
@@ -157,6 +158,11 @@ installSourceAuthoring(root, authoringContext);
 installReferenceObjectAuthoring(root, authoringContext);
 installPhotoMediaAuthoring(root, authoringContext);
 installPublicationPreview(root, authoringContext);
+installRelationshipExplorer(root, {
+  recordService,
+  getSelectedId() { return app.state.selectedId; },
+  onSelect(id) { app.state.selectedId = id; app.state.editing = false; app.updateResults(); }
+});
 installReviewDashboard(root, {
   recordService,
   onSelect(id) { app.state.selectedId = id; app.state.editing = false; app.updateResults(); }

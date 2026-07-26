@@ -1,6 +1,6 @@
 {
   "name": "curator-os",
-  "version": "5.3.0-alpha.32",
+  "version": "5.3.0-alpha.33",
   "private": true,
   "description": "Evidence-first institutional operating system for Ocean Liner Curator",
   "scripts": {
@@ -27,10 +27,11 @@
     "test:advanced-search": "node tests/advanced-search.test.mjs",
     "test:first-use": "node tests/first-use-onboarding.test.mjs",
     "test:olc-import": "node tests/olc-catalog-importer.test.mjs",
+    "test:olc-manifest": "node tests/olc-site-manifest-builder.test.mjs",
     "test:sync": "node tests/sync-state.test.mjs",
     "test:mock-sync": "node tests/mock-sync-provider.test.mjs",
     "test:sync-resolution": "node tests/sync-resolution.test.mjs",
-    "test": "npm run test:database && npm run test:smoke && npm run test:catalog && npm run test:authoring && npm run test:authoring-dialogs && npm run test:ship-authoring && npm run test:builder-authoring && npm run test:shipping-line-authoring && npm run test:source-authoring && npm run test:reference-object-authoring && npm run test:photo-media-authoring && npm run test:publication-preview && npm run test:publication-export && npm run test:page-package-preview && npm run test:relationship-explorer && npm run test:review-dashboard && npm run test:advanced-search && npm run test:first-use && npm run test:olc-import && npm run test:sync && npm run test:mock-sync && npm run test:sync-resolution",
+    "test": "npm run test:database && npm run test:smoke && npm run test:catalog && npm run test:authoring && npm run test:authoring-dialogs && npm run test:ship-authoring && npm run test:builder-authoring && npm run test:shipping-line-authoring && npm run test:source-authoring && npm run test:reference-object-authoring && npm run test:photo-media-authoring && npm run test:publication-preview && npm run test:publication-export && npm run test:page-package-preview && npm run test:relationship-explorer && npm run test:review-dashboard && npm run test:advanced-search && npm run test:first-use && npm run test:olc-import && npm run test:olc-manifest && npm run test:sync && npm run test:mock-sync && npm run test:sync-resolution",
     "check": "npm run validate && npm run test && npm run build"
   },
   "engines": {

@@ -245,8 +245,9 @@ export function renderInspector(record, context = {}) {
   const editing = Boolean(context.editing);
   const draft = context.draft?.record || record;
   const errors = context.draft?.errors || [];
+  const isBuilder = ['company', 'organization'].includes(record.type) && (record.tags || []).some((tag) => tag.toLowerCase() === 'shipbuilder');
   return `<div class="cos-inspector-breadcrumb">Collection Catalog <span>›</span> ${escapeHtml(record.type)} <span>›</span> ${escapeHtml(record.title)}</div>
-    <header class="cos-inspector-header"><span class="cos-record-icon" aria-hidden="true">${ICONS[record.type] || '•'}</span><div><h2>${escapeHtml(record.title)}</h2><p>${escapeHtml(record.id)}</p></div><div class="cos-inspector-actions">${record.type === 'ship' ? '<button type="button" class="cos-edit-button" data-edit-ship>Edit ship</button>' : ''}<button type="button" class="cos-edit-button" data-edit-record>${editing ? 'Close editor' : 'Edit record'}</button><button type="button" class="cos-edit-button" data-edit-structured>Structured data</button></div></header>
+    <header class="cos-inspector-header"><span class="cos-record-icon" aria-hidden="true">${ICONS[record.type] || '•'}</span><div><h2>${escapeHtml(record.title)}</h2><p>${escapeHtml(record.id)}</p></div><div class="cos-inspector-actions">${record.type === 'ship' ? '<button type="button" class="cos-edit-button" data-edit-ship>Edit ship</button>' : ''}${isBuilder ? '<button type="button" class="cos-edit-button" data-edit-builder>Edit builder</button>' : ''}<button type="button" class="cos-edit-button" data-edit-record>${editing ? 'Close editor' : 'Edit record'}</button><button type="button" class="cos-edit-button" data-edit-structured>Structured data</button></div></header>
     ${editing ? renderEditor(draft, errors, context.draft?.dirty) : ''}
     ${renderProvenanceSummary(record, relationships, sources)}
     ${renderSection('Summary', `<p>${escapeHtml(record.summary || 'No summary recorded.')}</p>`, true)}

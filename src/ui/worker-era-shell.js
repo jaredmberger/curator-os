@@ -9,6 +9,22 @@ const MODULES = [
 
 const FINDINGS_KEY = 'curatoros.findings.handled';
 const IMPORTED_FINDINGS_KEY = 'curatoros.findings.imported';
+const SCAN_LINKS = [
+  {
+    id: 'dead-links',
+    title: 'Scan broken links',
+    description: 'Open the Site Health Auditor, run a crawl, export its CSV, then import that CSV here.',
+    href: 'https://site-health.oceanliners.net/',
+    button: 'Open link scanner'
+  },
+  {
+    id: 'site-index',
+    title: 'Build a fresh site index',
+    description: 'Open the Core Indexer, generate site-index.json, then import it here for link opportunities and coverage findings.',
+    href: 'https://curator-indexer.oceanliners.net/',
+    button: 'Open site indexer'
+  }
+];
 
 export function installWorkerEraShell(root, context = {}) {
   const shell = root.querySelector('.cos-catalog-shell');
@@ -97,15 +113,16 @@ export function installWorkerEraShell(root, context = {}) {
     });
     const counts = countBy(open, 'category');
     dashboard.innerHTML = `${state.notice ? `<div class="cos-worker-notice">${escapeHtml(state.notice)}</div>` : ''}<div class="cos-worker-findings-hero">
-      <div><span class="cos-eyebrow">What should I improve today?</span><h2>${open.length ? `${open.length} actionable finding${open.length === 1 ? '' : 's'}` : 'No open findings in the local catalog'}</h2><p>${records.length || importedFindings().length ? 'Each item explains what CuratorOS found, why it matters, and what to do next.' : 'Import records, a site index, or scan results to begin generating actionable findings.'}</p></div>
+      <div><span class="cos-eyebrow">What should I improve today?</span><h2>${open.length ? `${open.length} actionable finding${open.length === 1 ? '' : 's'}` : 'No open findings in the local catalog'}</h2><p>${records.length || importedFindings().length ? 'Each item explains what CuratorOS found, why it matters, and what to do next.' : 'Run one of the scanners below, export the result, and import it here.'}</p></div>
       <div class="cos-worker-actions"><button type="button" data-findings-import>Import scan or index</button><button type="button" data-findings-export>Export visible work list</button><button type="button" data-worker-filter="open" class="${state.filter === 'open' ? 'active' : ''}">Open findings</button><button type="button" data-worker-filter="handled" class="${state.filter === 'handled' ? 'active' : ''}">Handled</button></div>
     </div>
+    <section class="cos-worker-scan-launchers"><div class="cos-worker-scan-intro"><span class="cos-eyebrow">Start with a scan</span><h2>Find real problems on OceanLiners.net</h2><p>CuratorOS does not pretend to scan the public site by itself. Use the proven scanners, export their results, and bring those findings back here.</p></div>${SCAN_LINKS.map(renderScanLauncher).join('')}</section>
     <div class="cos-worker-metrics">
       ${metric(counts.broken || 0, 'Broken links')}${metric(counts['link-opportunity'] || 0, 'Link opportunities')}${metric(counts.unsourced || 0, 'Missing sources')}${metric(counts.metadata || 0, 'Missing metadata')}${metric(open.length, 'Open findings')}
     </div>
     <div class="cos-worker-findings-toolbar"><input type="search" data-findings-search placeholder="Search page, ship, URL, or issue…" value="${escapeHtml(state.search)}"><select data-findings-category><option value="">All categories</option>${categories.map((category) => `<option value="${escapeHtml(category)}"${state.category === category ? ' selected' : ''}>${escapeHtml(labelCategory(category))}</option>`).join('')}</select><select data-findings-severity><option value="">All priorities</option>${['high','medium','low'].map((severity) => `<option value="${severity}"${state.severity === severity ? ' selected' : ''}>${severity.replace(/^./, (c) => c.toUpperCase())}</option>`).join('')}</select><button type="button" data-findings-clear-filters>Clear filters</button></div>
     <div class="cos-worker-findings-summary">Showing ${visible.length.toLocaleString()} of ${statusPool.length.toLocaleString()} ${state.filter === 'handled' ? 'handled' : 'open'} findings.</div>
-    <div class="cos-worker-findings-list">${visible.length ? visible.map((item) => renderFinding(item, handled.has(item.id))).join('') : `<article class="cos-worker-panel"><h2>${state.filter === 'handled' ? 'No handled findings match these filters.' : 'No open findings match these filters.'}</h2><p>${statusPool.length ? 'Clear or adjust the filters to see the remaining findings.' : records.length || importedFindings().length ? 'Import another scan or site index to surface additional link failures, unlinked ship mentions, and content gaps.' : 'Use Import scan or index to load a Site Health CSV, site-index.json, or CuratorOS database export.'}</p></article>`}</div>`;
+    <div class="cos-worker-findings-list">${visible.length ? visible.map((item) => renderFinding(item, handled.has(item.id))).join('') : `<article class="cos-worker-panel"><h2>${state.filter === 'handled' ? 'No handled findings match these filters.' : 'No open findings match these filters.'}</h2><p>${statusPool.length ? 'Clear or adjust the filters to see the remaining findings.' : records.length || importedFindings().length ? 'Import another scan or site index to surface additional link failures, unlinked ship mentions, and content gaps.' : 'Use a scanner above, export CSV or JSON, then tap Import scan or index.'}</p></article>`}</div>`;
   }
 
   function setView(view) {
@@ -324,6 +341,9 @@ function renderFinding(item, isHandled) {
   const openAction = item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action)}</button>` : destination ? `<a class="cos-worker-action-link" href="${escapeHtml(destination)}" target="_blank" rel="noopener">${escapeHtml(item.action || 'Open page')}</a>` : '';
   const details = [item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : '', item.targetUrl ? `<p><strong>Checked URL:</strong> <a href="${escapeHtml(item.targetUrl)}" target="_blank" rel="noopener">${escapeHtml(item.targetUrl)}</a></p>` : '', item.replacementUrl ? `<p><strong>Suggested replacement:</strong> <a href="${escapeHtml(item.replacementUrl)}" target="_blank" rel="noopener">${escapeHtml(item.replacementUrl)}</a></p>` : ''].join('');
   return `<article class="cos-worker-finding ${item.severity}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.recordType || 'finding')}${item.recordId ? ` · ${escapeHtml(item.recordId)}` : ''}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.severity)}</span></div><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p>${details}<p><strong>What to do next:</strong> ${escapeHtml(item.recommendation)}</p><div class="cos-worker-actions">${openAction}<button type="button" data-finding-action="${isHandled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${isHandled ? 'Reopen finding' : 'Mark handled'}</button></div></article>`;
+}
+function renderScanLauncher(item) {
+  return `<article class="cos-worker-scan-card"><span>${escapeHtml(item.title)}</span><p>${escapeHtml(item.description)}</p><a class="cos-worker-action-link" href="${escapeHtml(item.href)}" target="_blank" rel="noopener">${escapeHtml(item.button)}</a></article>`;
 }
 function labelCategory(value) { return String(value || 'finding').replaceAll('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
 function csvCell(value) { return `"${String(value ?? '').replaceAll('"','""')}"`; }

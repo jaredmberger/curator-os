@@ -2,6 +2,7 @@ import { mountCollectionCatalogShell, RecordService } from '../src/ui/collection
 import { LocalMockSyncProvider } from '../src/core/mock-sync-provider.js';
 import { installSyncStatus } from '../src/ui/sync-status.js';
 import { installShipAuthoring } from '../src/ui/ship-authoring.js';
+import { installBuilderAuthoring } from '../src/ui/builder-authoring.js';
 
 const seedRecords = [
   {
@@ -58,6 +59,12 @@ const seedRecords = [
     sources: [],
     media: [],
     notes: [],
+    data: {
+      city: 'Belfast',
+      country: 'United Kingdom',
+      founded: '1861',
+      yard: 'Queen’s Island'
+    },
     metadata: { confidence: 'probable' }
   },
   {
@@ -79,7 +86,7 @@ const root = document.querySelector('#curatoros-preview');
 const recordService = new RecordService({ seedRecords });
 const app = mountCollectionCatalogShell(root, { recordService });
 
-installShipAuthoring(root, {
+const authoringContext = {
   recordService,
   getSelectedId() { return app.state.selectedId; },
   onCreated(created) {
@@ -92,7 +99,10 @@ installShipAuthoring(root, {
     app.state.editing = false;
     app.updateResults();
   }
-});
+};
+
+installShipAuthoring(root, authoringContext);
+installBuilderAuthoring(root, authoringContext);
 installDataPortability(root, recordService, app);
 installSyncStatus(root, {
   recordService,

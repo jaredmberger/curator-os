@@ -117,3 +117,8 @@ const CuratorDatabase = (() => {
     clone
   };
 })();
+
+// Classic scripts do not automatically become properties of globalThis when
+// declared with const. CuratorOS modules intentionally use a shared runtime,
+// so expose it explicitly for Safari, installed PWAs, and module consumers.
+globalThis.CuratorDatabase = CuratorDatabase;

@@ -57,20 +57,22 @@ export function installWorkerEraShell(root, context = {}) {
     shell.querySelectorAll('[data-worker-view]').forEach((button) => button.classList.toggle('active', button.dataset.workerView === view));
     const title = shell.querySelector('[data-worker-title]');
     const isDashboard = view === 'dashboard';
+    const isCatalog = ['registry', 'review', 'developer'].includes(view);
     dashboard.hidden = !isDashboard;
-    catalogSidebar.hidden = isDashboard;
-    inspector.hidden = isDashboard;
+    catalogSidebar.hidden = !isCatalog;
+    inspector.hidden = !isCatalog;
     title.textContent = isDashboard ? 'Command Center' : view === 'registry' ? 'The Registry' : view === 'review' ? 'Review Queue' : view === 'graph' ? 'Knowledge Graph' : view === 'intelligence' ? 'Archive Intelligence' : 'Developer Mode';
-    if (!isDashboard) {
+    if (isCatalog) {
       if (view === 'review') {
         const status = catalogSidebar.querySelector('[data-catalog-status]');
         if (status) { status.value = 'review'; status.dispatchEvent(new Event('change', { bubbles: true })); }
       }
-      if (view === 'registry') {
+      if (view === 'registry' || view === 'developer') {
         const status = catalogSidebar.querySelector('[data-catalog-status]');
         if (status) { status.value = 'all'; status.dispatchEvent(new Event('change', { bubbles: true })); }
       }
     }
+    root.dispatchEvent(new CustomEvent('curatoros:worker-view', { detail: { view } }));
   }
 
   root.addEventListener('click', (event) => {

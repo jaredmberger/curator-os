@@ -9,6 +9,7 @@ const MODULES = [
 
 const FINDINGS_KEY = 'curatoros.findings.handled';
 const IMPORTED_FINDINGS_KEY = 'curatoros.findings.imported';
+const SCAN_HISTORY_KEY = 'curatoros.scan.history';
 const SCAN_LINKS = [
   {
     id: 'dead-links',
@@ -80,6 +81,15 @@ export function installWorkerEraShell(root, context = {}) {
     localStorage.setItem(IMPORTED_FINDINGS_KEY, JSON.stringify(findings));
   }
 
+  function scanHistory() {
+    try { return JSON.parse(localStorage.getItem(SCAN_HISTORY_KEY) || '[]'); }
+    catch { return []; }
+  }
+
+  function saveScanHistory(history) {
+    localStorage.setItem(SCAN_HISTORY_KEY, JSON.stringify(history.slice(0, 20)));
+  }
+
   function buildFindings(records) {
     const inbound = new Map();
     for (const record of records) for (const rel of record.relationships || []) if (rel.target) inbound.set(rel.target, (inbound.get(rel.target) || 0) + 1);
@@ -97,7 +107,8 @@ export function installWorkerEraShell(root, context = {}) {
 
   function updateDashboard() {
     const records = context.recordService?.all?.() || [];
-    const findings = [...buildFindings(records), ...importedFindings()];
+    const imported = importedFindings();
+    const findings = [...buildFindings(records), ...imported];
     const handled = handledIds();
     const open = findings.filter((item) => !handled.has(item.id));
     const statusPool = state.filter === 'handled' ? findings.filter((item) => handled.has(item.id)) : open;
@@ -112,17 +123,19 @@ export function installWorkerEraShell(root, context = {}) {
       return true;
     });
     const counts = countBy(open, 'category');
+    const history = scanHistory();
     dashboard.innerHTML = `${state.notice ? `<div class="cos-worker-notice">${escapeHtml(state.notice)}</div>` : ''}<div class="cos-worker-findings-hero">
-      <div><span class="cos-eyebrow">What should I improve today?</span><h2>${open.length ? `${open.length} actionable finding${open.length === 1 ? '' : 's'}` : 'No open findings in the local catalog'}</h2><p>${records.length || importedFindings().length ? 'Each item explains what CuratorOS found, why it matters, and what to do next.' : 'Run one of the scanners below, export the result, and import it here.'}</p></div>
+      <div><span class="cos-eyebrow">What should I improve today?</span><h2>${open.length ? `${open.length} actionable finding${open.length === 1 ? '' : 's'}` : 'No open findings in the local catalog'}</h2><p>${records.length || imported.length ? 'Each item explains what CuratorOS found, why it matters, and what to do next.' : 'Run one of the scanners below, export the result, and import it here.'}</p></div>
       <div class="cos-worker-actions"><button type="button" data-findings-import>Import scan or index</button><button type="button" data-findings-export>Export visible work list</button><button type="button" data-worker-filter="open" class="${state.filter === 'open' ? 'active' : ''}">Open findings</button><button type="button" data-worker-filter="handled" class="${state.filter === 'handled' ? 'active' : ''}">Handled</button></div>
     </div>
+    ${renderBriefing(history)}
     <section class="cos-worker-scan-launchers"><div class="cos-worker-scan-intro"><span class="cos-eyebrow">Start with a scan</span><h2>Find real problems on OceanLiners.net</h2><p>CuratorOS does not pretend to scan the public site by itself. Use the proven scanners, export their results, and bring those findings back here.</p></div>${SCAN_LINKS.map(renderScanLauncher).join('')}</section>
     <div class="cos-worker-metrics">
       ${metric(counts.broken || 0, 'Broken links')}${metric(counts['link-opportunity'] || 0, 'Link opportunities')}${metric(counts.unsourced || 0, 'Missing sources')}${metric(counts.metadata || 0, 'Missing metadata')}${metric(open.length, 'Open findings')}
     </div>
     <div class="cos-worker-findings-toolbar"><input type="search" data-findings-search placeholder="Search page, ship, URL, or issue…" value="${escapeHtml(state.search)}"><select data-findings-category><option value="">All categories</option>${categories.map((category) => `<option value="${escapeHtml(category)}"${state.category === category ? ' selected' : ''}>${escapeHtml(labelCategory(category))}</option>`).join('')}</select><select data-findings-severity><option value="">All priorities</option>${['high','medium','low'].map((severity) => `<option value="${severity}"${state.severity === severity ? ' selected' : ''}>${severity.replace(/^./, (c) => c.toUpperCase())}</option>`).join('')}</select><button type="button" data-findings-clear-filters>Clear filters</button></div>
     <div class="cos-worker-findings-summary">Showing ${visible.length.toLocaleString()} of ${statusPool.length.toLocaleString()} ${state.filter === 'handled' ? 'handled' : 'open'} findings.</div>
-    <div class="cos-worker-findings-list">${visible.length ? visible.map((item) => renderFinding(item, handled.has(item.id))).join('') : `<article class="cos-worker-panel"><h2>${state.filter === 'handled' ? 'No handled findings match these filters.' : 'No open findings match these filters.'}</h2><p>${statusPool.length ? 'Clear or adjust the filters to see the remaining findings.' : records.length || importedFindings().length ? 'Import another scan or site index to surface additional link failures, unlinked ship mentions, and content gaps.' : 'Use a scanner above, export CSV or JSON, then tap Import scan or index.'}</p></article>`}</div>`;
+    <div class="cos-worker-findings-list">${visible.length ? visible.map((item) => renderFinding(item, handled.has(item.id))).join('') : `<article class="cos-worker-panel"><h2>${state.filter === 'handled' ? 'No handled findings match these filters.' : 'No open findings match these filters.'}</h2><p>${statusPool.length ? 'Clear or adjust the filters to see the remaining findings.' : records.length || imported.length ? 'Import another scan or site index to surface additional link failures, unlinked ship mentions, and content gaps.' : 'Use a scanner above, export CSV or JSON, then tap Import scan or index.'}</p></article>`}</div>`;
   }
 
   function setView(view) {
@@ -156,6 +169,7 @@ export function installWorkerEraShell(root, context = {}) {
     if (event.target.closest('[data-findings-import]')) importInput.click();
     if (event.target.closest('[data-findings-export]')) exportVisibleFindings();
     if (event.target.closest('[data-findings-clear-filters]')) { state.search = ''; state.category = ''; state.severity = ''; updateDashboard(); }
+    if (event.target.closest('[data-findings-clear-history]')) { saveScanHistory([]); state.notice = 'Scan history cleared.'; updateDashboard(); }
     if (event.target.closest('[data-findings-clear-imported]')) {
       saveImported([]);
       state.notice = 'Imported findings cleared.';
@@ -213,9 +227,26 @@ export function installWorkerEraShell(root, context = {}) {
       const parsed = file.name.toLowerCase().endsWith('.csv') ? parseAuditCsv(text) : parseImportedJson(JSON.parse(text));
       const current = importedFindings();
       const merged = dedupeFindings([...current, ...parsed]);
+      const history = scanHistory();
+      const previous = history[0];
+      const currentIds = new Set(parsed.map((item) => item.id));
+      const previousIds = new Set(previous?.findingIds || []);
+      const snapshot = {
+        id: `${Date.now()}-${stableId(file.name)}`,
+        importedAt: new Date().toISOString(),
+        fileName: file.name,
+        sourceType: file.name.toLowerCase().endsWith('.csv') ? 'Site Health CSV' : 'JSON scan/index',
+        count: parsed.length,
+        high: parsed.filter((item) => item.severity === 'high').length,
+        newCount: [...currentIds].filter((id) => !previousIds.has(id)).length,
+        persistentCount: [...currentIds].filter((id) => previousIds.has(id)).length,
+        resolvedCount: previous ? [...previousIds].filter((id) => !currentIds.has(id)).length : 0,
+        findingIds: [...currentIds]
+      };
+      saveScanHistory([snapshot, ...history]);
       saveImported(merged);
       state.filter = 'open';
-      state.notice = `Imported ${parsed.length} finding${parsed.length === 1 ? '' : 's'} from ${file.name}. ${merged.length} imported findings are now available.`;
+      state.notice = `Imported ${parsed.length} finding${parsed.length === 1 ? '' : 's'} from ${file.name}. ${snapshot.newCount} new, ${snapshot.persistentCount} persistent, ${snapshot.resolvedCount} no longer present.`;
     } catch (error) {
       state.notice = `Could not import ${file.name}: ${error instanceof Error ? error.message : String(error)}`;
     } finally {
@@ -344,6 +375,12 @@ function renderFinding(item, isHandled) {
 }
 function renderScanLauncher(item) {
   return `<article class="cos-worker-scan-card"><span>${escapeHtml(item.title)}</span><p>${escapeHtml(item.description)}</p><a class="cos-worker-action-link" href="${escapeHtml(item.href)}" target="_blank" rel="noopener">${escapeHtml(item.button)}</a></article>`;
+}
+function renderBriefing(history) {
+  const latest = history[0];
+  if (!latest) return `<section class="cos-worker-briefing"><div><span class="cos-eyebrow">Since last scan</span><h2>No scan history yet</h2><p>Import a Site Health CSV or site index to begin tracking what is new, persistent, and resolved.</p></div></section>`;
+  const when = new Date(latest.importedAt).toLocaleString();
+  return `<section class="cos-worker-briefing"><div class="cos-worker-briefing-head"><div><span class="cos-eyebrow">Since last scan</span><h2>${latest.newCount} new · ${latest.persistentCount} persistent · ${latest.resolvedCount} resolved</h2><p>${escapeHtml(latest.fileName)} imported ${escapeHtml(when)}. ${latest.high} high-priority finding${latest.high === 1 ? '' : 's'} in this scan.</p></div><button type="button" data-findings-clear-history>Clear history</button></div>${history.length > 1 ? `<div class="cos-worker-scan-history">${history.slice(0,5).map((item) => `<div><strong>${escapeHtml(new Date(item.importedAt).toLocaleDateString())}</strong><span>${item.count} findings · ${item.newCount} new · ${item.resolvedCount} resolved</span><small>${escapeHtml(item.fileName)}</small></div>`).join('')}</div>` : ''}</section>`;
 }
 function labelCategory(value) { return String(value || 'finding').replaceAll('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
 function csvCell(value) { return `"${String(value ?? '').replaceAll('"','""')}"`; }

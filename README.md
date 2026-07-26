@@ -4,6 +4,28 @@ CuratorOS is the evidence-first institutional operating system behind Ocean Line
 
 This repository is organized so development happens in modular source files while the browser application is assembled into a clean production site artifact for deployment.
 
+## CuratorOS suite
+
+CuratorOS is the home application for three connected tools:
+
+- **CuratorOS:** `https://curator.oceanliners.net/`
+- **Site Health:** `https://site-health.oceanliners.net/`
+- **Curator Indexer:** `https://curator-indexer.oceanliners.net/`
+
+The current curator workflow is:
+
+`Scan → Explain → Locate → Recommend → Resolve`
+
+1. Open Site Health and export `findings.json`.
+2. Return to CuratorOS and choose **Import Scan Results**.
+3. Open Curator Indexer and export `site-index.json`.
+4. Return to CuratorOS and import the index as intelligence data.
+5. Review findings, discover opportunities, and track resolution work.
+
+The scanners remain independent engines. CuratorOS is their operating surface and review system. The current integration is intentionally honest: launch, export, and import rather than claiming silent synchronization.
+
+The stable exchange formats and compatibility rules are documented in [`docs/curatoros-suite-contract.md`](docs/curatoros-suite-contract.md).
+
 ## Open CuratorOS
 
 After GitHub Pages is enabled with **GitHub Actions** as the source, every merge to `main` deploys the application automatically.

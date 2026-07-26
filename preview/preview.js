@@ -4,6 +4,7 @@ import { installSyncStatus } from '../src/ui/sync-status.js';
 import { installShipAuthoring } from '../src/ui/ship-authoring.js';
 import { installBuilderAuthoring } from '../src/ui/builder-authoring.js';
 import { installShippingLineAuthoring } from '../src/ui/shipping-line-authoring.js';
+import { installReviewDashboard } from '../src/ui/review-dashboard.js';
 
 const seedRecords = [
   {
@@ -115,6 +116,14 @@ const authoringContext = {
 installShipAuthoring(root, authoringContext);
 installBuilderAuthoring(root, authoringContext);
 installShippingLineAuthoring(root, authoringContext);
+installReviewDashboard(root, {
+  recordService,
+  onSelect(id) {
+    app.state.selectedId = id;
+    app.state.editing = false;
+    app.updateResults();
+  }
+});
 installDataPortability(root, recordService, app);
 installSyncStatus(root, {
   recordService,

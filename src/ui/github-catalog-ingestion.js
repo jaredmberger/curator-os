@@ -1,5 +1,6 @@
 import { ingestGitHubCatalog } from '../core/github-catalog-ingestion.js';
 import { importOlcCatalog } from '../core/olc-catalog-importer.js';
+import { reviewAndApplyImport } from './import-review-dialog.js';
 
 export function installGitHubCatalogIngestion(root, context = {}) {
   const toolbar = root.querySelector('.cos-toolbar-actions');
@@ -26,26 +27,28 @@ export function installGitHubCatalogIngestion(root, context = {}) {
       });
       const manifest = result.manifest;
       const report = manifest.report;
-      const counts = ['ships', 'builders', 'shippingLines', 'sources', 'objects', 'photos']
-        .map((group) => `${group}: ${manifest[group]?.length || 0}`)
-        .join(' · ');
-      const summary = `${counts}\nRecognized ${report.recognized}/${report.files} files · ${report.skipped.length} skipped · ${report.duplicates.length} duplicates · ${report.warnings.length} warnings · ${(report.fetchErrors || []).length} download errors`;
       downloadJson(manifest, `olc-github-manifest-${new Date().toISOString().slice(0, 10)}.json`);
-      if (!confirm(`${summary}\n\nThe manifest has been downloaded. Convert and import it now?`)) return;
 
       const migration = importOlcCatalog(manifest);
       if (!migration.records.length) throw new Error('The repository manifest produced no importable records.');
       const database = CuratorDatabase.createDatabase(migration.records);
       CuratorDatabase.assertDatabase(database);
-      const importSummary = `${migration.report.converted} converted · ${migration.report.skipped.length} skipped · ${migration.report.warnings.length} warnings · ${migration.report.errors.length} errors`;
-      if (!confirm(`Import review: ${importSummary}. Replace the current ${context.recordService.all().length}-record local database?`)) return;
 
-      localStorage.setItem('curatoros.snapshot.before-import', JSON.stringify({ createdAt: new Date().toISOString(), schemaVersion: CuratorDatabase.SCHEMA_VERSION, records: context.recordService.all() }));
-      downloadJson({ exportedAt: new Date().toISOString(), schemaVersion: CuratorDatabase.SCHEMA_VERSION, records: context.recordService.all() }, `curatoros-pre-import-backup-${new Date().toISOString().slice(0, 10)}.json`);
-      downloadJson({ ...migration, records: undefined }, `curatoros-github-import-review-${new Date().toISOString().slice(0, 10)}.json`);
-      context.recordService.replace(migration.records);
-      context.onDatabaseReplaced?.();
-      alert(`Imported ${migration.records.length} records from ${owner}/${repo}. ${importSummary}.`);
+      const resultApplied = await reviewAndApplyImport({
+        root,
+        recordService: context.recordService,
+        incomingRecords: migration.records,
+        sourceLabel: `${owner}/${repo}@${branch}`,
+        report: {
+          ...migration.report,
+          duplicates: report.duplicates,
+          fetchErrors: report.fetchErrors,
+          repositoryFiles: report.files,
+          recognizedFiles: report.recognized
+        },
+        onApplied: context.onDatabaseReplaced
+      });
+      if (resultApplied) alert(`GitHub import applied in ${resultApplied.mode} mode. The catalog now contains ${resultApplied.count} records.`);
     } catch (error) {
       alert(error instanceof Error ? error.message : String(error));
     } finally {

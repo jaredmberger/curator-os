@@ -13,6 +13,7 @@ import { installPublicationExport } from '../src/ui/publication-export.js';
 import { installPagePackagePreview } from '../src/ui/page-package-preview.js';
 import { installRelationshipExplorer } from '../src/ui/relationship-explorer.js';
 import { installAdvancedSearch } from '../src/ui/advanced-search.js';
+import { installFirstUseOnboarding } from '../src/ui/first-use-onboarding.js';
 
 const seedRecords = [
   {
@@ -176,6 +177,7 @@ installAdvancedSearch(root, {
   recordService,
   onSelect(id) { app.state.selectedId = id; app.state.editing = false; app.updateResults(); }
 });
+installFirstUseOnboarding(root, { recordService });
 installDataPortability(root, recordService, app);
 installSyncStatus(root, { recordService, provider: new LocalMockSyncProvider(), onDatabaseReplaced() { resetMountedState(app); } });
 
@@ -216,8 +218,9 @@ function installDataPortability(rootElement, service, mountedApp) {
       const existingCount = service.all().length;
       if (!confirm(`Import ${records.length} record${records.length === 1 ? '' : 's'} and replace the current ${existingCount}-record local database?`)) return;
       localStorage.setItem('curatoros.snapshot.before-import', JSON.stringify({ createdAt: new Date().toISOString(), schemaVersion: CuratorDatabase.SCHEMA_VERSION, records: service.all() }));
+      downloadJson({ exportedAt: new Date().toISOString(), schemaVersion: CuratorDatabase.SCHEMA_VERSION, records: service.all() }, `curatoros-pre-import-backup-${new Date().toISOString().slice(0, 10)}.json`);
       service.replace(records); resetMountedState(mountedApp);
-      alert(`Imported ${records.length} record${records.length === 1 ? '' : 's'}. A pre-import snapshot was saved locally.`);
+      alert(`Imported ${records.length} record${records.length === 1 ? '' : 's'}. A pre-import snapshot and downloadable backup were created.`);
     } catch (error) { alert(error instanceof Error ? error.message : String(error)); } finally { fileInput.value = ''; }
   });
 }

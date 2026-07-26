@@ -1,5 +1,6 @@
 const CuratorDatabase = (() => {
   const SCHEMA_VERSION = 1;
+  const RECORD_TYPES = Object.freeze(['ship', 'company', 'organization', 'person', 'object', 'photo', 'media', 'source']);
   const RECORD_STATUSES = Object.freeze(['draft', 'review', 'published', 'archived']);
   const CONFIDENCE_LEVELS = Object.freeze(['unknown', 'tentative', 'probable', 'verified']);
   const ID_PATTERN = /^[a-z][a-z0-9_-]*\.[a-z0-9][a-z0-9_-]*$/;
@@ -43,6 +44,7 @@ const CuratorDatabase = (() => {
     if (!record || typeof record !== 'object') return ['Record must be an object.'];
     if (!ID_PATTERN.test(record.id || '')) errors.push('Record id must use namespace.slug format.');
     if (!text(record.type)) errors.push('Record type is required.');
+    if (!RECORD_TYPES.includes(record.type)) errors.push(`Unsupported record type: ${record.type}`);
     if (!text(record.title)) errors.push('Record title is required.');
     if (!RECORD_STATUSES.includes(record.status)) errors.push(`Unsupported status: ${record.status}`);
     if (!Array.isArray(record.tags)) errors.push('Record tags must be an array.');
@@ -103,6 +105,7 @@ const CuratorDatabase = (() => {
 
   return {
     SCHEMA_VERSION,
+    RECORD_TYPES,
     RECORD_STATUSES,
     CONFIDENCE_LEVELS,
     createRecord,

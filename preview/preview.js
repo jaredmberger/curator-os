@@ -5,6 +5,7 @@ import { installShipAuthoring } from '../src/ui/ship-authoring.js';
 import { installBuilderAuthoring } from '../src/ui/builder-authoring.js';
 import { installShippingLineAuthoring } from '../src/ui/shipping-line-authoring.js';
 import { installSourceAuthoring } from '../src/ui/source-authoring.js';
+import { installReferenceObjectAuthoring } from '../src/ui/reference-object-authoring.js';
 import { installReviewDashboard } from '../src/ui/review-dashboard.js';
 
 const seedRecords = [
@@ -101,6 +102,35 @@ const seedRecords = [
       rights: 'Reference use only.'
     },
     metadata: { confidence: 'verified' }
+  },
+  {
+    id: 'object.olympic-menu-1929',
+    type: 'object',
+    title: 'RMS Olympic Breakfast Menu',
+    summary: 'Breakfast menu dated 2 June 1929 from RMS Olympic.',
+    status: 'review',
+    tags: ['Reference object', 'Menu', 'RMS Olympic'],
+    relationships: [{
+      target: 'ship.olympic',
+      relationship: 'associated_with',
+      confidence: 'verified',
+      sourceIds: [],
+      note: ''
+    }],
+    sources: [],
+    media: [],
+    notes: [],
+    data: {
+      category: 'menu',
+      associatedRecord: 'ship.olympic',
+      date: '1929-06-02',
+      dimensions: '4-3/4 × 7-1/4 in',
+      material: 'paper',
+      condition: 'mint',
+      storageLocation: 'Archive box A',
+      curatorNotes: 'Reference Object RO-0001.'
+    },
+    metadata: { confidence: 'verified' }
   }
 ];
 
@@ -127,6 +157,7 @@ installShipAuthoring(root, authoringContext);
 installBuilderAuthoring(root, authoringContext);
 installShippingLineAuthoring(root, authoringContext);
 installSourceAuthoring(root, authoringContext);
+installReferenceObjectAuthoring(root, authoringContext);
 installReviewDashboard(root, {
   recordService,
   onSelect(id) {

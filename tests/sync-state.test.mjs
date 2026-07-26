@@ -15,14 +15,27 @@ const {
   compareSyncState
 } = await import('../src/core/sync-state.js');
 
+const fixedTimestamp = '2026-07-25T00:00:00.000Z';
+const fixture = (id, title, tags = []) => ({
+  id,
+  type: 'ship',
+  title,
+  tags,
+  metadata: {
+    created: fixedTimestamp,
+    updated: fixedTimestamp,
+    confidence: 'unknown'
+  }
+});
+
 const local = CuratorDatabase.createDatabase([
-  { id: 'ship.b', type: 'ship', title: 'B', tags: ['two', 'one'] },
-  { id: 'ship.a', type: 'ship', title: 'A' }
+  fixture('ship.b', 'B', ['two', 'one']),
+  fixture('ship.a', 'A')
 ]);
 
 const reordered = CuratorDatabase.createDatabase([
-  { id: 'ship.a', type: 'ship', title: 'A' },
-  { id: 'ship.b', type: 'ship', title: 'B', tags: ['one', 'two'] }
+  fixture('ship.a', 'A'),
+  fixture('ship.b', 'B', ['one', 'two'])
 ]);
 
 assert.deepEqual(canonicalizeDatabase(local), canonicalizeDatabase(reordered));
@@ -43,7 +56,7 @@ assert.equal(compareSyncState({
 
 const changedLocal = CuratorDatabase.createDatabase([
   ...local.records,
-  { id: 'ship.c', type: 'ship', title: 'C' }
+  fixture('ship.c', 'C')
 ]);
 
 assert.equal(compareSyncState({
@@ -55,7 +68,7 @@ assert.equal(compareSyncState({
 const remoteAhead = {
   revision: 'r2',
   parentRevision: 'r1',
-  records: [...local.records, { id: 'ship.remote', type: 'ship', title: 'Remote' }]
+  records: [...local.records, fixture('ship.remote', 'Remote')]
 };
 
 assert.equal(compareSyncState({

@@ -1,5 +1,6 @@
 import { mountCollectionCatalogShell, RecordService } from '../src/ui/collection-catalog-shell.js';
 import { LocalMockSyncProvider } from '../src/core/mock-sync-provider.js';
+import { importOlcCatalog } from '../src/core/olc-catalog-importer.js';
 import { installSyncStatus } from '../src/ui/sync-status.js';
 import { installShipAuthoring } from '../src/ui/ship-authoring.js';
 import { installBuilderAuthoring } from '../src/ui/builder-authoring.js';
@@ -212,15 +213,19 @@ function installDataPortability(rootElement, service, mountedApp) {
     if (!file) return;
     try {
       const parsed = JSON.parse(await file.text());
-      const records = Array.isArray(parsed) ? parsed : parsed.records;
-      if (!Array.isArray(records)) throw new Error('Import file does not contain a records array.');
-      CuratorDatabase.assertDatabase(CuratorDatabase.createDatabase(records));
-      const existingCount = service.all().length;
-      if (!confirm(`Import ${records.length} record${records.length === 1 ? '' : 's'} and replace the current ${existingCount}-record local database?`)) return;
+      const migration = importOlcCatalog(parsed);
+      const records = migration.records;
+      const report = migration.report;
+      if (!records.length) throw new Error(`No records could be imported. ${report.errors.map((item) => item.message).join(' ')}`.trim());
+      const database = CuratorDatabase.createDatabase(records);
+      CuratorDatabase.assertDatabase(database);
+      const summary = `${report.converted} converted · ${report.skipped.length} skipped · ${report.warnings.length} warnings · ${report.errors.length} errors`;
+      if (!confirm(`Review complete: ${summary}. Replace the current ${service.all().length}-record local database with these ${records.length} records?`)) return;
       localStorage.setItem('curatoros.snapshot.before-import', JSON.stringify({ createdAt: new Date().toISOString(), schemaVersion: CuratorDatabase.SCHEMA_VERSION, records: service.all() }));
       downloadJson({ exportedAt: new Date().toISOString(), schemaVersion: CuratorDatabase.SCHEMA_VERSION, records: service.all() }, `curatoros-pre-import-backup-${new Date().toISOString().slice(0, 10)}.json`);
+      downloadJson({ ...migration, records: undefined }, `curatoros-import-review-${new Date().toISOString().slice(0, 10)}.json`);
       service.replace(records); resetMountedState(mountedApp);
-      alert(`Imported ${records.length} record${records.length === 1 ? '' : 's'}. A pre-import snapshot and downloadable backup were created.`);
+      alert(`Imported ${records.length} records. ${summary}. A pre-import snapshot, downloadable backup, and import review report were created.`);
     } catch (error) { alert(error instanceof Error ? error.message : String(error)); } finally { fileInput.value = ''; }
   });
 }

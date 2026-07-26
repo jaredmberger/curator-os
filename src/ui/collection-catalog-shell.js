@@ -246,7 +246,7 @@ export function renderInspector(record, context = {}) {
   const draft = context.draft?.record || record;
   const errors = context.draft?.errors || [];
   return `<div class="cos-inspector-breadcrumb">Collection Catalog <span>›</span> ${escapeHtml(record.type)} <span>›</span> ${escapeHtml(record.title)}</div>
-    <header class="cos-inspector-header"><span class="cos-record-icon" aria-hidden="true">${ICONS[record.type] || '•'}</span><div><h2>${escapeHtml(record.title)}</h2><p>${escapeHtml(record.id)}</p></div><div class="cos-inspector-actions"><button type="button" class="cos-edit-button" data-edit-record>${editing ? 'Close editor' : 'Edit record'}</button><button type="button" class="cos-edit-button" data-edit-structured>Structured data</button></div></header>
+    <header class="cos-inspector-header"><span class="cos-record-icon" aria-hidden="true">${ICONS[record.type] || '•'}</span><div><h2>${escapeHtml(record.title)}</h2><p>${escapeHtml(record.id)}</p></div><div class="cos-inspector-actions">${record.type === 'ship' ? '<button type="button" class="cos-edit-button" data-edit-ship>Edit ship</button>' : ''}<button type="button" class="cos-edit-button" data-edit-record>${editing ? 'Close editor' : 'Edit record'}</button><button type="button" class="cos-edit-button" data-edit-structured>Structured data</button></div></header>
     ${editing ? renderEditor(draft, errors, context.draft?.dirty) : ''}
     ${renderProvenanceSummary(record, relationships, sources)}
     ${renderSection('Summary', `<p>${escapeHtml(record.summary || 'No summary recorded.')}</p>`, true)}
@@ -360,5 +360,5 @@ export function mountCollectionCatalogShell(root, options = {}) {
   root.addEventListener('keydown', (event) => { const isTyping = event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement; const modifier = event.metaKey || event.ctrlKey; if (modifier && event.key.toLowerCase() === 'z') { event.preventDefault(); if (event.shiftKey) recordService.redo(); else recordService.undo(); updateResults(); return; } if (event.key === '/' && !isTyping) { event.preventDefault(); searchInput.focus(); return; } if (event.key === 'Escape') { if (state.editing) { draftService.discard(state.selectedId); state.editing = false; } else { state.selectedId = null; dialogs.setSelectedId(null); } render(); searchInput.blur(); return; } if (!isTyping && event.key === 'ArrowDown') { event.preventDefault(); selectAt(state.cursor + 1); } if (!isTyping && event.key === 'ArrowUp') { event.preventDefault(); selectAt(state.cursor - 1); } if (!isTyping && event.key === 'Enter' && state.results[state.cursor]) { state.selectedId = state.results[state.cursor].id; dialogs.setSelectedId(state.selectedId); render(); } });
 
   render();
-  return { state, recordService, draftService, searchService, navigationService, dialogs, destroy() { dialogs.destroy(); root.innerHTML = ''; } };
+  return { state, recordService, draftService, searchService, navigationService, dialogs, updateResults, destroy() { dialogs.destroy(); root.innerHTML = ''; } };
 }

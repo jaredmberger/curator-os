@@ -15,14 +15,17 @@ const {
   compareSyncState
 } = await import('../src/core/sync-state.js');
 
+const timestamp = '2026-07-25T00:00:00.000Z';
+const metadata = { created: timestamp, updated: timestamp, confidence: 'unknown' };
+
 const local = CuratorDatabase.createDatabase([
-  { id: 'ship.b', type: 'ship', title: 'B', tags: ['two', 'one'] },
-  { id: 'ship.a', type: 'ship', title: 'A' }
+  { id: 'ship.b', type: 'ship', title: 'B', tags: ['two', 'one'], metadata },
+  { id: 'ship.a', type: 'ship', title: 'A', metadata }
 ]);
 
 const reordered = CuratorDatabase.createDatabase([
-  { id: 'ship.a', type: 'ship', title: 'A' },
-  { id: 'ship.b', type: 'ship', title: 'B', tags: ['one', 'two'] }
+  { id: 'ship.a', type: 'ship', title: 'A', metadata },
+  { id: 'ship.b', type: 'ship', title: 'B', tags: ['one', 'two'], metadata }
 ]);
 
 assert.deepEqual(canonicalizeDatabase(local), canonicalizeDatabase(reordered));
@@ -43,7 +46,7 @@ assert.equal(compareSyncState({
 
 const changedLocal = CuratorDatabase.createDatabase([
   ...local.records,
-  { id: 'ship.c', type: 'ship', title: 'C' }
+  { id: 'ship.c', type: 'ship', title: 'C', metadata }
 ]);
 
 assert.equal(compareSyncState({
@@ -55,7 +58,7 @@ assert.equal(compareSyncState({
 const remoteAhead = {
   revision: 'r2',
   parentRevision: 'r1',
-  records: [...local.records, { id: 'ship.remote', type: 'ship', title: 'Remote' }]
+  records: [...local.records, { id: 'ship.remote', type: 'ship', title: 'Remote', metadata }]
 };
 
 assert.equal(compareSyncState({

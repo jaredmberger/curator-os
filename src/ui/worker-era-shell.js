@@ -44,7 +44,7 @@ export function installWorkerEraShell(root, context = {}) {
   importInput.dataset.findingsImportFile = '';
   dashboard.before(importInput);
 
-  const state = { view: 'dashboard', filter: 'open', notice: '' };
+  const state = { view: 'dashboard', filter: 'open', category: '', severity: '', search: '', notice: '' };
 
   function handledIds() {
     try { return new Set(JSON.parse(localStorage.getItem(FINDINGS_KEY) || '[]')); }
@@ -84,16 +84,28 @@ export function installWorkerEraShell(root, context = {}) {
     const findings = [...buildFindings(records), ...importedFindings()];
     const handled = handledIds();
     const open = findings.filter((item) => !handled.has(item.id));
-    const visible = state.filter === 'handled' ? findings.filter((item) => handled.has(item.id)) : open;
+    const statusPool = state.filter === 'handled' ? findings.filter((item) => handled.has(item.id)) : open;
+    const categories = [...new Set(findings.map((item) => item.category).filter(Boolean))].sort();
+    const visible = statusPool.filter((item) => {
+      if (state.category && item.category !== state.category) return false;
+      if (state.severity && item.severity !== state.severity) return false;
+      if (state.search) {
+        const haystack = [item.title,item.summary,item.recommendation,item.context,item.pageUrl,item.targetUrl,item.replacementUrl,item.recordId].join(' ').toLowerCase();
+        if (!haystack.includes(state.search.toLowerCase())) return false;
+      }
+      return true;
+    });
     const counts = countBy(open, 'category');
     dashboard.innerHTML = `${state.notice ? `<div class="cos-worker-notice">${escapeHtml(state.notice)}</div>` : ''}<div class="cos-worker-findings-hero">
       <div><span class="cos-eyebrow">What should I improve today?</span><h2>${open.length ? `${open.length} actionable finding${open.length === 1 ? '' : 's'}` : 'No open findings in the local catalog'}</h2><p>${records.length || importedFindings().length ? 'Each item explains what CuratorOS found, why it matters, and what to do next.' : 'Import records, a site index, or scan results to begin generating actionable findings.'}</p></div>
-      <div class="cos-worker-actions"><button type="button" data-findings-import>Import scan or index</button><button type="button" data-worker-filter="open" class="${state.filter === 'open' ? 'active' : ''}">Open findings</button><button type="button" data-worker-filter="handled" class="${state.filter === 'handled' ? 'active' : ''}">Handled</button></div>
+      <div class="cos-worker-actions"><button type="button" data-findings-import>Import scan or index</button><button type="button" data-findings-export>Export visible work list</button><button type="button" data-worker-filter="open" class="${state.filter === 'open' ? 'active' : ''}">Open findings</button><button type="button" data-worker-filter="handled" class="${state.filter === 'handled' ? 'active' : ''}">Handled</button></div>
     </div>
     <div class="cos-worker-metrics">
       ${metric(counts.broken || 0, 'Broken links')}${metric(counts['link-opportunity'] || 0, 'Link opportunities')}${metric(counts.unsourced || 0, 'Missing sources')}${metric(counts.metadata || 0, 'Missing metadata')}${metric(open.length, 'Open findings')}
     </div>
-    <div class="cos-worker-findings-list">${visible.length ? visible.map((item) => renderFinding(item, handled.has(item.id))).join('') : `<article class="cos-worker-panel"><h2>${state.filter === 'handled' ? 'Nothing has been marked handled yet.' : 'You are caught up for this local dataset.'}</h2><p>${records.length || importedFindings().length ? 'Import another scan or site index to surface additional link failures, unlinked ship mentions, and content gaps.' : 'Use Import scan or index to load a Site Health CSV, site-index.json, or CuratorOS database export.'}</p></article>`}</div>`;
+    <div class="cos-worker-findings-toolbar"><input type="search" data-findings-search placeholder="Search page, ship, URL, or issue…" value="${escapeHtml(state.search)}"><select data-findings-category><option value="">All categories</option>${categories.map((category) => `<option value="${escapeHtml(category)}"${state.category === category ? ' selected' : ''}>${escapeHtml(labelCategory(category))}</option>`).join('')}</select><select data-findings-severity><option value="">All priorities</option>${['high','medium','low'].map((severity) => `<option value="${severity}"${state.severity === severity ? ' selected' : ''}>${severity.replace(/^./, (c) => c.toUpperCase())}</option>`).join('')}</select><button type="button" data-findings-clear-filters>Clear filters</button></div>
+    <div class="cos-worker-findings-summary">Showing ${visible.length.toLocaleString()} of ${statusPool.length.toLocaleString()} ${state.filter === 'handled' ? 'handled' : 'open'} findings.</div>
+    <div class="cos-worker-findings-list">${visible.length ? visible.map((item) => renderFinding(item, handled.has(item.id))).join('') : `<article class="cos-worker-panel"><h2>${state.filter === 'handled' ? 'No handled findings match these filters.' : 'No open findings match these filters.'}</h2><p>${statusPool.length ? 'Clear or adjust the filters to see the remaining findings.' : records.length || importedFindings().length ? 'Import another scan or site index to surface additional link failures, unlinked ship mentions, and content gaps.' : 'Use Import scan or index to load a Site Health CSV, site-index.json, or CuratorOS database export.'}</p></article>`}</div>`;
   }
 
   function setView(view) {
@@ -125,6 +137,8 @@ export function installWorkerEraShell(root, context = {}) {
     const filterButton = event.target.closest('[data-worker-filter]');
     if (filterButton) { state.filter = filterButton.dataset.workerFilter; updateDashboard(); }
     if (event.target.closest('[data-findings-import]')) importInput.click();
+    if (event.target.closest('[data-findings-export]')) exportVisibleFindings();
+    if (event.target.closest('[data-findings-clear-filters]')) { state.search = ''; state.category = ''; state.severity = ''; updateDashboard(); }
     if (event.target.closest('[data-findings-clear-imported]')) {
       saveImported([]);
       state.notice = 'Imported findings cleared.';
@@ -151,6 +165,28 @@ export function installWorkerEraShell(root, context = {}) {
     if (event.target.closest('[data-worker-command]')) openCommandPalette(root, setView);
     if (event.target.closest('[data-worker-backup]')) context.onQuickBackup?.();
   });
+
+  dashboard.addEventListener('input', (event) => {
+    if (event.target.matches('[data-findings-search]')) { state.search = event.target.value; updateDashboard(); }
+  });
+  dashboard.addEventListener('change', (event) => {
+    if (event.target.matches('[data-findings-category]')) { state.category = event.target.value; updateDashboard(); }
+    if (event.target.matches('[data-findings-severity]')) { state.severity = event.target.value; updateDashboard(); }
+  });
+
+  function exportVisibleFindings() {
+    const records = context.recordService?.all?.() || [];
+    const findings = [...buildFindings(records), ...importedFindings()];
+    const handled = handledIds();
+    const pool = state.filter === 'handled' ? findings.filter((item) => handled.has(item.id)) : findings.filter((item) => !handled.has(item.id));
+    const visible = pool.filter((item) => (!state.category || item.category === state.category) && (!state.severity || item.severity === state.severity) && (!state.search || [item.title,item.summary,item.recommendation,item.context,item.pageUrl,item.targetUrl,item.replacementUrl,item.recordId].join(' ').toLowerCase().includes(state.search.toLowerCase())));
+    const headers = ['status','severity','category','title','summary','recommendation','page_url','target_url','replacement_url','record_id','context'];
+    const rows = visible.map((item) => [state.filter,item.severity,item.category,item.title,item.summary,item.recommendation,item.pageUrl || '',item.targetUrl || '',item.replacementUrl || '',item.recordId || '',item.context || '']);
+    const csv = [headers.join(','), ...rows.map((row) => row.map(csvCell).join(','))].join('\n');
+    downloadText(csv, `curatoros-${state.filter}-findings-${new Date().toISOString().slice(0,10)}.csv`, 'text/csv');
+    state.notice = `Exported ${visible.length} visible finding${visible.length === 1 ? '' : 's'}.`;
+    updateDashboard();
+  }
 
   importInput.addEventListener('change', async () => {
     const file = importInput.files?.[0];
@@ -287,8 +323,11 @@ function renderFinding(item, isHandled) {
   const destination = item.pageUrl || item.targetUrl || item.replacementUrl || '';
   const openAction = item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action)}</button>` : destination ? `<a class="cos-worker-action-link" href="${escapeHtml(destination)}" target="_blank" rel="noopener">${escapeHtml(item.action || 'Open page')}</a>` : '';
   const details = [item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : '', item.targetUrl ? `<p><strong>Checked URL:</strong> <a href="${escapeHtml(item.targetUrl)}" target="_blank" rel="noopener">${escapeHtml(item.targetUrl)}</a></p>` : '', item.replacementUrl ? `<p><strong>Suggested replacement:</strong> <a href="${escapeHtml(item.replacementUrl)}" target="_blank" rel="noopener">${escapeHtml(item.replacementUrl)}</a></p>` : ''].join('');
-  return `<article class="cos-worker-finding ${item.severity}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(item.category)}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.recordType || 'finding')}${item.recordId ? ` · ${escapeHtml(item.recordId)}` : ''}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.severity)}</span></div><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p>${details}<p><strong>What to do next:</strong> ${escapeHtml(item.recommendation)}</p><div class="cos-worker-actions">${openAction}<button type="button" data-finding-action="${isHandled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${isHandled ? 'Reopen finding' : 'Mark handled'}</button></div></article>`;
+  return `<article class="cos-worker-finding ${item.severity}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.recordType || 'finding')}${item.recordId ? ` · ${escapeHtml(item.recordId)}` : ''}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.severity)}</span></div><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p>${details}<p><strong>What to do next:</strong> ${escapeHtml(item.recommendation)}</p><div class="cos-worker-actions">${openAction}<button type="button" data-finding-action="${isHandled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${isHandled ? 'Reopen finding' : 'Mark handled'}</button></div></article>`;
 }
+function labelCategory(value) { return String(value || 'finding').replaceAll('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
+function csvCell(value) { return `"${String(value ?? '').replaceAll('"','""')}"`; }
+function downloadText(text, filename, type) { const url = URL.createObjectURL(new Blob([text], { type })); const link = document.createElement('a'); link.href = url; link.download = filename; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
 function renderNav() {
   let last = '';
   return MODULES.map(([group, label]) => {

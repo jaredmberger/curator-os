@@ -7,7 +7,7 @@ assert.match(source, /No actionable findings were detected/);
 assert.match(source, /sourceType === sourceType/);
 assert.match(source, /safeUrl\(/);
 assert.match(source, /removeEventListener\('click'/);
-assert.match(source, /\uFEFF/);
+assert.match(source, /'\\uFEFF' \+ headers\.join\(','\)/);
 
 const databaseSource = fs.readFileSync(new URL('../src/core/database.js', import.meta.url), 'utf8');
 const context = { globalThis: {} };

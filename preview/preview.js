@@ -15,6 +15,7 @@ import { installPagePackagePreview } from '../src/ui/page-package-preview.js';
 import { installRelationshipExplorer } from '../src/ui/relationship-explorer.js';
 import { installAdvancedSearch } from '../src/ui/advanced-search.js';
 import { installFirstUseOnboarding } from '../src/ui/first-use-onboarding.js';
+import { installOlcSiteManifestBuilder } from '../src/ui/olc-site-manifest-builder.js';
 
 const seedRecords = [
   {
@@ -180,6 +181,7 @@ installAdvancedSearch(root, {
 });
 installFirstUseOnboarding(root, { recordService });
 installDataPortability(root, recordService, app);
+installOlcSiteManifestBuilder(root, { recordService, onDatabaseReplaced() { resetMountedState(app); } });
 installSyncStatus(root, { recordService, provider: new LocalMockSyncProvider(), onDatabaseReplaced() { resetMountedState(app); } });
 
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js'));

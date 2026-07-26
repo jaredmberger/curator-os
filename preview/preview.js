@@ -4,6 +4,7 @@ import { installSyncStatus } from '../src/ui/sync-status.js';
 import { installShipAuthoring } from '../src/ui/ship-authoring.js';
 import { installBuilderAuthoring } from '../src/ui/builder-authoring.js';
 import { installShippingLineAuthoring } from '../src/ui/shipping-line-authoring.js';
+import { installSourceAuthoring } from '../src/ui/source-authoring.js';
 import { installReviewDashboard } from '../src/ui/review-dashboard.js';
 
 const seedRecords = [
@@ -90,6 +91,15 @@ const seedRecords = [
     sources: [],
     media: [],
     notes: [],
+    data: {
+      creator: 'Harland and Wolff',
+      publisher: 'Builder archive',
+      sourceType: 'archive',
+      date: '1910',
+      identifier: 'Yard no. 400',
+      citation: 'Harland and Wolff builder records for yard number 400.',
+      rights: 'Reference use only.'
+    },
     metadata: { confidence: 'verified' }
   }
 ];
@@ -116,6 +126,7 @@ const authoringContext = {
 installShipAuthoring(root, authoringContext);
 installBuilderAuthoring(root, authoringContext);
 installShippingLineAuthoring(root, authoringContext);
+installSourceAuthoring(root, authoringContext);
 installReviewDashboard(root, {
   recordService,
   onSelect(id) {

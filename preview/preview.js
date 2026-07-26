@@ -21,6 +21,17 @@ const seedRecords = [
     sources: [{ id: 'source.builder-records', title: 'Builder records', type: 'archive' }],
     media: [],
     notes: [{ body: 'Developer preview seed record.', kind: 'curatorial' }],
+    data: {
+      builder: 'company.harland-wolff',
+      operator: 'company.white-star-line',
+      yardNumber: '400',
+      launchDate: '1910-10-20',
+      maidenVoyage: '1911-06-14',
+      grossTonnage: '45,324 GRT',
+      length: '882 ft 9 in',
+      beam: '92 ft 6 in',
+      speed: '21 knots'
+    },
     metadata: { confidence: 'verified', reviewed: '2026-07-25' }
   },
   {
@@ -70,9 +81,16 @@ const app = mountCollectionCatalogShell(root, { recordService });
 
 installShipAuthoring(root, {
   recordService,
+  getSelectedId() { return app.state.selectedId; },
   onCreated(created) {
     app.state.selectedId = created.id;
     app.state.editing = false;
+    app.updateResults();
+  },
+  onUpdated(updated) {
+    app.state.selectedId = updated.id;
+    app.state.editing = false;
+    app.updateResults();
   }
 });
 installDataPortability(root, recordService, app);
@@ -173,6 +191,7 @@ function installDataPortability(rootElement, service, mountedApp) {
 function resetMountedState(mountedApp) {
   mountedApp.state.selectedId = null;
   mountedApp.state.editing = false;
+  mountedApp.updateResults?.();
 }
 
 function downloadJson(payload, filename) {

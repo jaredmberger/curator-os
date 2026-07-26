@@ -1,6 +1,7 @@
 import { mountCollectionCatalogShell, RecordService } from '../src/ui/collection-catalog-shell.js';
 import { LocalMockSyncProvider } from '../src/core/mock-sync-provider.js';
 import { installSyncStatus } from '../src/ui/sync-status.js';
+import { installShipAuthoring } from '../src/ui/ship-authoring.js';
 
 const seedRecords = [
   {
@@ -36,6 +37,19 @@ const seedRecords = [
     metadata: { confidence: 'probable' }
   },
   {
+    id: 'company.harland-wolff',
+    type: 'company',
+    title: 'Harland and Wolff',
+    summary: 'Belfast shipbuilder associated with many White Star Line vessels.',
+    status: 'review',
+    tags: ['Shipbuilder'],
+    relationships: [],
+    sources: [],
+    media: [],
+    notes: [],
+    metadata: { confidence: 'probable' }
+  },
+  {
     id: 'source.builder-records',
     type: 'source',
     title: 'Builder records',
@@ -54,6 +68,13 @@ const root = document.querySelector('#curatoros-preview');
 const recordService = new RecordService({ seedRecords });
 const app = mountCollectionCatalogShell(root, { recordService });
 
+installShipAuthoring(root, {
+  recordService,
+  onCreated(created) {
+    app.state.selectedId = created.id;
+    app.state.editing = false;
+  }
+});
 installDataPortability(root, recordService, app);
 installSyncStatus(root, {
   recordService,

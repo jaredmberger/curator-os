@@ -63,9 +63,17 @@ export function installWorkerEraShell(root, context = {}) {
 
   const state = { view: 'dashboard', filter: 'open', category: '', severity: '', search: '', notice: '' };
 
+  function readJson(key, fallback) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+      return value ?? fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
   function handledIds() {
-    try { return new Set(JSON.parse(localStorage.getItem(FINDINGS_KEY) || '[]')); }
-    catch { return new Set(); }
+    return new Set(Array.isArray(readJson(FINDINGS_KEY, [])) ? readJson(FINDINGS_KEY, []) : []);
   }
 
   function saveHandled(set) {
@@ -73,8 +81,8 @@ export function installWorkerEraShell(root, context = {}) {
   }
 
   function importedFindings() {
-    try { return JSON.parse(localStorage.getItem(IMPORTED_FINDINGS_KEY) || '[]'); }
-    catch { return []; }
+    const value = readJson(IMPORTED_FINDINGS_KEY, []);
+    return Array.isArray(value) ? value : [];
   }
 
   function saveImported(findings) {
@@ -82,8 +90,8 @@ export function installWorkerEraShell(root, context = {}) {
   }
 
   function scanHistory() {
-    try { return JSON.parse(localStorage.getItem(SCAN_HISTORY_KEY) || '[]'); }
-    catch { return []; }
+    const value = readJson(SCAN_HISTORY_KEY, []);
+    return Array.isArray(value) ? value : [];
   }
 
   function saveScanHistory(history) {
@@ -108,7 +116,7 @@ export function installWorkerEraShell(root, context = {}) {
   function updateDashboard() {
     const records = context.recordService?.all?.() || [];
     const imported = importedFindings();
-    const findings = [...buildFindings(records), ...imported];
+    const findings = dedupeFindings([...buildFindings(records), ...imported]);
     const handled = handledIds();
     const open = findings.filter((item) => !handled.has(item.id));
     const statusPool = state.filter === 'handled' ? findings.filter((item) => handled.has(item.id)) : open;
@@ -124,7 +132,7 @@ export function installWorkerEraShell(root, context = {}) {
     });
     const counts = countBy(open, 'category');
     const history = scanHistory();
-    dashboard.innerHTML = `${state.notice ? `<div class="cos-worker-notice">${escapeHtml(state.notice)}</div>` : ''}<div class="cos-worker-findings-hero">
+    dashboard.innerHTML = `${state.notice ? `<div class="cos-worker-notice" role="status">${escapeHtml(state.notice)}</div>` : ''}<div class="cos-worker-findings-hero">
       <div><span class="cos-eyebrow">What should I improve today?</span><h2>${open.length ? `${open.length} actionable finding${open.length === 1 ? '' : 's'}` : 'No open findings in the local catalog'}</h2><p>${records.length || imported.length ? 'Each item explains what CuratorOS found, why it matters, and what to do next.' : 'Run one of the scanners below, export the result, and import it here.'}</p></div>
       <div class="cos-worker-actions"><button type="button" data-findings-import>Import scan or index</button><button type="button" data-findings-export>Export visible work list</button><button type="button" data-worker-filter="open" class="${state.filter === 'open' ? 'active' : ''}">Open findings</button><button type="button" data-worker-filter="handled" class="${state.filter === 'handled' ? 'active' : ''}">Handled</button></div>
     </div>
@@ -161,7 +169,7 @@ export function installWorkerEraShell(root, context = {}) {
     root.dispatchEvent(new CustomEvent('curatoros:worker-view', { detail: { view } }));
   }
 
-  root.addEventListener('click', (event) => {
+  const clickHandler = (event) => {
     const viewButton = event.target.closest('[data-worker-view]');
     if (viewButton) setView(viewButton.dataset.workerView);
     const filterButton = event.target.closest('[data-worker-filter]');
@@ -169,8 +177,8 @@ export function installWorkerEraShell(root, context = {}) {
     if (event.target.closest('[data-findings-import]')) importInput.click();
     if (event.target.closest('[data-findings-export]')) exportVisibleFindings();
     if (event.target.closest('[data-findings-clear-filters]')) { state.search = ''; state.category = ''; state.severity = ''; updateDashboard(); }
-    if (event.target.closest('[data-findings-clear-history]')) { saveScanHistory([]); state.notice = 'Scan history cleared.'; updateDashboard(); }
-    if (event.target.closest('[data-findings-clear-imported]')) {
+    if (event.target.closest('[data-findings-clear-history]') && confirm('Clear saved scan history?')) { saveScanHistory([]); state.notice = 'Scan history cleared.'; updateDashboard(); }
+    if (event.target.closest('[data-findings-clear-imported]') && confirm('Clear all imported findings?')) {
       saveImported([]);
       state.notice = 'Imported findings cleared.';
       updateDashboard();
@@ -189,32 +197,46 @@ export function installWorkerEraShell(root, context = {}) {
       setView('registry');
       const id = openRecord.dataset.findingOpen;
       const result = shell.querySelector(`[data-record-id="${cssEscape(id)}"]`);
-      result?.click();
+      if (result) result.click();
+      else { state.notice = `Record ${id} is not currently loaded in the Registry.`; setView('dashboard'); updateDashboard(); }
     }
     if (event.target.closest('[data-worker-open-registry]')) setView('registry');
     if (event.target.closest('[data-worker-open-review]')) setView('review');
     if (event.target.closest('[data-worker-command]')) openCommandPalette(root, setView);
     if (event.target.closest('[data-worker-backup]')) context.onQuickBackup?.();
-  });
+  };
 
-  dashboard.addEventListener('input', (event) => {
-    if (event.target.matches('[data-findings-search]')) { state.search = event.target.value; updateDashboard(); }
-  });
-  dashboard.addEventListener('change', (event) => {
+  const inputHandler = (event) => {
+    if (event.target.matches('[data-findings-search]')) {
+      state.search = event.target.value;
+      requestAnimationFrame(updateDashboard);
+    }
+  };
+
+  const changeHandler = (event) => {
     if (event.target.matches('[data-findings-category]')) { state.category = event.target.value; updateDashboard(); }
     if (event.target.matches('[data-findings-severity]')) { state.severity = event.target.value; updateDashboard(); }
-  });
+  };
+
+  root.addEventListener('click', clickHandler);
+  dashboard.addEventListener('input', inputHandler);
+  dashboard.addEventListener('change', changeHandler);
 
   function exportVisibleFindings() {
     const records = context.recordService?.all?.() || [];
-    const findings = [...buildFindings(records), ...importedFindings()];
+    const findings = dedupeFindings([...buildFindings(records), ...importedFindings()]);
     const handled = handledIds();
     const pool = state.filter === 'handled' ? findings.filter((item) => handled.has(item.id)) : findings.filter((item) => !handled.has(item.id));
     const visible = pool.filter((item) => (!state.category || item.category === state.category) && (!state.severity || item.severity === state.severity) && (!state.search || [item.title,item.summary,item.recommendation,item.context,item.pageUrl,item.targetUrl,item.replacementUrl,item.recordId].join(' ').toLowerCase().includes(state.search.toLowerCase())));
+    if (!visible.length) {
+      state.notice = 'There are no visible findings to export.';
+      updateDashboard();
+      return;
+    }
     const headers = ['status','severity','category','title','summary','recommendation','page_url','target_url','replacement_url','record_id','context'];
     const rows = visible.map((item) => [state.filter,item.severity,item.category,item.title,item.summary,item.recommendation,item.pageUrl || '',item.targetUrl || '',item.replacementUrl || '',item.recordId || '',item.context || '']);
-    const csv = [headers.join(','), ...rows.map((row) => row.map(csvCell).join(','))].join('\n');
-    downloadText(csv, `curatoros-${state.filter}-findings-${new Date().toISOString().slice(0,10)}.csv`, 'text/csv');
+    const csv = ['\uFEFF' + headers.join(','), ...rows.map((row) => row.map(csvCell).join(','))].join('\r\n');
+    downloadText(csv, `curatoros-${state.filter}-findings-${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8');
     state.notice = `Exported ${visible.length} visible finding${visible.length === 1 ? '' : 's'}.`;
     updateDashboard();
   }
@@ -225,17 +247,19 @@ export function installWorkerEraShell(root, context = {}) {
     try {
       const text = await file.text();
       const parsed = file.name.toLowerCase().endsWith('.csv') ? parseAuditCsv(text) : parseImportedJson(JSON.parse(text));
+      if (!parsed.length) throw new Error('No actionable findings were detected in this file.');
       const current = importedFindings();
       const merged = dedupeFindings([...current, ...parsed]);
       const history = scanHistory();
-      const previous = history[0];
+      const sourceType = file.name.toLowerCase().endsWith('.csv') ? 'Site Health CSV' : 'JSON scan/index';
+      const previous = history.find((item) => item.sourceType === sourceType);
       const currentIds = new Set(parsed.map((item) => item.id));
       const previousIds = new Set(previous?.findingIds || []);
       const snapshot = {
         id: `${Date.now()}-${stableId(file.name)}`,
         importedAt: new Date().toISOString(),
         fileName: file.name,
-        sourceType: file.name.toLowerCase().endsWith('.csv') ? 'Site Health CSV' : 'JSON scan/index',
+        sourceType,
         count: parsed.length,
         high: parsed.filter((item) => item.severity === 'high').length,
         newCount: [...currentIds].filter((id) => !previousIds.has(id)).length,
@@ -258,11 +282,12 @@ export function installWorkerEraShell(root, context = {}) {
   const unsubscribe = context.recordService?.subscribe?.(() => updateDashboard()) || (() => {});
   updateDashboard();
   setView('dashboard');
-  return { updateDashboard, setView, destroy() { unsubscribe(); } };
+  return { updateDashboard, setView, destroy() { unsubscribe(); root.removeEventListener('click', clickHandler); dashboard.removeEventListener('input', inputHandler); dashboard.removeEventListener('change', changeHandler); } };
 }
 
 function parseImportedJson(value) {
   if (!value || typeof value !== 'object') throw new Error('The JSON root must be an object.');
+  if (Array.isArray(value)) return value.map(auditRowFinding).filter(Boolean);
   if (Array.isArray(value.rows)) return value.rows.map(auditRowFinding).filter(Boolean);
   if (Array.isArray(value.pages) || Array.isArray(value.entities?.pages)) return indexFindings(value);
   if (Array.isArray(value.records)) return recordExportFindings(value.records);
@@ -271,32 +296,33 @@ function parseImportedJson(value) {
 }
 
 function parseAuditCsv(text) {
-  const rows = parseCsv(text);
+  const rows = parseCsv(text.replace(/^\uFEFF/, ''));
   if (!rows.length) return [];
   return rows.map(auditRowFinding).filter(Boolean);
 }
 
 function auditRowFinding(row) {
-  const severity = String(row.severity || '').toLowerCase();
-  const category = String(row.category || '').toUpperCase();
-  if (!row.checked_url && !row.url) return null;
+  const normalized = Object.fromEntries(Object.entries(row || {}).map(([key, value]) => [String(key).trim().toLowerCase(), value]));
+  const severity = String(normalized.severity || '').toLowerCase();
+  const category = String(normalized.category || '').toUpperCase();
+  if (!normalized.checked_url && !normalized.url) return null;
   if (severity === 'good' || category === 'GOOD') return null;
-  const pageUrl = row.page_url || row.pageUrl || '';
-  const checkedUrl = row.checked_url || row.url || '';
-  const replacement = row.replacement_url || row.replacementUrl || '';
-  const label = row.anchor_text || row.anchor || checkedUrl;
+  const pageUrl = normalized.page_url || normalized.pageurl || '';
+  const checkedUrl = normalized.checked_url || normalized.url || '';
+  const replacement = normalized.replacement_url || normalized.replacementurl || '';
+  const label = normalized.anchor_text || normalized.anchor || checkedUrl;
   return externalFinding({
     id: `audit:${stableId(`${pageUrl}|${checkedUrl}|${category}`)}`,
     category: severity === 'broken' ? 'broken' : 'link-warning',
     severity: severity === 'broken' ? 'high' : 'medium',
-    title: row.page_title || row.pageTitle || pageUrl || 'Link finding',
-    summary: `${label} returned ${row.status || row.category || 'a link warning'}.`,
+    title: normalized.page_title || normalized.pagetitle || pageUrl || 'Link finding',
+    summary: `${label} returned ${normalized.status || normalized.category || 'a link warning'}.`,
     recommendation: replacement ? `Replace it with ${replacement}, then recheck the page.` : 'Open the affected page, verify the link manually, and replace or remove it.',
     action: 'Open affected page',
     pageUrl,
     targetUrl: checkedUrl,
     replacementUrl: replacement,
-    context: row.context || ''
+    context: normalized.context || ''
   });
 }
 
@@ -311,8 +337,7 @@ function indexFindings(index) {
   }
   const pages = index.pages || index.entities?.pages || [];
   for (const page of pages) {
-    if (page.pageType === 'ship-guide' && !Array.isArray(page.sourceLinks)) continue;
-    if (page.pageType === 'ship-guide' && page.sourceLinks.length === 0) findings.push(externalFinding({ id:`sources:${stableId(page.url || page.path)}`, category:'missing-sources', severity:'high', title:page.title || page.path || page.url, summary:'This ship guide has no detected external source links.', recommendation:'Review the guide and add a Sources section or documented citations.', action:'Open ship guide', pageUrl:page.url || '' }));
+    if (page.pageType === 'ship-guide' && Array.isArray(page.sourceLinks) && page.sourceLinks.length === 0) findings.push(externalFinding({ id:`sources:${stableId(page.url || page.path)}`, category:'missing-sources', severity:'high', title:page.title || page.path || page.url, summary:'This ship guide has no detected external source links.', recommendation:'Review the guide and add a Sources section or documented citations.', action:'Open ship guide', pageUrl:page.url || '' }));
   }
   return findings;
 }
@@ -347,6 +372,7 @@ function parseCsv(text) {
   row.push(field);
   if (row.some((value) => value !== '')) rows.push(row);
   const headers = rows.shift()?.map((value) => value.trim()) || [];
+  if (!headers.length) return [];
   return rows.map((values) => Object.fromEntries(headers.map((header, index) => [header, values[index] || ''])));
 }
 
@@ -354,7 +380,7 @@ function finding(record, category, severity, summary, recommendation, action) {
   return { id: `${category}:${record.id}`, recordId: record.id, category, severity, title: record.title || record.id, recordType: record.type || 'record', summary, recommendation, action };
 }
 function externalFinding(value) { return { recordType:'site finding', ...value }; }
-function dedupeFindings(findings) { return [...new Map(findings.map((item) => [item.id, item])).values()]; }
+function dedupeFindings(findings) { return [...new Map(findings.filter((item) => item?.id).map((item) => [item.id, item])).values()]; }
 function stableId(value) { let hash = 2166136261; for (const char of String(value || '')) { hash ^= char.charCodeAt(0); hash = Math.imul(hash, 16777619); } return (hash >>> 0).toString(36); }
 function missingCoreMetadata(record) {
   const missing = [];
@@ -368,10 +394,12 @@ function missingCoreMetadata(record) {
   return missing;
 }
 function renderFinding(item, isHandled) {
-  const destination = item.pageUrl || item.targetUrl || item.replacementUrl || '';
+  const destination = safeUrl(item.pageUrl || item.targetUrl || item.replacementUrl || '');
+  const targetUrl = safeUrl(item.targetUrl || '');
+  const replacementUrl = safeUrl(item.replacementUrl || '');
   const openAction = item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action)}</button>` : destination ? `<a class="cos-worker-action-link" href="${escapeHtml(destination)}" target="_blank" rel="noopener">${escapeHtml(item.action || 'Open page')}</a>` : '';
-  const details = [item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : '', item.targetUrl ? `<p><strong>Checked URL:</strong> <a href="${escapeHtml(item.targetUrl)}" target="_blank" rel="noopener">${escapeHtml(item.targetUrl)}</a></p>` : '', item.replacementUrl ? `<p><strong>Suggested replacement:</strong> <a href="${escapeHtml(item.replacementUrl)}" target="_blank" rel="noopener">${escapeHtml(item.replacementUrl)}</a></p>` : ''].join('');
-  return `<article class="cos-worker-finding ${item.severity}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.recordType || 'finding')}${item.recordId ? ` · ${escapeHtml(item.recordId)}` : ''}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.severity)}</span></div><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p>${details}<p><strong>What to do next:</strong> ${escapeHtml(item.recommendation)}</p><div class="cos-worker-actions">${openAction}<button type="button" data-finding-action="${isHandled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${isHandled ? 'Reopen finding' : 'Mark handled'}</button></div></article>`;
+  const details = [item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : '', targetUrl ? `<p><strong>Checked URL:</strong> <a href="${escapeHtml(targetUrl)}" target="_blank" rel="noopener">${escapeHtml(targetUrl)}</a></p>` : '', replacementUrl ? `<p><strong>Suggested replacement:</strong> <a href="${escapeHtml(replacementUrl)}" target="_blank" rel="noopener">${escapeHtml(replacementUrl)}</a></p>` : ''].join('');
+  return `<article class="cos-worker-finding ${escapeHtml(item.severity)}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.recordType || 'finding')}${item.recordId ? ` · ${escapeHtml(item.recordId)}` : ''}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.severity)}</span></div><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p>${details}<p><strong>What to do next:</strong> ${escapeHtml(item.recommendation)}</p><div class="cos-worker-actions">${openAction}<button type="button" data-finding-action="${isHandled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${isHandled ? 'Reopen finding' : 'Mark handled'}</button></div></article>`;
 }
 function renderScanLauncher(item) {
   return `<article class="cos-worker-scan-card"><span>${escapeHtml(item.title)}</span><p>${escapeHtml(item.description)}</p><a class="cos-worker-action-link" href="${escapeHtml(item.href)}" target="_blank" rel="noopener">${escapeHtml(item.button)}</a></article>`;
@@ -379,12 +407,15 @@ function renderScanLauncher(item) {
 function renderBriefing(history) {
   const latest = history[0];
   if (!latest) return `<section class="cos-worker-briefing"><div><span class="cos-eyebrow">Since last scan</span><h2>No scan history yet</h2><p>Import a Site Health CSV or site index to begin tracking what is new, persistent, and resolved.</p></div></section>`;
-  const when = new Date(latest.importedAt).toLocaleString();
-  return `<section class="cos-worker-briefing"><div class="cos-worker-briefing-head"><div><span class="cos-eyebrow">Since last scan</span><h2>${latest.newCount} new · ${latest.persistentCount} persistent · ${latest.resolvedCount} resolved</h2><p>${escapeHtml(latest.fileName)} imported ${escapeHtml(when)}. ${latest.high} high-priority finding${latest.high === 1 ? '' : 's'} in this scan.</p></div><button type="button" data-findings-clear-history>Clear history</button></div>${history.length > 1 ? `<div class="cos-worker-scan-history">${history.slice(0,5).map((item) => `<div><strong>${escapeHtml(new Date(item.importedAt).toLocaleDateString())}</strong><span>${item.count} findings · ${item.newCount} new · ${item.resolvedCount} resolved</span><small>${escapeHtml(item.fileName)}</small></div>`).join('')}</div>` : ''}</section>`;
+  const when = formatDateTime(latest.importedAt);
+  return `<section class="cos-worker-briefing"><div class="cos-worker-briefing-head"><div><span class="cos-eyebrow">Since last scan</span><h2>${latest.newCount} new · ${latest.persistentCount} persistent · ${latest.resolvedCount} resolved</h2><p>${escapeHtml(latest.fileName)} imported ${escapeHtml(when)}. ${latest.high} high-priority finding${latest.high === 1 ? '' : 's'} in this scan.</p></div><button type="button" data-findings-clear-history>Clear history</button></div>${history.length > 1 ? `<div class="cos-worker-scan-history">${history.slice(0,5).map((item) => `<div><strong>${escapeHtml(formatDate(item.importedAt))}</strong><span>${item.count} findings · ${item.newCount} new · ${item.resolvedCount} resolved</span><small>${escapeHtml(item.fileName)}</small></div>`).join('')}</div>` : ''}</section>`;
 }
+function formatDateTime(value) { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'at an unknown time' : date.toLocaleString(); }
+function formatDate(value) { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Unknown date' : date.toLocaleDateString(); }
+function safeUrl(value) { try { const url = new URL(String(value), globalThis.location?.origin || 'https://oceanliners.net'); return ['http:', 'https:'].includes(url.protocol) ? url.href : ''; } catch { return ''; } }
 function labelCategory(value) { return String(value || 'finding').replaceAll('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
 function csvCell(value) { return `"${String(value ?? '').replaceAll('"','""')}"`; }
-function downloadText(text, filename, type) { const url = URL.createObjectURL(new Blob([text], { type })); const link = document.createElement('a'); link.href = url; link.download = filename; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+function downloadText(text, filename, type) { const url = URL.createObjectURL(new Blob([text], { type })); const link = document.createElement('a'); link.href = url; link.download = filename; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
 function renderNav() {
   let last = '';
   return MODULES.map(([group, label]) => {
@@ -404,14 +435,17 @@ function openCommandPalette(root, setView) {
   const overlay = document.createElement('div');
   overlay.className = 'cos-worker-command-overlay';
   overlay.dataset.workerCommandOverlay = '';
-  overlay.innerHTML = `<div class="cos-worker-command-box"><input type="search" placeholder="Search CuratorOS or choose a workspace…" autofocus><div>${['dashboard','registry','review','graph','intelligence','developer'].map((view) => `<button type="button" data-command-view="${view}">${view === 'dashboard' ? 'Findings' : view.replace(/^./, (c) => c.toUpperCase())}</button>`).join('')}</div></div>`;
+  overlay.innerHTML = `<div class="cos-worker-command-box"><input type="search" aria-label="Search workspaces" placeholder="Search CuratorOS or choose a workspace…" autofocus><div>${['dashboard','registry','review','graph','intelligence','developer'].map((view) => `<button type="button" data-command-view="${view}">${view === 'dashboard' ? 'Findings' : view.replace(/^./, (c) => c.toUpperCase())}</button>`).join('')}</div></div>`;
   root.append(overlay);
+  const input = overlay.querySelector('input');
+  input?.focus();
   overlay.addEventListener('click', (event) => {
     const command = event.target.closest('[data-command-view]');
     if (command) { setView(command.dataset.commandView); overlay.remove(); }
     if (event.target === overlay) overlay.remove();
   });
-  overlay.querySelector('input').addEventListener('input', (event) => {
+  overlay.addEventListener('keydown', (event) => { if (event.key === 'Escape') overlay.remove(); });
+  input?.addEventListener('input', (event) => {
     const query = event.target.value.toLowerCase();
     overlay.querySelectorAll('[data-command-view]').forEach((button) => button.hidden = !button.textContent.toLowerCase().includes(query));
   });

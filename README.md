@@ -2,21 +2,25 @@
 
 CuratorOS is the evidence-first institutional operating system behind Ocean Liner Curator.
 
-This repository is organized so development happens in modular source files while the browser application remains deployable as a static site.
+This repository is organized so development happens in modular source files while the browser application is assembled into a clean production site artifact for deployment.
 
 ## Open CuratorOS
 
 After GitHub Pages is enabled with **GitHub Actions** as the source, every merge to `main` deploys the application automatically.
 
-Primary hosted address:
+Primary application address:
+
+`https://curator.oceanliners.net/`
+
+GitHub Pages fallback address:
 
 `https://jaredmberger.github.io/curator-os/`
 
-The repository root redirects directly into CuratorOS. The deployment workflow can also be run manually from the Actions tab.
+Both addresses open CuratorOS directly at the site root. The deployment workflow can also be run manually from the Actions tab.
 
 ### Open it on iPad or iPhone
 
-1. Open the hosted address in Safari.
+1. Open `https://curator.oceanliners.net/` in Safari.
 2. Tap the Share button.
 3. Choose **Add to Home Screen**.
 4. Launch **CuratorOS** from the Home Screen like an app.
@@ -25,18 +29,26 @@ CuratorOS stores its catalog locally in that browser. Use **Export** and **Snaps
 
 ## Custom domain
 
-The intended private application address is:
+The application is intended to run at:
 
-`https://curator.oceanliners.net`
+`https://curator.oceanliners.net/`
 
-To connect it after the Pages deployment succeeds:
+The repository-side deployment publishes the application at the hostname root rather than redirecting to `/preview/`.
 
-1. In the repository, open **Settings → Pages**.
-2. Set the custom domain to `curator.oceanliners.net` and enable HTTPS when GitHub offers it.
-3. In Cloudflare DNS, create a proxied or DNS-only `CNAME` record named `curator` pointing to `jaredmberger.github.io`.
-4. For private access, place the hostname behind Cloudflare Access and require your chosen identity provider or one-time PIN.
+Cloudflare DNS should contain a `CNAME` record named `curator` pointing to `jaredmberger.github.io`. GitHub Pages should list `curator.oceanliners.net` as the custom domain with HTTPS enabled when available.
 
-Cloudflare DNS and Access settings are account-side configuration; they are not changed by repository commits.
+For private access, place the hostname behind Cloudflare Access and require your chosen identity provider or one-time PIN. Cloudflare DNS and Access settings are account-side configuration; they are not changed by repository commits.
+
+## Deployment layout
+
+Source files remain organized under `preview/` and `src/`. The Pages workflow creates a temporary production artifact where:
+
+- `preview/index.html` becomes the deployed root `index.html`
+- the application entry file, manifest, icon, and service worker are published at the root
+- `src/` is copied beside them
+- deployment-only asset paths are rewritten for root hosting
+
+The generated `_site` directory is a deployment artifact and is not committed to the repository.
 
 ## Local use
 
@@ -65,6 +77,6 @@ The current interface uses a local mock sync provider. It does not claim authent
 
 ## Current milestone
 
-**CuratorOS 5.3 alpha — Hosted Local-First Product**
+**CuratorOS 5.3 alpha — Root-Deployed Local-First Product**
 
 The complete curator loop is available inside the browser: create canonical records, link evidence and relationships, review publication health, import the OLC catalog, preview output, and download validated publication packages without editing raw JSON or requiring a desktop build step.

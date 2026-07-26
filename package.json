@@ -10,6 +10,7 @@
     "validate": "node scripts/validate.js",
     "test:smoke": "node tests/smoke.test.js",
     "test:database": "node tests/database.test.js",
+    "test:findings": "node tests/worker-era-findings.test.mjs",
     "test:catalog": "node tests/collection-catalog-shell.test.mjs",
     "test:authoring": "node tests/structured-record-authoring.test.mjs",
     "test:authoring-dialogs": "node tests/record-authoring-dialogs.test.mjs",
@@ -33,7 +34,7 @@
     "test:sync": "node tests/sync-state.test.mjs",
     "test:mock-sync": "node tests/mock-sync-provider.test.mjs",
     "test:sync-resolution": "node tests/sync-resolution.test.mjs",
-    "test": "npm run test:database && npm run test:smoke && npm run test:catalog && npm run test:authoring && npm run test:authoring-dialogs && npm run test:ship-authoring && npm run test:builder-authoring && npm run test:shipping-line-authoring && npm run test:source-authoring && npm run test:reference-object-authoring && npm run test:photo-media-authoring && npm run test:publication-preview && npm run test:publication-export && npm run test:page-package-preview && npm run test:relationship-explorer && npm run test:review-dashboard && npm run test:advanced-search && npm run test:first-use && npm run test:olc-import && npm run test:olc-manifest && npm run test:github-ingestion && npm run test:import-merge && npm run test:sync && npm run test:mock-sync && npm run test:sync-resolution",
+    "test": "npm run test:database && npm run test:findings && npm run test:smoke && npm run test:catalog && npm run test:authoring && npm run test:authoring-dialogs && npm run test:ship-authoring && npm run test:builder-authoring && npm run test:shipping-line-authoring && npm run test:source-authoring && npm run test:reference-object-authoring && npm run test:photo-media-authoring && npm run test:publication-preview && npm run test:publication-export && npm run test:page-package-preview && npm run test:relationship-explorer && npm run test:review-dashboard && npm run test:advanced-search && npm run test:first-use && npm run test:olc-import && npm run test:olc-manifest && npm run test:github-ingestion && npm run test:import-merge && npm run test:sync && npm run test:mock-sync && npm run test:sync-resolution",
     "check": "npm run validate && npm run test && npm run build"
   },
   "engines": {

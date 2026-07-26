@@ -1,4 +1,5 @@
 import { fingerprintDatabase, SyncComparison } from '../core/sync-state.js';
+import { resolveSyncComparison, applyConflictChoice } from './sync-resolution.js';
 
 const LABELS = {
   [SyncComparison.EQUAL]: 'Up to date',
@@ -9,7 +10,7 @@ const LABELS = {
 };
 
 export function installSyncStatus(root, context) {
-  const { recordService, provider, storage = globalThis.localStorage } = context;
+  const { recordService, provider, storage = globalThis.localStorage, onDatabaseReplaced, downloadJson = defaultDownloadJson } = context;
   const toolbar = root.querySelector('.cos-toolbar-actions');
   if (!toolbar) return { refresh: async () => null, destroy() {} };
 
@@ -18,13 +19,18 @@ export function installSyncStatus(root, context) {
     <button type="button" data-sync-connect>Connect sync</button>
     <button type="button" data-sync-check disabled>Check sync</button>
     <button type="button" data-sync-upload disabled>Upload local</button>
+    <button type="button" data-sync-download disabled>Download remote</button>
+    <button type="button" data-sync-resolve disabled>Resolve conflict</button>
   `);
 
   const status = toolbar.querySelector('[data-sync-status]');
   const connect = toolbar.querySelector('[data-sync-connect]');
   const check = toolbar.querySelector('[data-sync-check]');
   const upload = toolbar.querySelector('[data-sync-upload]');
+  const download = toolbar.querySelector('[data-sync-download]');
+  const resolve = toolbar.querySelector('[data-sync-resolve]');
   let connected = false;
+  let lastResult = null;
 
   function database() { return recordService.snapshot(); }
   function metadata() {
@@ -46,13 +52,18 @@ export function installSyncStatus(root, context) {
       status.textContent = 'Local only';
       check.disabled = true;
       upload.disabled = true;
+      download.disabled = true;
+      resolve.disabled = true;
+      lastResult = null;
       return null;
     }
-    const result = await provider.compare(database(), metadata());
-    status.textContent = LABELS[result.comparison] || result.comparison;
+    lastResult = await provider.compare(database(), metadata());
+    status.textContent = LABELS[lastResult.comparison] || lastResult.comparison;
     check.disabled = false;
-    upload.disabled = result.comparison === SyncComparison.REMOTE_AHEAD || result.comparison === SyncComparison.DIVERGED;
-    return result;
+    upload.disabled = lastResult.comparison === SyncComparison.REMOTE_AHEAD || lastResult.comparison === SyncComparison.DIVERGED;
+    download.disabled = lastResult.comparison !== SyncComparison.REMOTE_AHEAD;
+    resolve.disabled = ![SyncComparison.DIVERGED, SyncComparison.UNRELATED].includes(lastResult.comparison);
+    return lastResult;
   }
 
   connect.addEventListener('click', async () => {
@@ -74,6 +85,51 @@ export function installSyncStatus(root, context) {
     saveMetadata(envelope);
     await refresh();
   });
+  download.addEventListener('click', async () => {
+    const result = lastResult || await refresh();
+    if (!result) return;
+    const resolution = resolveSyncComparison({
+      comparison: result.comparison,
+      localDatabase: database(),
+      remoteEnvelope: result.remoteEnvelope,
+      recordService,
+      storage
+    });
+    if (resolution.action === 'used-remote') {
+      saveMetadata(result.remoteEnvelope);
+      onDatabaseReplaced?.();
+      await refresh();
+    }
+  });
+  resolve.addEventListener('click', async () => {
+    const result = lastResult || await refresh();
+    if (!result?.remoteEnvelope) return;
+    const choice = prompt('Choose conflict action: keep-local, use-remote, or export-both', 'export-both');
+    if (!choice) return;
+    const resolution = applyConflictChoice({
+      choice: choice.trim(),
+      localDatabase: database(),
+      remoteEnvelope: result.remoteEnvelope,
+      recordService,
+      storage,
+      downloadJson
+    });
+    if (resolution.action === 'used-remote') {
+      saveMetadata(result.remoteEnvelope);
+      onDatabaseReplaced?.();
+    }
+    await refresh();
+  });
 
   return { refresh, destroy() {} };
+}
+
+function defaultDownloadJson(payload, filename) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }

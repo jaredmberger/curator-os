@@ -3,6 +3,7 @@ import { LocalMockSyncProvider } from '../src/core/mock-sync-provider.js';
 import { installSyncStatus } from '../src/ui/sync-status.js';
 import { installShipAuthoring } from '../src/ui/ship-authoring.js';
 import { installBuilderAuthoring } from '../src/ui/builder-authoring.js';
+import { installShippingLineAuthoring } from '../src/ui/shipping-line-authoring.js';
 
 const seedRecords = [
   {
@@ -46,6 +47,16 @@ const seedRecords = [
     sources: [],
     media: [],
     notes: [],
+    data: {
+      country: 'United Kingdom',
+      headquarters: 'Liverpool',
+      founded: '1845',
+      ceased: '1934',
+      parentCompany: 'International Mercantile Marine Company',
+      successor: 'Cunard-White Star Line',
+      routeFocus: 'North Atlantic passenger service',
+      houseFlag: 'Red swallowtail with a white star'
+    },
     metadata: { confidence: 'probable' }
   },
   {
@@ -103,6 +114,7 @@ const authoringContext = {
 
 installShipAuthoring(root, authoringContext);
 installBuilderAuthoring(root, authoringContext);
+installShippingLineAuthoring(root, authoringContext);
 installDataPortability(root, recordService, app);
 installSyncStatus(root, {
   recordService,

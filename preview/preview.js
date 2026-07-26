@@ -10,6 +10,7 @@ import { installPhotoMediaAuthoring } from '../src/ui/photo-media-authoring.js';
 import { installReviewDashboard } from '../src/ui/review-dashboard.js';
 import { installPublicationPreview } from '../src/ui/publication-preview.js';
 import { installPublicationExport } from '../src/ui/publication-export.js';
+import { installPagePackagePreview } from '../src/ui/page-package-preview.js';
 import { installRelationshipExplorer } from '../src/ui/relationship-explorer.js';
 import { installAdvancedSearch } from '../src/ui/advanced-search.js';
 
@@ -161,6 +162,7 @@ installReferenceObjectAuthoring(root, authoringContext);
 installPhotoMediaAuthoring(root, authoringContext);
 installPublicationPreview(root, authoringContext);
 installPublicationExport(root, authoringContext);
+installPagePackagePreview(root, authoringContext);
 installRelationshipExplorer(root, {
   recordService,
   getSelectedId() { return app.state.selectedId; },

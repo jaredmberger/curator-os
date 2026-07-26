@@ -117,3 +117,5 @@ const CuratorDatabase = (() => {
     clone
   };
 })();
+
+globalThis.CuratorDatabase = CuratorDatabase;

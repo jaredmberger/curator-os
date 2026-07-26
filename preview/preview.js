@@ -10,6 +10,7 @@ import { installPhotoMediaAuthoring } from '../src/ui/photo-media-authoring.js';
 import { installReviewDashboard } from '../src/ui/review-dashboard.js';
 import { installPublicationPreview } from '../src/ui/publication-preview.js';
 import { installRelationshipExplorer } from '../src/ui/relationship-explorer.js';
+import { installAdvancedSearch } from '../src/ui/advanced-search.js';
 
 const seedRecords = [
   {
@@ -164,6 +165,10 @@ installRelationshipExplorer(root, {
   onSelect(id) { app.state.selectedId = id; app.state.editing = false; app.updateResults(); }
 });
 installReviewDashboard(root, {
+  recordService,
+  onSelect(id) { app.state.selectedId = id; app.state.editing = false; app.updateResults(); }
+});
+installAdvancedSearch(root, {
   recordService,
   onSelect(id) { app.state.selectedId = id; app.state.editing = false; app.updateResults(); }
 });

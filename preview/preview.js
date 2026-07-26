@@ -6,6 +6,7 @@ import { installBuilderAuthoring } from '../src/ui/builder-authoring.js';
 import { installShippingLineAuthoring } from '../src/ui/shipping-line-authoring.js';
 import { installSourceAuthoring } from '../src/ui/source-authoring.js';
 import { installReferenceObjectAuthoring } from '../src/ui/reference-object-authoring.js';
+import { installPhotoMediaAuthoring } from '../src/ui/photo-media-authoring.js';
 import { installReviewDashboard } from '../src/ui/review-dashboard.js';
 
 const seedRecords = [
@@ -131,6 +132,33 @@ const seedRecords = [
       curatorNotes: 'Reference Object RO-0001.'
     },
     metadata: { confidence: 'verified' }
+  },
+  {
+    id: 'photo.olympic-profile',
+    type: 'photo',
+    title: 'RMS Olympic profile view',
+    summary: 'A cataloged photographic reference showing RMS Olympic in profile.',
+    status: 'review',
+    tags: ['Photographic reference', 'RMS Olympic'],
+    relationships: [
+      { target: 'ship.olympic', relationship: 'depicts', confidence: 'probable', sourceIds: [], note: '' },
+      { target: 'source.builder-records', relationship: 'sourced_from', confidence: 'probable', sourceIds: [], note: '' }
+    ],
+    sources: [],
+    media: [],
+    notes: [],
+    data: {
+      mediaType: 'photograph',
+      date: '1911',
+      creator: 'Unknown photographer',
+      depictedSubject: 'ship.olympic',
+      sourceRecord: 'source.builder-records',
+      caption: 'RMS Olympic in profile.',
+      altText: 'RMS Olympic seen in profile at sea',
+      rights: 'Reference use only.',
+      attribution: 'Ocean Liner Curator photographic reference.'
+    },
+    metadata: { confidence: 'probable' }
   }
 ];
 
@@ -158,6 +186,7 @@ installBuilderAuthoring(root, authoringContext);
 installShippingLineAuthoring(root, authoringContext);
 installSourceAuthoring(root, authoringContext);
 installReferenceObjectAuthoring(root, authoringContext);
+installPhotoMediaAuthoring(root, authoringContext);
 installReviewDashboard(root, {
   recordService,
   onSelect(id) {

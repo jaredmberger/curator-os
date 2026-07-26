@@ -57,7 +57,10 @@ const app = mountCollectionCatalogShell(root, { recordService });
 installDataPortability(root, recordService, app);
 installSyncStatus(root, {
   recordService,
-  provider: new LocalMockSyncProvider()
+  provider: new LocalMockSyncProvider(),
+  onDatabaseReplaced() {
+    resetMountedState(app);
+  }
 });
 
 if ('serviceWorker' in navigator) {

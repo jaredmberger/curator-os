@@ -47,7 +47,40 @@ export function installWorkerEraShell(root, context = {}) {
 
   const header = document.createElement('header');
   header.className = 'cos-worker-topbar';
-  header.innerHTML = `<div><span class="cos-eyebrow">Actionable site maintenance</span><h1 data-worker-title>Findings</h1></div><div class="cos-worker-top-actions"><button type="button" data-worker-command>⌘ Command</button><button type="button" data-worker-backup>Quick Backup</button></div>`;
+header.innerHTML = `
+  <div>
+    <span class="cos-eyebrow">Actionable site maintenance</span>
+    <h1 data-worker-title>Findings</h1>
+  </div>
+
+  <div class="cos-worker-top-actions">
+    <a
+      class="cos-worker-link"
+      href="https://site-health.oceanliners.net/"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Site Health
+    </a>
+
+    <a
+      class="cos-worker-link"
+      href="https://curator-indexer.oceanliners.net/"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Curator Indexer
+    </a>
+
+    <button type="button" data-worker-command>
+      ⌘ Command
+    </button>
+
+    <button type="button" data-worker-backup>
+      Quick Backup
+    </button>
+  </div>
+`;
   workspace.insertBefore(header, workspace.firstChild);
 
   const dashboard = document.createElement('section');

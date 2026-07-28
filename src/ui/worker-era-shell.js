@@ -1,4 +1,5 @@
-import { renderCuratorSpeedWidget } from './curator-speed-widget.js';
+import { renderToolWorkflowCards, toolAccept } from './tool-workflows.js';
+import { parseExternalScan } from './scan-import-adapter.js';
 
 const MODULES = [
   ['home', 'Findings'],
@@ -13,22 +14,6 @@ const FINDINGS_KEY = 'curatoros.findings.handled';
 const IMPORTED_FINDINGS_KEY = 'curatoros.findings.imported';
 const SCAN_HISTORY_KEY = 'curatoros.scan.history';
 const VERIFIED_FINDINGS_KEY = 'curatoros.findings.verified';
-const SCAN_LINKS = [
-  {
-    id: 'dead-links',
-    title: 'Scan broken links',
-    description: 'Open the Site Health Auditor, run a crawl, export its CSV, then import that CSV here.',
-    href: 'https://site-health.oceanliners.net/',
-    button: 'Open link scanner'
-  },
-  {
-    id: 'site-index',
-    title: 'Build a fresh site index',
-    description: 'Open the Core Indexer, generate site-index.json, then import it here for link opportunities and coverage findings.',
-    href: 'https://curator-indexer.oceanliners.net/',
-    button: 'Open site indexer'
-  }
-];
 
 export function installWorkerEraShell(root, context = {}) {
   const shell = root.querySelector('.cos-catalog-shell');
@@ -74,6 +59,7 @@ export function installWorkerEraShell(root, context = {}) {
   findingsInput.accept = '.json,.csv,application/json,text/csv';
   findingsInput.hidden = true;
   findingsInput.dataset.findingsImportFile = '';
+  findingsInput.dataset.requestedSource = '';
   dashboard.before(findingsInput);
 
   const catalogInput = document.createElement('input');
@@ -165,10 +151,10 @@ export function installWorkerEraShell(root, context = {}) {
     const history = scanHistory();
     dashboard.innerHTML = `${state.notice ? `<div class="cos-worker-notice" role="status">${escapeHtml(state.notice)}</div>` : ''}<div class="cos-worker-findings-hero">
       <div><span class="cos-eyebrow">What should I improve today?</span><h2>${open.length ? `${open.length} actionable finding${open.length === 1 ? '' : 's'}` : 'No open findings in the local catalog'}</h2><p>${records.length || imported.length ? 'Each item explains what CuratorOS found, why it matters, and what to do next.' : 'Load a catalog or import scan results to begin.'}</p></div>
-      <div class="cos-worker-actions"><button type="button" data-catalog-import>Load catalog</button><button type="button" data-findings-import>Import scan results</button><button type="button" data-findings-export>Export visible work list</button><button type="button" data-worker-filter="open" class="${state.filter === 'open' ? 'active' : ''}">Open findings</button><button type="button" data-worker-filter="handled" class="${state.filter === 'handled' ? 'active' : ''}">Handled</button></div>
+      <div class="cos-worker-actions"><button type="button" data-catalog-import>Load catalog</button><button type="button" data-findings-import>Import any scan</button><button type="button" data-findings-export>Export visible work list</button><button type="button" data-worker-filter="open" class="${state.filter === 'open' ? 'active' : ''}">Open findings</button><button type="button" data-worker-filter="handled" class="${state.filter === 'handled' ? 'active' : ''}">Handled</button></div>
     </div>
     ${renderBriefing(history)}
-    <section class="cos-worker-scan-launchers"><div class="cos-worker-scan-intro"><span class="cos-eyebrow">Start with a scan</span><h2>Find real problems on OceanLiners.net</h2><p>Load a CuratorOS catalog into the Registry, or run the proven scanners and import their findings here.</p></div>${SCAN_LINKS.map(renderScanLauncher).join('')}${renderCuratorSpeedWidget()}</section>
+    <section class="cos-worker-scan-launchers"><div class="cos-worker-scan-intro"><span class="cos-eyebrow">Start with a scan</span><h2>Choose the tool you need</h2><p>Each scanner now has its own Run and Import action, while Import any scan remains available as a fallback.</p></div>${renderToolWorkflowCards()}</section>
     <div class="cos-worker-metrics">
       ${metric(counts.broken || 0, 'Broken links')}${metric(counts['link-maintenance'] || 0, 'Link maintenance')}${metric(counts['link-opportunity'] || 0, 'Link opportunities')}${metric(counts.unsourced || 0, 'Missing sources')}${metric(counts.metadata || 0, 'Missing metadata')}${metric(open.length, 'Open findings')}
     </div>
@@ -206,7 +192,18 @@ export function installWorkerEraShell(root, context = {}) {
     const filterButton = event.target.closest('[data-worker-filter]');
     if (filterButton) { state.filter = filterButton.dataset.workerFilter; updateDashboard(); }
     if (event.target.closest('[data-catalog-import]')) catalogInput.click();
-    if (event.target.closest('[data-findings-import]')) findingsInput.click();
+    if (event.target.closest('[data-findings-import]')) {
+      findingsInput.dataset.requestedSource = '';
+      findingsInput.accept = '.json,.csv,application/json,text/csv';
+      findingsInput.click();
+    }
+    const toolImport = event.target.closest('[data-tool-import]');
+    if (toolImport) {
+      const source = toolImport.dataset.toolImport || '';
+      findingsInput.dataset.requestedSource = source;
+      findingsInput.accept = toolAccept(source);
+      findingsInput.click();
+    }
     if (event.target.closest('[data-findings-export]')) exportVisibleFindings();
     if (event.target.closest('[data-findings-clear-filters]')) { state.search = ''; state.category = ''; state.severity = ''; updateDashboard(); }
     if (event.target.closest('[data-findings-clear-history]') && confirm('Clear saved scan history?')) { saveScanHistory([]); state.notice = 'Scan history cleared.'; updateDashboard(); }
@@ -281,9 +278,13 @@ export function installWorkerEraShell(root, context = {}) {
       const isSiteHealth = file.name.toLowerCase().endsWith('.csv');
       const value = isSiteHealth ? null : JSON.parse(text);
       if (value?.records && Array.isArray(value.records)) throw new Error('This is a CuratorOS catalog. Use Load catalog instead.');
-      const parsedRaw = isSiteHealth ? parseAuditCsv(text) : parseImportedJson(value);
-      const sourceType = isSiteHealth ? 'Site Health CSV' : 'JSON scan/index';
-      const parsed = parsedRaw.map((item) => ({ ...item, sourceType }));
+      const requestedSource = findingsInput.dataset.requestedSource || '';
+      if (requestedSource === 'site-health' && !isSiteHealth) throw new Error('Choose the CSV exported by Site Health.');
+      if (requestedSource === 'speed' && value?.type !== 'curator-performance-scan') throw new Error('Choose a Curator Speed JSON report.');
+      if (requestedSource === 'indexer' && value?.type === 'curator-performance-scan') throw new Error('Choose site-index.json from Curator Indexer.');
+      const parsedResult = parseExternalScan(value, isSiteHealth, () => parseAuditCsv(text), parseImportedJson);
+      const sourceType = parsedResult.sourceType;
+      const parsed = parsedResult.findings.map((item) => ({ ...item, sourceType }));
       const history = scanHistory();
       const previous = history.find((item) => item.sourceType === sourceType);
       const current = importedFindings();
@@ -293,11 +294,11 @@ export function installWorkerEraShell(root, context = {}) {
       const currentIds = new Set(parsed.map((item) => item.id));
       const verifiedIds = previous ? [...previousIds].filter((id) => !currentIds.has(id)) : [];
       const verified = verifiedIds.map((id) => {
-        const finding = previousById.get(id) || { id, title: 'Verified link fix', pageUrl: '', targetUrl: '', category: 'broken' };
-        return { ...finding, verifiedAt: new Date().toISOString(), sourceType };
+        const found = previousById.get(id) || { id, title: 'Verified finding', pageUrl: '', targetUrl: '', category: 'finding' };
+        return { ...found, verifiedAt: new Date().toISOString(), sourceType };
       });
       const verifiedArchive = verifiedFindings();
-      const previouslyVerifiedIds = new Set(verifiedArchive.map((item) => item.id));
+      const previouslyVerifiedIds = new Set(verifiedArchive.filter((item) => item.sourceType === sourceType).map((item) => item.id));
       const regressionIds = [...currentIds].filter((id) => previouslyVerifiedIds.has(id));
       const regressions = new Set(regressionIds);
       const parsedWithRegression = parsed.map((item) => regressions.has(item.id) ? { ...item, regression: true } : item);
@@ -319,14 +320,14 @@ export function installWorkerEraShell(root, context = {}) {
         verifiedFindings: verified.map((item) => ({ id:item.id, title:item.title, pageUrl:item.pageUrl || '', targetUrl:item.targetUrl || '', category:item.category || '', verifiedAt:item.verifiedAt }))
       };
       saveScanHistory([snapshot, ...history]);
-      saveVerified(dedupeFindings([...verified, ...verifiedArchive.filter((item) => !currentIds.has(item.id))]));
+      saveVerified(dedupeFindings([...verified, ...verifiedArchive.filter((item) => item.sourceType !== sourceType || !currentIds.has(item.id))]));
       saveImported(merged);
       const handled = handledIds();
       for (const id of verifiedIds) handled.delete(id);
       saveHandled(handled);
       state.filter = 'open';
       if (!parsed.length) {
-        state.notice = `Imported ${file.name}. No actionable findings remain. ${snapshot.verifiedCount} fix${snapshot.verifiedCount === 1 ? '' : 'es'} verified.`;
+        state.notice = `Imported ${file.name}. No actionable findings remain for ${sourceType}. ${snapshot.verifiedCount} fix${snapshot.verifiedCount === 1 ? '' : 'es'} verified.`;
       } else {
         state.notice = `Imported ${parsedWithRegression.length} finding${parsedWithRegression.length === 1 ? '' : 's'} from ${file.name}. ${snapshot.newCount} new, ${snapshot.persistentCount} persistent, ${snapshot.verifiedCount} verified fixed, ${snapshot.regressionCount} regression${snapshot.regressionCount === 1 ? '' : 's'}.`;
       }
@@ -334,6 +335,8 @@ export function installWorkerEraShell(root, context = {}) {
       state.notice = `Could not import ${file.name}: ${error instanceof Error ? error.message : String(error)}`;
     } finally {
       findingsInput.value = '';
+      findingsInput.accept = '.json,.csv,application/json,text/csv';
+      findingsInput.dataset.requestedSource = '';
       updateDashboard();
     }
   });
@@ -384,7 +387,7 @@ function parseImportedJson(value) {
   if (Array.isArray(value.pages) || Array.isArray(value.entities?.pages)) return indexFindings(value);
   if (Array.isArray(value.records)) return recordExportFindings(value.records);
   if (Array.isArray(value.errors) || Array.isArray(value.graphs?.unlinkedShipMentions)) return indexFindings(value);
-  throw new Error('Expected a site-index export or Site Health results.');
+  throw new Error('Expected a Curator Speed report, site-index export, or Site Health results.');
 }
 
 function parseAuditCsv(text) {
@@ -518,15 +521,12 @@ function renderFinding(item, isHandled) {
   const details = [item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : '', targetUrl ? `<p><strong>Checked URL:</strong> <a href="${escapeHtml(targetUrl)}" target="_blank" rel="noopener">${escapeHtml(targetUrl)}</a></p>` : '', replacementUrl ? `<p><strong>${item.category === 'link-maintenance' ? 'Final destination' : 'Suggested replacement'}:</strong> <a href="${escapeHtml(replacementUrl)}" target="_blank" rel="noopener">${escapeHtml(replacementUrl)}</a></p>` : ''].join('');
   return `<article class="cos-worker-finding ${escapeHtml(item.severity)}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.recordType || 'finding')}${item.recordId ? ` · ${escapeHtml(item.recordId)}` : ''}${item.regression ? ' · regression' : ''}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.category === 'link-maintenance' ? 'optional' : item.regression ? 'regression' : item.severity)}</span></div><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p>${details}<p><strong>${item.category === 'link-maintenance' ? 'Maintenance note' : 'What to do next'}:</strong> ${escapeHtml(item.recommendation)}</p><div class="cos-worker-actions">${openAction}<button type="button" data-finding-action="${isHandled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${isHandled ? 'Reopen finding' : 'Mark handled'}</button></div></article>`;
 }
-function renderScanLauncher(item) {
-  return `<article class="cos-worker-scan-card"><span>${escapeHtml(item.title)}</span><p>${escapeHtml(item.description)}</p><a class="cos-worker-action-link" href="${escapeHtml(item.href)}" target="_blank" rel="noopener">${escapeHtml(item.button)}</a></article>`;
-}
 function renderBriefing(history) {
   const latest = history[0];
-  if (!latest) return `<section class="cos-worker-briefing"><div><span class="cos-eyebrow">Since last scan</span><h2>No scan history yet</h2><p>Import a Site Health CSV or site index to begin tracking what is new, persistent, and verified.</p></div></section>`;
+  if (!latest) return `<section class="cos-worker-briefing"><div><span class="cos-eyebrow">Since last scan</span><h2>No scan history yet</h2><p>Import a Site Health CSV, Curator Indexer JSON, or Curator Speed report to begin tracking what is new, persistent, and verified.</p></div></section>`;
   const when = formatDateTime(latest.importedAt);
   const verifiedItems = latest.verifiedFindings || [];
-  return `<section class="cos-worker-briefing"><div class="cos-worker-briefing-head"><div><span class="cos-eyebrow">Latest scan</span><h2>${latest.newCount} new · ${latest.persistentCount} persistent · ${latest.verifiedCount ?? latest.resolvedCount ?? 0} verified · ${latest.regressionCount || 0} regressions</h2><p>${escapeHtml(latest.fileName)} imported ${escapeHtml(when)}. ${latest.high} high-priority finding${latest.high === 1 ? '' : 's'} remain in this scan.</p></div><button type="button" data-findings-clear-history>Clear history</button></div>${verifiedItems.length ? `<div class="cos-worker-scan-history"><div><strong>Recently verified</strong><span>${verifiedItems.slice(0,5).map((item) => `✓ ${escapeHtml(item.title || item.pageUrl || item.targetUrl || 'Link fix')}`).join(' · ')}</span><small>These findings disappeared from the latest scan and were removed from the active queue.</small></div></div>` : ''}${history.length > 1 ? `<div class="cos-worker-scan-history">${history.slice(0,5).map((item) => `<div><strong>${escapeHtml(formatDate(item.importedAt))}</strong><span>${item.count} findings · ${item.newCount} new · ${item.verifiedCount ?? item.resolvedCount ?? 0} verified${item.regressionCount ? ` · ${item.regressionCount} regressions` : ''}</span><small>${escapeHtml(item.fileName)}</small></div>`).join('')}</div>` : ''}</section>`;
+  return `<section class="cos-worker-briefing"><div class="cos-worker-briefing-head"><div><span class="cos-eyebrow">Latest scan · ${escapeHtml(latest.sourceType || 'Imported report')}</span><h2>${latest.newCount} new · ${latest.persistentCount} persistent · ${latest.verifiedCount ?? latest.resolvedCount ?? 0} verified · ${latest.regressionCount || 0} regressions</h2><p>${escapeHtml(latest.fileName)} imported ${escapeHtml(when)}. ${latest.high} high-priority finding${latest.high === 1 ? '' : 's'} remain in this scan.</p></div><button type="button" data-findings-clear-history>Clear history</button></div>${verifiedItems.length ? `<div class="cos-worker-scan-history"><div><strong>Recently verified</strong><span>${verifiedItems.slice(0,5).map((item) => `✓ ${escapeHtml(item.title || item.pageUrl || item.targetUrl || 'Finding')}`).join(' · ')}</span><small>These findings disappeared from the latest scan and were removed from the active queue.</small></div></div>` : ''}${history.length > 1 ? `<div class="cos-worker-scan-history">${history.slice(0,5).map((item) => `<div><strong>${escapeHtml(formatDate(item.importedAt))}</strong><span>${escapeHtml(item.sourceType || 'Imported report')} · ${item.count} findings · ${item.newCount} new · ${item.verifiedCount ?? item.resolvedCount ?? 0} verified${item.regressionCount ? ` · ${item.regressionCount} regressions` : ''}</span><small>${escapeHtml(item.fileName)}</small></div>`).join('')}</div>` : ''}</section>`;
 }
 function labelCategory(value) { return String(value || 'finding').replaceAll('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
 function csvCell(value) { return `"${String(value ?? '').replaceAll('"','""')}"`; }
@@ -545,27 +545,12 @@ function renderNav() {
 }
 function countBy(values, key) { return values.reduce((out, item) => { const value = item[key] || 'unknown'; out[value] = (out[value] || 0) + 1; return out; }, {}); }
 function metric(value, label) { return `<div class="cos-worker-metric"><strong>${Number(value).toLocaleString()}</strong><span>${label}</span></div>`; }
-function cssEscape(value) { return globalThis.CSS?.escape ? globalThis.CSS.escape(value) : String(value).replace(/[^a-zA-Z0-9_-]/g, '\\$&'); }
-function escapeHtml(value) { return String(value || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
+function cssEscape(value) { return globalThis.CSS?.escape ? CSS.escape(String(value)) : String(value).replace(/["\\]/g, '\\$&'); }
+function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[char])); }
 function openCommandPalette(root, setView) {
-  const existing = root.querySelector('[data-worker-command-overlay]');
-  if (existing) existing.remove();
-  const overlay = document.createElement('div');
-  overlay.className = 'cos-worker-command-overlay';
-  overlay.dataset.workerCommandOverlay = '';
-  overlay.innerHTML = `<div class="cos-worker-command-box"><input type="search" placeholder="Search CuratorOS or choose a workspace…" autofocus><div>${['dashboard','registry','review','graph','intelligence','developer'].map((view) => `<button type="button" data-command-view="${view}">${view === 'dashboard' ? 'Findings' : view.replace(/^./, (c) => c.toUpperCase())}</button>`).join('')}</div></div>`;
-  root.append(overlay);
-  const keyHandler = (event) => { if (event.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', keyHandler); } };
-  document.addEventListener('keydown', keyHandler);
-  overlay.addEventListener('click', (event) => {
-    const command = event.target.closest('[data-command-view]');
-    if (command) { setView(command.dataset.commandView); overlay.remove(); document.removeEventListener('keydown', keyHandler); }
-    if (event.target === overlay) { overlay.remove(); document.removeEventListener('keydown', keyHandler); }
-  });
-  const input = overlay.querySelector('input');
-  requestAnimationFrame(() => input.focus());
-  input.addEventListener('input', (event) => {
-    const query = event.target.value.toLowerCase();
-    overlay.querySelectorAll('[data-command-view]').forEach((button) => button.hidden = !button.textContent.toLowerCase().includes(query));
-  });
+  const choice = prompt('Open: findings, registry, graph, intelligence, review, or developer');
+  const normalized = String(choice || '').trim().toLowerCase();
+  const views = { findings:'dashboard', registry:'registry', graph:'graph', intelligence:'intelligence', review:'review', developer:'developer' };
+  if (views[normalized]) setView(views[normalized]);
+  else if (choice) root.dispatchEvent(new CustomEvent('curatoros:command', { detail: { command: choice } }));
 }

@@ -1,0 +1,149 @@
+@media (max-width: 760px) {
+  .cos-catalog-shell.cos-worker-shell {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .cos-worker-sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    padding: 22px 18px 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--cos-border);
+  }
+
+  .cos-worker-brand strong {
+    font-size: clamp(2.15rem, 12vw, 3.4rem);
+    line-height: 1;
+  }
+
+  .cos-worker-brand small {
+    font-size: .95rem;
+  }
+
+  .cos-worker-sidebar nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  .cos-worker-nav-group {
+    grid-column: 1 / -1;
+    margin: 14px 2px 0;
+    font-size: .66rem;
+  }
+
+  .cos-worker-sidebar nav button {
+    min-height: 46px;
+    padding: 11px 12px;
+    border-color: rgba(191, 164, 106, .18);
+    background: rgba(19, 35, 32, .45);
+    text-align: center;
+  }
+
+  .cos-worker-sidebar nav button.active {
+    border-color: var(--cos-border-strong);
+  }
+
+  .cos-worker-sidebar footer {
+    margin-top: 18px;
+    padding-top: 14px;
+  }
+
+  .cos-worker-workspace {
+    padding: 18px 14px calc(34px + env(safe-area-inset-bottom));
+  }
+
+  .cos-worker-topbar,
+  .cos-worker-findings-hero,
+  .cos-worker-briefing-head,
+  .cos-worker-health-hero,
+  .cos-worker-session-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cos-worker-topbar {
+    margin-bottom: 14px;
+  }
+
+  .cos-worker-top-actions,
+  .cos-worker-actions {
+    justify-content: stretch;
+  }
+
+  .cos-worker-top-actions > *,
+  .cos-worker-actions > * {
+    flex: 1 1 145px;
+  }
+
+  .cos-worker-scan-launchers,
+  .cos-worker-metrics,
+  .cos-worker-dashboard-grid,
+  .cos-worker-graph-stats,
+  .cos-worker-graph-layout,
+  .cos-worker-intelligence-grid,
+  .cos-worker-developer-grid,
+  .cos-worker-workspace > .cos-catalog-sidebar .cos-catalog-results {
+    grid-template-columns: 1fr;
+  }
+
+  .cos-worker-findings-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .cos-worker-findings-hero,
+  .cos-worker-panel,
+  .cos-worker-briefing,
+  .cos-worker-scan-intro,
+  .cos-worker-scan-card,
+  .cos-worker-finding {
+    padding: 15px;
+  }
+
+  .cos-worker-findings-hero h2,
+  .cos-worker-health-hero h2,
+  .cos-worker-brief h2 {
+    font-size: clamp(2rem, 12vw, 3rem);
+  }
+
+  .cos-worker-health-ring {
+    width: 112px;
+    height: 112px;
+    flex-basis: 112px;
+  }
+
+  .cos-worker-finding-head {
+    flex-direction: column;
+  }
+
+  .cos-worker-command-overlay {
+    padding: max(22px, env(safe-area-inset-top)) 12px 12px;
+  }
+
+  .cos-worker-command-box {
+    max-height: calc(100vh - 44px - env(safe-area-inset-top));
+    overflow: auto;
+  }
+}
+
+@media (max-width: 430px) {
+  .cos-worker-sidebar nav {
+    grid-template-columns: 1fr;
+  }
+
+  .cos-worker-nav-group {
+    margin-top: 12px;
+  }
+
+  .cos-worker-sidebar nav button {
+    text-align: left;
+  }
+
+  .cos-worker-top-actions > *,
+  .cos-worker-actions > * {
+    flex-basis: 100%;
+  }
+}

@@ -47,40 +47,18 @@ export function installWorkerEraShell(root, context = {}) {
 
   const header = document.createElement('header');
   header.className = 'cos-worker-topbar';
-header.innerHTML = `
-  <div>
-    <span class="cos-eyebrow">Actionable site maintenance</span>
-    <h1 data-worker-title>Findings</h1>
-  </div>
-
-  <div class="cos-worker-top-actions">
-    <a
-      class="cos-worker-link"
-      href="https://site-health.oceanliners.net/"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Site Health
-    </a>
-
-    <a
-      class="cos-worker-link"
-      href="https://curator-indexer.oceanliners.net/"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Curator Indexer
-    </a>
-
-    <button type="button" data-worker-command>
-      ⌘ Command
-    </button>
-
-    <button type="button" data-worker-backup>
-      Quick Backup
-    </button>
-  </div>
-`;
+  header.innerHTML = `
+    <div>
+      <span class="cos-eyebrow">Actionable site maintenance</span>
+      <h1 data-worker-title>Findings</h1>
+    </div>
+    <div class="cos-worker-top-actions">
+      <a class="cos-worker-link" href="https://site-health.oceanliners.net/" target="_blank" rel="noopener noreferrer">Site Health</a>
+      <a class="cos-worker-link" href="https://curator-indexer.oceanliners.net/" target="_blank" rel="noopener noreferrer">Curator Indexer</a>
+      <button type="button" data-worker-command>⌘ Command</button>
+      <button type="button" data-worker-backup>Quick Backup</button>
+    </div>
+  `;
   workspace.insertBefore(header, workspace.firstChild);
 
   const dashboard = document.createElement('section');
@@ -179,7 +157,7 @@ header.innerHTML = `
     ${renderBriefing(history)}
     <section class="cos-worker-scan-launchers"><div class="cos-worker-scan-intro"><span class="cos-eyebrow">Start with a scan</span><h2>Find real problems on OceanLiners.net</h2><p>Load a CuratorOS catalog into the Registry, or run the proven scanners and import their findings here.</p></div>${SCAN_LINKS.map(renderScanLauncher).join('')}</section>
     <div class="cos-worker-metrics">
-      ${metric(counts.broken || 0, 'Broken links')}${metric(counts['link-opportunity'] || 0, 'Link opportunities')}${metric(counts.unsourced || 0, 'Missing sources')}${metric(counts.metadata || 0, 'Missing metadata')}${metric(open.length, 'Open findings')}
+      ${metric(counts.broken || 0, 'Broken links')}${metric(counts['link-maintenance'] || 0, 'Link maintenance')}${metric(counts['link-opportunity'] || 0, 'Link opportunities')}${metric(counts.unsourced || 0, 'Missing sources')}${metric(counts.metadata || 0, 'Missing metadata')}${metric(open.length, 'Open findings')}
     </div>
     <div class="cos-worker-findings-toolbar"><input type="search" data-findings-search placeholder="Search page, ship, URL, or issue…" value="${escapeHtml(state.search)}"><select data-findings-category><option value="">All categories</option>${categories.map((category) => `<option value="${escapeHtml(category)}"${state.category === category ? ' selected' : ''}>${escapeHtml(labelCategory(category))}</option>`).join('')}</select><select data-findings-severity><option value="">All priorities</option>${['high','medium','low'].map((severity) => `<option value="${severity}"${state.severity === severity ? ' selected' : ''}>${severity.replace(/^./, (c) => c.toUpperCase())}</option>`).join('')}</select><button type="button" data-findings-clear-filters>Clear filters</button></div>
     <div class="cos-worker-findings-summary">Showing ${visible.length.toLocaleString()} of ${statusPool.length.toLocaleString()} ${state.filter === 'handled' ? 'handled' : 'open'} findings.</div>
@@ -384,23 +362,48 @@ function auditRowFinding(row) {
   const normalized = Object.fromEntries(Object.entries(row || {}).map(([key, value]) => [String(key).trim().toLowerCase(), value]));
   const severity = String(normalized.severity || '').toLowerCase();
   const category = String(normalized.category || '').toUpperCase();
+  const status = Number.parseInt(normalized.status || '', 10);
+  const redirected = String(normalized.redirected || '').toLowerCase() === 'true' || category === 'REDIRECT';
   if (!normalized.checked_url && !normalized.url) return null;
   if (severity === 'good' || category === 'GOOD') return null;
+  if (status >= 200 && status < 300 && !redirected) return null;
+
   const pageUrl = normalized.page_url || normalized.pageurl || '';
   const checkedUrl = normalized.checked_url || normalized.url || '';
+  const finalUrl = normalized.final_url || normalized.finalurl || '';
   const replacement = normalized.replacement_url || normalized.replacementurl || '';
   const label = normalized.anchor_text || normalized.anchor || checkedUrl;
+
+  if (redirected && status >= 200 && status < 300) {
+    const destination = finalUrl || (replacement && replacement !== checkedUrl ? replacement : '');
+    return externalFinding({
+      id: `audit:${stableId(`${pageUrl}|${checkedUrl}|REDIRECT`)}`,
+      category: 'link-maintenance',
+      severity: 'low',
+      title: normalized.page_title || normalized.pagetitle || pageUrl || 'Redirected link',
+      summary: `${label} redirects successfully and the final destination returned ${status}.`,
+      recommendation: destination ? `No immediate action is required. During routine maintenance, update the link to point directly to ${destination}.` : 'No immediate action is required. The link is working; updating it is optional maintenance.',
+      action: 'Open affected page',
+      pageUrl,
+      targetUrl: checkedUrl,
+      replacementUrl: destination,
+      context: normalized.context || ''
+    });
+  }
+
+  const broken = severity === 'broken' || ['NOT_FOUND','DNS_ERROR','TLS_ERROR','NETWORK_ERROR','CLIENT_ERROR'].includes(category) || status === 404 || status === 410;
+  const usableReplacement = broken && replacement && replacement !== checkedUrl ? replacement : '';
   return externalFinding({
     id: `audit:${stableId(`${pageUrl}|${checkedUrl}|${category}`)}`,
-    category: severity === 'broken' ? 'broken' : 'link-warning',
-    severity: severity === 'broken' ? 'high' : 'medium',
+    category: broken ? 'broken' : 'link-warning',
+    severity: broken ? 'high' : 'medium',
     title: normalized.page_title || normalized.pagetitle || pageUrl || 'Link finding',
     summary: `${label} returned ${normalized.status || normalized.category || 'a link warning'}.`,
-    recommendation: replacement ? `Replace it with ${replacement}, then recheck the page.` : 'Open the affected page, verify the link manually, and replace or remove it.',
+    recommendation: usableReplacement ? `Replace it with ${usableReplacement}, then recheck the page.` : broken ? 'Open the affected page, verify the link manually, and replace or remove it.' : 'Open the affected page and verify the link manually. No replacement is suggested unless the destination is actually broken.',
     action: 'Open affected page',
     pageUrl,
     targetUrl: checkedUrl,
-    replacementUrl: replacement,
+    replacementUrl: usableReplacement,
     context: normalized.context || ''
   });
 }
@@ -477,8 +480,8 @@ function renderFinding(item, isHandled) {
   const targetUrl = safeUrl(item.targetUrl || '');
   const replacementUrl = safeUrl(item.replacementUrl || '');
   const openAction = item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action)}</button>` : destination ? `<a class="cos-worker-action-link" href="${escapeHtml(destination)}" target="_blank" rel="noopener">${escapeHtml(item.action || 'Open page')}</a>` : '';
-  const details = [item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : '', targetUrl ? `<p><strong>Checked URL:</strong> <a href="${escapeHtml(targetUrl)}" target="_blank" rel="noopener">${escapeHtml(targetUrl)}</a></p>` : '', replacementUrl ? `<p><strong>Suggested replacement:</strong> <a href="${escapeHtml(replacementUrl)}" target="_blank" rel="noopener">${escapeHtml(replacementUrl)}</a></p>` : ''].join('');
-  return `<article class="cos-worker-finding ${escapeHtml(item.severity)}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.recordType || 'finding')}${item.recordId ? ` · ${escapeHtml(item.recordId)}` : ''}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.severity)}</span></div><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p>${details}<p><strong>What to do next:</strong> ${escapeHtml(item.recommendation)}</p><div class="cos-worker-actions">${openAction}<button type="button" data-finding-action="${isHandled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${isHandled ? 'Reopen finding' : 'Mark handled'}</button></div></article>`;
+  const details = [item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : '', targetUrl ? `<p><strong>Checked URL:</strong> <a href="${escapeHtml(targetUrl)}" target="_blank" rel="noopener">${escapeHtml(targetUrl)}</a></p>` : '', replacementUrl ? `<p><strong>${item.category === 'link-maintenance' ? 'Final destination' : 'Suggested replacement'}:</strong> <a href="${escapeHtml(replacementUrl)}" target="_blank" rel="noopener">${escapeHtml(replacementUrl)}</a></p>` : ''].join('');
+  return `<article class="cos-worker-finding ${escapeHtml(item.severity)}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.recordType || 'finding')}${item.recordId ? ` · ${escapeHtml(item.recordId)}` : ''}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.category === 'link-maintenance' ? 'optional' : item.severity)}</span></div><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p>${details}<p><strong>${item.category === 'link-maintenance' ? 'Maintenance note' : 'What to do next'}:</strong> ${escapeHtml(item.recommendation)}</p><div class="cos-worker-actions">${openAction}<button type="button" data-finding-action="${isHandled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${isHandled ? 'Reopen finding' : 'Mark handled'}</button></div></article>`;
 }
 function renderScanLauncher(item) {
   return `<article class="cos-worker-scan-card"><span>${escapeHtml(item.title)}</span><p>${escapeHtml(item.description)}</p><a class="cos-worker-action-link" href="${escapeHtml(item.href)}" target="_blank" rel="noopener">${escapeHtml(item.button)}</a></article>`;

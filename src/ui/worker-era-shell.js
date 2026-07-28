@@ -10,6 +10,7 @@ const MODULES = [
 const FINDINGS_KEY = 'curatoros.findings.handled';
 const IMPORTED_FINDINGS_KEY = 'curatoros.findings.imported';
 const SCAN_HISTORY_KEY = 'curatoros.scan.history';
+const VERIFIED_FINDINGS_KEY = 'curatoros.findings.verified';
 const SCAN_LINKS = [
   {
     id: 'dead-links',
@@ -114,6 +115,15 @@ export function installWorkerEraShell(root, context = {}) {
 
   function saveScanHistory(history) {
     localStorage.setItem(SCAN_HISTORY_KEY, JSON.stringify(history.slice(0, 20)));
+  }
+
+  function verifiedFindings() {
+    const value = readJson(VERIFIED_FINDINGS_KEY, []);
+    return Array.isArray(value) ? value : [];
+  }
+
+  function saveVerified(findings) {
+    localStorage.setItem(VERIFIED_FINDINGS_KEY, JSON.stringify(findings.slice(0, 100)));
   }
 
   function buildFindings(records) {
@@ -265,36 +275,58 @@ export function installWorkerEraShell(root, context = {}) {
     if (!file) return;
     try {
       const text = await file.text();
-      const value = file.name.toLowerCase().endsWith('.csv') ? null : JSON.parse(text);
+      const isSiteHealth = file.name.toLowerCase().endsWith('.csv');
+      const value = isSiteHealth ? null : JSON.parse(text);
       if (value?.records && Array.isArray(value.records)) throw new Error('This is a CuratorOS catalog. Use Load catalog instead.');
-      const parsed = file.name.toLowerCase().endsWith('.csv') ? parseAuditCsv(text) : parseImportedJson(value);
-      if (!parsed.length) {
-        state.notice = `Imported ${file.name}. No actionable findings were detected.`;
-        return;
-      }
-      const current = importedFindings();
-      const merged = dedupeFindings([...current, ...parsed]);
+      const parsedRaw = isSiteHealth ? parseAuditCsv(text) : parseImportedJson(value);
+      const sourceType = isSiteHealth ? 'Site Health CSV' : 'JSON scan/index';
+      const parsed = parsedRaw.map((item) => ({ ...item, sourceType }));
       const history = scanHistory();
-      const sourceType = file.name.toLowerCase().endsWith('.csv') ? 'Site Health CSV' : 'JSON scan/index';
       const previous = history.find((item) => item.sourceType === sourceType);
+      const current = importedFindings();
+      const previousSourceFindings = current.filter((item) => item.sourceType === sourceType);
+      const previousById = new Map(previousSourceFindings.map((item) => [item.id, item]));
+      const previousIds = new Set(previous?.findingIds || previousSourceFindings.map((item) => item.id));
       const currentIds = new Set(parsed.map((item) => item.id));
-      const previousIds = new Set(previous?.findingIds || []);
+      const verifiedIds = previous ? [...previousIds].filter((id) => !currentIds.has(id)) : [];
+      const verified = verifiedIds.map((id) => {
+        const finding = previousById.get(id) || { id, title: 'Verified link fix', pageUrl: '', targetUrl: '', category: 'broken' };
+        return { ...finding, verifiedAt: new Date().toISOString(), sourceType };
+      });
+      const verifiedArchive = verifiedFindings();
+      const previouslyVerifiedIds = new Set(verifiedArchive.map((item) => item.id));
+      const regressionIds = [...currentIds].filter((id) => previouslyVerifiedIds.has(id));
+      const regressions = new Set(regressionIds);
+      const parsedWithRegression = parsed.map((item) => regressions.has(item.id) ? { ...item, regression: true } : item);
+      const preserved = current.filter((item) => item.sourceType !== sourceType);
+      const merged = dedupeFindings([...preserved, ...parsedWithRegression]);
       const snapshot = {
         id: `${Date.now()}-${stableId(file.name)}`,
         importedAt: new Date().toISOString(),
         fileName: file.name,
         sourceType,
-        count: parsed.length,
-        high: parsed.filter((item) => item.severity === 'high').length,
-        newCount: [...currentIds].filter((id) => !previousIds.has(id)).length,
+        count: parsedWithRegression.length,
+        high: parsedWithRegression.filter((item) => item.severity === 'high').length,
+        newCount: [...currentIds].filter((id) => !previousIds.has(id) && !previouslyVerifiedIds.has(id)).length,
         persistentCount: [...currentIds].filter((id) => previousIds.has(id)).length,
-        resolvedCount: previous ? [...previousIds].filter((id) => !currentIds.has(id)).length : 0,
-        findingIds: [...currentIds]
+        verifiedCount: verified.length,
+        resolvedCount: verified.length,
+        regressionCount: regressionIds.length,
+        findingIds: [...currentIds],
+        verifiedFindings: verified.map((item) => ({ id:item.id, title:item.title, pageUrl:item.pageUrl || '', targetUrl:item.targetUrl || '', category:item.category || '', verifiedAt:item.verifiedAt }))
       };
       saveScanHistory([snapshot, ...history]);
+      saveVerified(dedupeFindings([...verified, ...verifiedArchive.filter((item) => !currentIds.has(item.id))]));
       saveImported(merged);
+      const handled = handledIds();
+      for (const id of verifiedIds) handled.delete(id);
+      saveHandled(handled);
       state.filter = 'open';
-      state.notice = `Imported ${parsed.length} finding${parsed.length === 1 ? '' : 's'} from ${file.name}. ${snapshot.newCount} new, ${snapshot.persistentCount} persistent, ${snapshot.resolvedCount} no longer present.`;
+      if (!parsed.length) {
+        state.notice = `Imported ${file.name}. No actionable findings remain. ${snapshot.verifiedCount} fix${snapshot.verifiedCount === 1 ? '' : 'es'} verified.`;
+      } else {
+        state.notice = `Imported ${parsedWithRegression.length} finding${parsedWithRegression.length === 1 ? '' : 's'} from ${file.name}. ${snapshot.newCount} new, ${snapshot.persistentCount} persistent, ${snapshot.verifiedCount} verified fixed, ${snapshot.regressionCount} regression${snapshot.regressionCount === 1 ? '' : 's'}.`;
+      }
     } catch (error) {
       state.notice = `Could not import ${file.name}: ${error instanceof Error ? error.message : String(error)}`;
     } finally {
@@ -481,16 +513,20 @@ function renderFinding(item, isHandled) {
   const replacementUrl = safeUrl(item.replacementUrl || '');
   const openAction = item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action)}</button>` : destination ? `<a class="cos-worker-action-link" href="${escapeHtml(destination)}" target="_blank" rel="noopener">${escapeHtml(item.action || 'Open page')}</a>` : '';
   const details = [item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : '', targetUrl ? `<p><strong>Checked URL:</strong> <a href="${escapeHtml(targetUrl)}" target="_blank" rel="noopener">${escapeHtml(targetUrl)}</a></p>` : '', replacementUrl ? `<p><strong>${item.category === 'link-maintenance' ? 'Final destination' : 'Suggested replacement'}:</strong> <a href="${escapeHtml(replacementUrl)}" target="_blank" rel="noopener">${escapeHtml(replacementUrl)}</a></p>` : ''].join('');
-  return `<article class="cos-worker-finding ${escapeHtml(item.severity)}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.recordType || 'finding')}${item.recordId ? ` · ${escapeHtml(item.recordId)}` : ''}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.category === 'link-maintenance' ? 'optional' : item.severity)}</span></div><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p>${details}<p><strong>${item.category === 'link-maintenance' ? 'Maintenance note' : 'What to do next'}:</strong> ${escapeHtml(item.recommendation)}</p><div class="cos-worker-actions">${openAction}<button type="button" data-finding-action="${isHandled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${isHandled ? 'Reopen finding' : 'Mark handled'}</button></div></article>`;
+  const regression = item.regression ? `<p><strong>Regression:</strong> This finding had previously been verified fixed and has returned in the latest scan.</p>` : '';
+  return `<article class="cos-worker-finding ${escapeHtml(item.severity)}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.recordType || 'finding')}${item.recordId ? ` · ${escapeHtml(item.recordId)}` : ''}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.regression ? 'regression' : item.category === 'link-maintenance' ? 'optional' : item.severity)}</span></div><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p>${regression}${details}<p><strong>${item.category === 'link-maintenance' ? 'Maintenance note' : 'What to do next'}:</strong> ${escapeHtml(item.recommendation)}</p><div class="cos-worker-actions">${openAction}<button type="button" data-finding-action="${isHandled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${isHandled ? 'Reopen finding' : 'Mark handled'}</button></div></article>`;
 }
 function renderScanLauncher(item) {
   return `<article class="cos-worker-scan-card"><span>${escapeHtml(item.title)}</span><p>${escapeHtml(item.description)}</p><a class="cos-worker-action-link" href="${escapeHtml(item.href)}" target="_blank" rel="noopener">${escapeHtml(item.button)}</a></article>`;
 }
 function renderBriefing(history) {
   const latest = history[0];
-  if (!latest) return `<section class="cos-worker-briefing"><div><span class="cos-eyebrow">Since last scan</span><h2>No scan history yet</h2><p>Import a Site Health CSV or site index to begin tracking what is new, persistent, and resolved.</p></div></section>`;
+  if (!latest) return `<section class="cos-worker-briefing"><div><span class="cos-eyebrow">Since last scan</span><h2>No scan history yet</h2><p>Import a Site Health CSV or site index to begin tracking what is new, persistent, and verified.</p></div></section>`;
   const when = formatDateTime(latest.importedAt);
-  return `<section class="cos-worker-briefing"><div class="cos-worker-briefing-head"><div><span class="cos-eyebrow">Since last scan</span><h2>${latest.newCount} new · ${latest.persistentCount} persistent · ${latest.resolvedCount} resolved</h2><p>${escapeHtml(latest.fileName)} imported ${escapeHtml(when)}. ${latest.high} high-priority finding${latest.high === 1 ? '' : 's'} in this scan.</p></div><button type="button" data-findings-clear-history>Clear history</button></div>${history.length > 1 ? `<div class="cos-worker-scan-history">${history.slice(0,5).map((item) => `<div><strong>${escapeHtml(formatDate(item.importedAt))}</strong><span>${item.count} findings · ${item.newCount} new · ${item.resolvedCount} resolved</span><small>${escapeHtml(item.fileName)}</small></div>`).join('')}</div>` : ''}</section>`;
+  const verified = latest.verifiedCount ?? latest.resolvedCount ?? 0;
+  const regressions = latest.regressionCount || 0;
+  const recentVerified = Array.isArray(latest.verifiedFindings) ? latest.verifiedFindings.slice(0, 5) : [];
+  return `<section class="cos-worker-briefing"><div class="cos-worker-briefing-head"><div><span class="cos-eyebrow">Since last scan</span><h2>${latest.newCount} new · ${latest.persistentCount} persistent · ${verified} verified${regressions ? ` · ${regressions} regression${regressions === 1 ? '' : 's'}` : ''}</h2><p>${escapeHtml(latest.fileName)} imported ${escapeHtml(when)}. ${latest.high} high-priority finding${latest.high === 1 ? '' : 's'} in this scan.</p></div><button type="button" data-findings-clear-history>Clear history</button></div>${recentVerified.length ? `<div class="cos-worker-scan-history"><div><strong>Recently verified</strong><span>${recentVerified.map((item) => `✓ ${escapeHtml(item.title || item.pageUrl || item.targetUrl || item.id)}`).join('<br>')}</span><small>Removed from the active queue after disappearing from the latest scan.</small></div></div>` : ''}${history.length > 1 ? `<div class="cos-worker-scan-history">${history.slice(0,5).map((item) => `<div><strong>${escapeHtml(formatDate(item.importedAt))}</strong><span>${item.count} findings · ${item.newCount} new · ${(item.verifiedCount ?? item.resolvedCount ?? 0)} verified${item.regressionCount ? ` · ${item.regressionCount} regressions` : ''}</span><small>${escapeHtml(item.fileName)}</small></div>`).join('')}</div>` : ''}</section>`;
 }
 function labelCategory(value) { return String(value || 'finding').replaceAll('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
 function csvCell(value) { return `"${String(value ?? '').replaceAll('"','""')}"`; }

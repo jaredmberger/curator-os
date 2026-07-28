@@ -1,1 +1,47 @@
 :root{color-scheme:dark;--bg:#0a1110;--panel:#111b19;--line:#2c3a37;--text:#f3eee3;--muted:#a9b3ae;--brass:#bfa46a}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;display:grid;grid-template-columns:240px 1fr}.sidebar{padding:20px;border-right:1px solid var(--line);background:#0d1614;display:flex;flex-direction:column;gap:8px}.brand{font-family:Georgia,serif;font-size:1.35rem;margin-bottom:18px}.brand small{display:block;color:var(--brass);font:600 .72rem system-ui;letter-spacing:.08em}.sidebar button{background:transparent;border:1px solid transparent;color:var(--text);padding:11px 12px;border-radius:10px;text-align:left}.sidebar button:hover,.sidebar button[aria-current="page"]{background:var(--panel);border-color:var(--line)}main{padding:24px;min-width:0}header{border-bottom:1px solid var(--line);margin-bottom:20px}#viewEyebrow{color:var(--brass);text-transform:uppercase;letter-spacing:.12em;font-size:.72rem}h1,h2{font-family:Georgia,serif;font-weight:500}section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}input{width:100%;max-width:480px;background:#0d1614;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px}@media(max-width:760px){body{grid-template-columns:1fr}.sidebar{position:sticky;top:0;z-index:2;border-right:0;border-bottom:1px solid var(--line);flex-direction:row;overflow:auto;padding:12px}.brand{margin:0 10px 0 0;white-space:nowrap}.sidebar button{white-space:nowrap}main{padding:16px}}
+/* ==========================================================
+   CuratorOS Suite Navigation
+   ========================================================== */
+
+.cos-worker-top-actions{
+  display:flex;
+  align-items:center;
+  gap:.6rem;
+  flex-wrap:wrap;
+}
+
+.cos-worker-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:.45rem .9rem;
+  border:1px solid rgba(191,164,106,.35);
+  border-radius:999px;
+  background:rgba(191,164,106,.08);
+  color:var(--accent-color,#bfa46a);
+  text-decoration:none;
+  font-size:.82rem;
+  font-weight:600;
+  letter-spacing:.02em;
+  transition:
+    background .18s ease,
+    border-color .18s ease,
+    transform .18s ease,
+    color .18s ease;
+}
+
+.cos-worker-link:hover{
+  background:rgba(191,164,106,.16);
+  border-color:rgba(191,164,106,.7);
+  color:#fff;
+  transform:translateY(-1px);
+}
+
+.cos-worker-link:focus-visible{
+  outline:2px solid rgba(191,164,106,.8);
+  outline-offset:2px;
+}
+
+.cos-worker-top-actions button{
+  white-space:nowrap;
+}

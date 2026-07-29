@@ -4,9 +4,9 @@ import vm from 'node:vm';
 
 const source = fs.readFileSync(new URL('../src/ui/worker-era-shell.js', import.meta.url), 'utf8');
 assert.match(source, /Load catalog/);
-assert.match(source, /Import scan results/);
+assert.match(source, /Import any scan/);
 assert.match(source, /This is a CuratorOS catalog\. Use Load catalog instead\./);
-assert.match(source, /No actionable findings were detected/);
+assert.match(source, /No actionable findings remain/);
 assert.match(source, /sourceType === sourceType/);
 assert.match(source, /safeUrl\(/);
 assert.match(source, /removeEventListener\('click'/);

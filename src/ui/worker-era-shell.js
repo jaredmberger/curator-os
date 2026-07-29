@@ -187,7 +187,20 @@ export function installWorkerEraShell(root, context = {}) {
     root.dispatchEvent(new CustomEvent('curatoros:worker-view', { detail: { view } }));
   }
 
+  const openExternalLink = (link) => {
+    const href = link?.href;
+    if (!href) return;
+    const opened = window.open(href, '_blank', 'noopener');
+    if (!opened) window.location.assign(href);
+  };
+
   const clickHandler = (event) => {
+    const externalLink = event.target.closest('a[target="_blank"][href]');
+    if (externalLink && shell.contains(externalLink)) {
+      event.preventDefault();
+      openExternalLink(externalLink);
+      return;
+    }
     const viewButton = event.target.closest('[data-worker-view]');
     if (viewButton) setView(viewButton.dataset.workerView);
     const filterButton = event.target.closest('[data-worker-filter]');
@@ -430,128 +443,86 @@ function auditRowFinding(row) {
     });
   }
 
-  const broken = severity === 'broken' || ['NOT_FOUND','DNS_ERROR','TLS_ERROR','NETWORK_ERROR','CLIENT_ERROR'].includes(category) || status === 404 || status === 410;
-  const usableReplacement = broken && replacement && replacement !== checkedUrl ? replacement : '';
+  const blocked = category === 'BLOCKED' || severity === 'blocked' || status === 403 || status === 429;
   return externalFinding({
-    id: `audit:${stableId(`${pageUrl}|${checkedUrl}|${category}`)}`,
-    category: broken ? 'broken' : 'link-warning',
-    severity: broken ? 'high' : 'medium',
-    title: normalized.page_title || normalized.pagetitle || pageUrl || 'Link finding',
-    summary: `${label} returned ${normalized.status || normalized.category || 'a link warning'}.`,
-    recommendation: usableReplacement ? `Replace it with ${usableReplacement}, then recheck the page.` : broken ? 'Open the affected page, verify the link manually, and replace or remove it.' : 'Open the affected page and verify the link manually. No replacement is suggested unless the destination is actually broken.',
+    id: `audit:${stableId(`${pageUrl}|${checkedUrl}|${status || category}`)}`,
+    category: blocked ? 'link-review' : 'broken',
+    severity: blocked ? 'medium' : severity === 'warning' ? 'medium' : 'high',
+    title: normalized.page_title || normalized.pagetitle || pageUrl || 'Source link finding',
+    summary: blocked ? `${label} could not be verified automatically${status ? ` (HTTP ${status})` : ''}.` : `${label} appears unavailable${status ? ` (HTTP ${status})` : ''}.`,
+    recommendation: blocked ? 'Review the source manually before changing or removing it.' : replacement ? `Review and replace the link with ${replacement}.` : 'Review the source and replace or remove the unavailable link.',
     action: 'Open affected page',
     pageUrl,
     targetUrl: checkedUrl,
-    replacementUrl: usableReplacement,
+    replacementUrl: replacement,
     context: normalized.context || ''
   });
 }
 
-function indexFindings(index) {
-  const findings = [];
-  const errors = index.errors || index.diagnostics?.errors || [];
-  for (const error of errors) {
-    findings.push(externalFinding({ id:`crawl:${stableId(`${error.url || error.pageUrl}|${error.error || error.message}`)}`, category:'crawl-error', severity:'high', title:error.title || error.url || error.pageUrl || 'Crawl error', summary:error.error || error.message || 'The page could not be crawled.', recommendation:'Open the page, confirm whether it loads, then correct the URL or retry the scan.', action:'Open affected page', pageUrl:error.url || error.pageUrl || '' }));
-  }
-  for (const mention of index.graphs?.unlinkedShipMentions || []) {
-    findings.push(externalFinding({ id:`mention:${stableId(`${mention.pageUrl}|${mention.shipUrl}|${mention.matchedAlias || mention.shipName}`)}`, category:'link-opportunity', severity:Number(mention.count || 1) > 2 ? 'high' : 'medium', title:mention.pageTitle || mention.pageUrl || 'Unlinked ship mention', summary:`${mention.shipName || 'A ship'} is mentioned ${Number(mention.count || 1)} time${Number(mention.count || 1) === 1 ? '' : 's'} without a link.`, recommendation:`Add a link to ${mention.shipUrl || 'the ship guide'} where the mention is editorially useful.`, action:'Open source page', pageUrl:mention.pageUrl || '', targetUrl:mention.shipUrl || '', context:mention.matchedAlias || mention.shipName || '' }));
-  }
-  const pages = index.pages || index.entities?.pages || [];
-  for (const page of pages) {
-    if (page.pageType === 'ship-guide' && Array.isArray(page.sourceLinks) && page.sourceLinks.length === 0) findings.push(externalFinding({ id:`sources:${stableId(page.url || page.path)}`, category:'missing-sources', severity:'high', title:page.title || page.path || page.url, summary:'This ship guide has no detected external source links.', recommendation:'Review the guide and add a Sources section or documented citations.', action:'Open ship guide', pageUrl:page.url || '' }));
-  }
-  return findings;
-}
-
 function recordExportFindings(records) {
-  return records.flatMap((record) => {
-    const title = record.title || record.name || record.id || 'Record';
-    const output = [];
-    if (!(record.sources || []).length) output.push(externalFinding({ id:`import-unsourced:${stableId(record.id || title)}`, category:'unsourced', severity:'high', title, summary:`${title} has no direct source attached.`, recommendation:'Add at least one source or curatorial evidence note.', action:'Review imported record', recordId:record.id || '' }));
-    if (record.status === 'draft' || record.status === 'review') output.push(externalFinding({ id:`import-review:${stableId(record.id || title)}`, category:'review', severity:record.status === 'draft' ? 'high' : 'medium', title, summary:`${title} is marked ${record.status}.`, recommendation:'Review its evidence and metadata before publication.', action:'Review imported record', recordId:record.id || '' }));
-    return output;
+  return (records || []).flatMap((record) => {
+    const findings = [];
+    const title = record.title || record.id || 'Untitled record';
+    if (!(record.sources || []).length) findings.push(externalFinding({ id:`record:${record.id}:unsourced`, recordId:record.id, category:'unsourced', severity:'high', title, summary:'This record has no direct source attached.', recommendation:'Open the record and attach at least one documented source.', action:'Open record' }));
+    if (record.status === 'review' || record.status === 'draft') findings.push(externalFinding({ id:`record:${record.id}:review`, recordId:record.id, category:'review', severity:record.status === 'draft' ? 'high' : 'medium', title, summary:`This record remains marked ${record.status}.`, recommendation:'Review the evidence and metadata, then publish or archive the record.', action:'Open record' }));
+    return findings;
   });
 }
 
-function parseCsv(text) {
-  const rows = [];
-  let row = [], field = '', quoted = false;
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i], next = text[i + 1];
-    if (quoted && char === '"' && next === '"') { field += '"'; i++; continue; }
-    if (char === '"') { quoted = !quoted; continue; }
-    if (!quoted && char === ',') { row.push(field); field = ''; continue; }
-    if (!quoted && (char === '\n' || char === '\r')) {
-      if (char === '\r' && next === '\n') i++;
-      row.push(field); field = '';
-      if (row.some((value) => value !== '')) rows.push(row);
-      row = [];
-      continue;
-    }
-    field += char;
+function indexFindings(value) {
+  const pages = Array.isArray(value.pages) ? value.pages : Array.isArray(value.entities?.pages) ? value.entities.pages : [];
+  const findings = [];
+  for (const page of pages) {
+    const pageUrl = page.url || page.canonical || page.path || '';
+    const title = page.title || page.h1 || pageUrl || 'Indexed page';
+    const sources = page.sourceCount ?? page.sources?.length;
+    if (Number(sources) === 0) findings.push(externalFinding({ id:`index:${stableId(`${pageUrl}|sources`)}`, category:'unsourced', severity:'high', title, summary:'The index reports no source references on this page.', recommendation:'Review the page and add or restore its source section.', action:'Open page', pageUrl }));
+    if (page.error) findings.push(externalFinding({ id:`index:${stableId(`${pageUrl}|${page.error}`)}`, category:'crawl', severity:'high', title, summary:String(page.error), recommendation:'Open the page and repair the crawl or rendering failure.', action:'Open page', pageUrl }));
+    if (!page.title) findings.push(externalFinding({ id:`index:${stableId(`${pageUrl}|title`)}`, category:'metadata', severity:'medium', title, summary:'The indexed page is missing a title.', recommendation:'Add a descriptive HTML title and verify the canonical metadata.', action:'Open page', pageUrl }));
   }
-  row.push(field);
-  if (row.some((value) => value !== '')) rows.push(row);
-  const headers = rows.shift()?.map((value) => value.trim()) || [];
-  if (!headers.length) return [];
-  return rows.map((values) => Object.fromEntries(headers.map((header, index) => [header, values[index] || ''])));
+  for (const error of value.errors || []) findings.push(externalFinding({ id:`index:${stableId(JSON.stringify(error))}`, category:'crawl', severity:'high', title:error.title || error.url || 'Indexer error', summary:error.message || error.error || 'Curator Indexer reported a crawl problem.', recommendation:'Open the affected page and correct the reported failure.', action:'Open page', pageUrl:error.url || '' }));
+  for (const mention of value.graphs?.unlinkedShipMentions || []) findings.push(externalFinding({ id:`index:${stableId(JSON.stringify(mention))}`, category:'link-opportunity', severity:'low', title:mention.ship || mention.title || 'Unlinked ship mention', summary:`${mention.ship || 'A ship'} is mentioned without an internal guide link.`, recommendation:'Review the page and add an appropriate internal ship-guide link when contextually useful.', action:'Open page', pageUrl:mention.pageUrl || mention.url || '' }));
+  return findings;
 }
 
-function finding(record, category, severity, summary, recommendation, action) {
-  return { id: `${category}:${record.id}`, recordId: record.id, category, severity, title: record.title || record.id, recordType: record.type || 'record', summary, recommendation, action };
+function externalFinding(item) {
+  return {
+    id:item.id || `finding:${stableId(JSON.stringify(item))}`,
+    recordId:item.recordId || '',
+    recordType:item.recordType || 'site page',
+    category:item.category || 'review',
+    severity:['high','medium','low'].includes(item.severity) ? item.severity : 'medium',
+    title:item.title || 'Imported finding',
+    summary:item.summary || 'An external scanner reported an issue.',
+    recommendation:item.recommendation || 'Review the finding and the affected page.',
+    action:item.action || 'Review finding',
+    pageUrl:item.pageUrl || '',
+    targetUrl:item.targetUrl || '',
+    replacementUrl:item.replacementUrl || '',
+    context:item.context || ''
+  };
 }
-function externalFinding(value) { return { recordType:'site finding', ...value }; }
-function dedupeFindings(findings) { return [...new Map(findings.filter((item) => item?.id).map((item) => [item.id, item])).values()]; }
-function stableId(value) { let hash = 2166136261; for (const char of String(value || '')) { hash ^= char.charCodeAt(0); hash = Math.imul(hash, 16777619); } return (hash >>> 0).toString(36); }
-function missingCoreMetadata(record) {
-  const missing = [];
-  if (!record.summary) missing.push('summary');
-  if (!record.metadata?.confidence || record.metadata.confidence === 'unknown') missing.push('confidence');
-  if (record.type === 'ship') {
-    if (!record.data?.builder) missing.push('builder');
-    if (!record.data?.operator) missing.push('shipping line');
-    if (!record.data?.launchDate && !record.data?.year) missing.push('launch year');
-  }
-  return missing;
-}
-function renderFinding(item, isHandled) {
-  const destination = safeUrl(item.pageUrl || item.targetUrl || item.replacementUrl || '');
-  const targetUrl = safeUrl(item.targetUrl || '');
-  const replacementUrl = safeUrl(item.replacementUrl || '');
-  const openAction = item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action)}</button>` : destination ? `<a class="cos-worker-action-link" href="${escapeHtml(destination)}" target="_blank" rel="noopener">${escapeHtml(item.action || 'Open page')}</a>` : '';
-  const details = [item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : '', targetUrl ? `<p><strong>Checked URL:</strong> <a href="${escapeHtml(targetUrl)}" target="_blank" rel="noopener">${escapeHtml(targetUrl)}</a></p>` : '', replacementUrl ? `<p><strong>${item.category === 'link-maintenance' ? 'Final destination' : 'Suggested replacement'}:</strong> <a href="${escapeHtml(replacementUrl)}" target="_blank" rel="noopener">${escapeHtml(replacementUrl)}</a></p>` : ''].join('');
-  return `<article class="cos-worker-finding ${escapeHtml(item.severity)}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.recordType || 'finding')}${item.recordId ? ` · ${escapeHtml(item.recordId)}` : ''}${item.regression ? ' · regression' : ''}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.category === 'link-maintenance' ? 'optional' : item.regression ? 'regression' : item.severity)}</span></div><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p>${details}<p><strong>${item.category === 'link-maintenance' ? 'Maintenance note' : 'What to do next'}:</strong> ${escapeHtml(item.recommendation)}</p><div class="cos-worker-actions">${openAction}<button type="button" data-finding-action="${isHandled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${isHandled ? 'Reopen finding' : 'Mark handled'}</button></div></article>`;
-}
+
 function renderBriefing(history) {
   const latest = history[0];
-  if (!latest) return `<section class="cos-worker-briefing"><div><span class="cos-eyebrow">Since last scan</span><h2>No scan history yet</h2><p>Import a Site Health CSV, Curator Indexer JSON, or Curator Speed report to begin tracking what is new, persistent, and verified.</p></div></section>`;
-  const when = formatDateTime(latest.importedAt);
-  const verifiedItems = latest.verifiedFindings || [];
-  return `<section class="cos-worker-briefing"><div class="cos-worker-briefing-head"><div><span class="cos-eyebrow">Latest scan · ${escapeHtml(latest.sourceType || 'Imported report')}</span><h2>${latest.newCount} new · ${latest.persistentCount} persistent · ${latest.verifiedCount ?? latest.resolvedCount ?? 0} verified · ${latest.regressionCount || 0} regressions</h2><p>${escapeHtml(latest.fileName)} imported ${escapeHtml(when)}. ${latest.high} high-priority finding${latest.high === 1 ? '' : 's'} remain in this scan.</p></div><button type="button" data-findings-clear-history>Clear history</button></div>${verifiedItems.length ? `<div class="cos-worker-scan-history"><div><strong>Recently verified</strong><span>${verifiedItems.slice(0,5).map((item) => `✓ ${escapeHtml(item.title || item.pageUrl || item.targetUrl || 'Finding')}`).join(' · ')}</span><small>These findings disappeared from the latest scan and were removed from the active queue.</small></div></div>` : ''}${history.length > 1 ? `<div class="cos-worker-scan-history">${history.slice(0,5).map((item) => `<div><strong>${escapeHtml(formatDate(item.importedAt))}</strong><span>${escapeHtml(item.sourceType || 'Imported report')} · ${item.count} findings · ${item.newCount} new · ${item.verifiedCount ?? item.resolvedCount ?? 0} verified${item.regressionCount ? ` · ${item.regressionCount} regressions` : ''}</span><small>${escapeHtml(item.fileName)}</small></div>`).join('')}</div>` : ''}</section>`;
+  return `<section class="cos-worker-briefing"><div class="cos-worker-briefing-head"><div><span class="cos-eyebrow">Scan history</span><h2>${latest ? 'Latest imported assurance snapshot' : 'No scan history yet'}</h2><p>${latest ? `${escapeHtml(latest.fileName)} · ${escapeHtml(latest.sourceType)} · imported ${escapeHtml(formatDate(latest.importedAt))}` : 'Import Site Health, Curator Indexer, or Curator Speed results to begin tracking new, persistent, verified, and regressed findings.'}</p></div><div class="cos-worker-actions"><button type="button" data-findings-clear-history>Clear history</button><button type="button" data-findings-clear-imported>Clear imported findings</button></div></div>${latest ? `<div class="cos-worker-scan-history">${scanStat(latest.newCount, 'New')}${scanStat(latest.persistentCount, 'Persistent')}${scanStat(latest.verifiedCount, 'Verified fixed')}${scanStat(latest.regressionCount, 'Regressions')}${scanStat(latest.count, 'Current findings')}</div>` : ''}</section>`;
 }
-function labelCategory(value) { return String(value || 'finding').replaceAll('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase()); }
-function csvCell(value) { return `"${String(value ?? '').replaceAll('"','""')}"`; }
-function downloadText(text, filename, type) { const url = URL.createObjectURL(new Blob([text], { type })); const link = document.createElement('a'); link.href = url; link.download = filename; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
-function safeUrl(value) { try { const url = new URL(String(value || ''), location.href); return ['http:','https:'].includes(url.protocol) ? url.href : ''; } catch { return ''; } }
-function formatDateTime(value) { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'at an unknown time' : date.toLocaleString(); }
-function formatDate(value) { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Unknown date' : date.toLocaleDateString(); }
-function renderNav() {
-  let last = '';
-  return MODULES.map(([group, label]) => {
-    const view = label === 'Findings' ? 'dashboard' : label === 'Registry' ? 'registry' : label === 'Review Queue' ? 'review' : label === 'Graph' ? 'graph' : label === 'Intelligence' ? 'intelligence' : 'developer';
-    const heading = group !== last ? `<span class="cos-worker-nav-group">${group}</span>` : '';
-    last = group;
-    return `${heading}<button type="button" data-worker-view="${view}">${label}</button>`;
-  }).join('');
-}
-function countBy(values, key) { return values.reduce((out, item) => { const value = item[key] || 'unknown'; out[value] = (out[value] || 0) + 1; return out; }, {}); }
-function metric(value, label) { return `<div class="cos-worker-metric"><strong>${Number(value).toLocaleString()}</strong><span>${label}</span></div>`; }
+
+function scanStat(value, label) { return `<div><strong>${Number(value || 0).toLocaleString()}</strong><span>${escapeHtml(label)}</span></div>`; }
+function formatDate(value) { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'unknown date' : date.toLocaleString(); }
+function countBy(items, key) { return items.reduce((acc, item) => { const value = item[key] || 'other'; acc[value] = (acc[value] || 0) + 1; return acc; }, {}); }
+function dedupeFindings(items) { return [...new Map(items.map((item) => [item.id, item])).values()]; }
+function metric(value, label) { return `<div class="cos-worker-metric"><strong>${Number(value).toLocaleString()}</strong><span>${escapeHtml(label)}</span></div>`; }
+function labelCategory(value) { return String(value || '').replace(/[-_]+/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()); }
+function safeUrl(value) { try { const url = new URL(value, location.origin); return ['http:','https:'].includes(url.protocol) ? url.href : ''; } catch { return ''; } }
 function cssEscape(value) { return globalThis.CSS?.escape ? CSS.escape(String(value)) : String(value).replace(/["\\]/g, '\\$&'); }
-function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[char])); }
-function openCommandPalette(root, setView) {
-  const choice = prompt('Open: findings, registry, graph, intelligence, review, or developer');
-  const normalized = String(choice || '').trim().toLowerCase();
-  const views = { findings:'dashboard', registry:'registry', graph:'graph', intelligence:'intelligence', review:'review', developer:'developer' };
-  if (views[normalized]) setView(views[normalized]);
-  else if (choice) root.dispatchEvent(new CustomEvent('curatoros:command', { detail: { command: choice } }));
-}
+function stableId(value) { let hash = 2166136261; for (const char of String(value || '')) { hash ^= char.charCodeAt(0); hash = Math.imul(hash, 16777619); } return (hash >>> 0).toString(36); }
+function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[char])); }
+function csvCell(value) { const text = String(value ?? ''); return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text; }
+function downloadText(text, filename, type) { const url = URL.createObjectURL(new Blob([text], { type })); const link = document.createElement('a'); link.href = url; link.download = filename; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+function missingCoreMetadata(record) { const missing = []; if (!record.title) missing.push('title'); if (!record.summary) missing.push('summary'); if (!record.status) missing.push('status'); if (!record.type) missing.push('type'); return missing; }
+function finding(record, category, severity, summary, recommendation, action) { return { id:`${record.id}:${category}`, recordId:record.id, recordType:record.type, category, severity, title:record.title || record.id, summary, recommendation, action, pageUrl:record.data?.canonicalUrl || record.data?.url || '', targetUrl:'', replacementUrl:'', context:'' }; }
+function renderFinding(item, isHandled) { const pageUrl = safeUrl(item.pageUrl); const targetUrl = safeUrl(item.targetUrl); const replacementUrl = safeUrl(item.replacementUrl); return `<article class="cos-worker-finding ${escapeHtml(item.severity)}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.recordType || 'site finding')}${item.regression ? ' · regression' : ''}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.severity)}</span></div><p>${escapeHtml(item.summary)}</p><p><strong>What to do next:</strong> ${escapeHtml(item.recommendation)}</p>${targetUrl ? `<p><strong>Checked URL:</strong> <a href="${escapeHtml(targetUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(targetUrl)}</a></p>` : ''}${replacementUrl ? `<p><strong>Suggested replacement:</strong> <a href="${escapeHtml(replacementUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(replacementUrl)}</a></p>` : ''}${item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : ''}<div class="cos-worker-actions">${item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action || 'Open record')}</button>` : pageUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(pageUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.action || 'Open page')}</a>` : ''}<button type="button" data-finding-action="${isHandled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${isHandled ? 'Reopen finding' : 'Mark handled'}</button></div></article>`; }
+function renderNav() { const groups = { home:[], archive:[], knowledge:[], editorial:[], administration:[] }; MODULES.forEach(([group,label]) => groups[group].push(label)); return Object.entries(groups).map(([group,labels]) => `<div class="cos-worker-nav-group">${escapeHtml(labelCategory(group))}</div>${labels.map((label) => `<button type="button" data-worker-view="${label === 'Findings' ? 'dashboard' : label === 'Registry' ? 'registry' : label === 'Graph' ? 'graph' : label === 'Intelligence' ? 'intelligence' : label === 'Review Queue' ? 'review' : 'developer'}" class="${label === 'Findings' ? 'active' : ''}">${escapeHtml(label)}</button>`).join('')}`).join(''); }
+function openCommandPalette(root, setView) { const overlay=document.createElement('div'); overlay.className='cos-worker-command-overlay'; overlay.innerHTML=`<div class="cos-worker-command-box"><input type="search" placeholder="Type a command…" autofocus><div>${[['dashboard','Open Findings'],['registry','Open Registry'],['graph','Open Graph'],['intelligence','Open Intelligence'],['review','Open Review Queue'],['developer','Open Developer Mode']].map(([view,label])=>`<button type="button" data-command-view="${view}">${label}</button>`).join('')}</div></div>`; document.body.append(overlay); const input=overlay.querySelector('input'); const render=()=>{ const query=input.value.toLowerCase(); overlay.querySelectorAll('[data-command-view]').forEach((button)=>button.hidden=!button.textContent.toLowerCase().includes(query)); }; input.addEventListener('input',render); overlay.addEventListener('click',(event)=>{ const button=event.target.closest('[data-command-view]'); if(button){ setView(button.dataset.commandView); overlay.remove(); return; } if(event.target===overlay) overlay.remove(); }); input.focus(); }
+function parseCsv(text) { const rows=[]; let row=[],field='',quoted=false; for(let i=0;i<text.length;i++){ const char=text[i]; const next=text[i+1]; if(quoted){ if(char==='"'&&next==='"'){field+='"';i++;} else if(char==='"')quoted=false; else field+=char; } else if(char==='"')quoted=true; else if(char===','){row.push(field);field='';} else if(char==='\n'){row.push(field);rows.push(row);row=[];field='';} else if(char!=='\r')field+=char; } row.push(field); if(row.some((value)=>value!==''))rows.push(row); const [headers,...data]=rows; return data.map((values)=>Object.fromEntries(headers.map((header,index)=>[header,values[index]||'']))); }

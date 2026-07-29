@@ -21,6 +21,7 @@ import { installWorkerEraShell } from '../src/ui/worker-era-shell.js';
 import { installWorkerEraKnowledgeWorkspaces } from '../src/ui/worker-era-graph-intelligence.js';
 import { installWorkerEraDeveloperSessions } from '../src/ui/worker-era-developer-sessions.js';
 import { installPageStudioHandoff } from '../src/ui/page-studio-handoff.js';
+import { installFindingWorkflow } from '../src/ui/finding-workflow.js';
 
 const seedRecords = [
   { id:'ship.olympic',type:'ship',title:'RMS Olympic',summary:'Lead ship of the Olympic class and a central reference record for the CuratorOS preview.',status:'published',tags:['White Star Line','Olympic class'],relationships:[{target:'company.harland-wolff',relationship:'built_by',confidence:'verified',sourceIds:['source.builder-records'],note:'Documented in builder records.'},{target:'company.white-star-line',relationship:'operated_by',confidence:'verified',sourceIds:['source.builder-records'],note:'Documented in builder and company records.'}],sources:[{id:'source.builder-records',title:'Builder records',type:'archive'}],media:[],notes:[{body:'Developer preview seed record.',kind:'curatorial'}],data:{builder:'company.harland-wolff',operator:'company.white-star-line',yardNumber:'400',launchDate:'1910-10-20',maidenVoyage:'1911-06-14',grossTonnage:'45,324 GRT',length:'882 ft 9 in',beam:'92 ft 6 in',speed:'21 knots'},metadata:{confidence:'verified',reviewed:'2026-07-25'}},
@@ -66,6 +67,7 @@ installWorkerEraShell(root, {
   }
 });
 installPageStudioHandoff(root);
+installFindingWorkflow(root);
 installWorkerEraKnowledgeWorkspaces(root, { recordService });
 installWorkerEraDeveloperSessions(root, { recordService });
 

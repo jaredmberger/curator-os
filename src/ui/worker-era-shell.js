@@ -44,6 +44,7 @@ export function installWorkerEraShell(root, context = {}) {
       <a class="cos-worker-link" href="https://site-health.oceanliners.net/" target="_blank" rel="noopener noreferrer">Site Health</a>
       <a class="cos-worker-link" href="https://curator-indexer.oceanliners.net/" target="_blank" rel="noopener noreferrer">Curator Indexer</a>
       <a class="cos-worker-link" href="https://speed.oceanliners.net/" target="_blank" rel="noopener noreferrer">Curator Speed</a>
+      <a class="cos-worker-link" href="https://page-studio.oceanliners.net/" target="_blank" rel="noopener noreferrer">Page Studio</a>
       <button type="button" data-worker-command>⌘ Command</button>
       <button type="button" data-worker-backup>Quick Backup</button>
     </div>

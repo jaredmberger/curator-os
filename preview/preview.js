@@ -73,7 +73,18 @@ installCoverageGapIntelligence(root, { recordService });
 installWorkerEraKnowledgeWorkspaces(root, { recordService });
 installWorkerEraDeveloperSessions(root, { recordService });
 
-if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js'));
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+      const cacheKeys = await caches.keys();
+      await Promise.all(cacheKeys.filter((key) => key.startsWith('curatoros-preview-')).map((key) => caches.delete(key)));
+    } catch (error) {
+      console.warn('CuratorOS service-worker cleanup failed.', error);
+    }
+  }, { once: true });
+}
 
 function installDataPortability(rootElement, service, mountedApp) {
   const toolbar = rootElement.querySelector('.cos-toolbar-actions');

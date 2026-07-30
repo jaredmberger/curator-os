@@ -2,15 +2,31 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const source = fs.readFileSync(new URL('../src/ui/worker-era-shell.js', import.meta.url), 'utf8');
-assert.match(source, /Load catalog/);
-assert.match(source, /Import any scan/);
-assert.match(source, /This is a CuratorOS catalog\. Use Load catalog instead\./);
-assert.match(source, /No actionable findings remain/);
-assert.match(source, /sourceType === sourceType/);
-assert.match(source, /safeUrl\(/);
-assert.match(source, /removeEventListener\('click'/);
-assert.match(source, /'\\uFEFF' \+ headers\.join\(','\)/);
+const html = fs.readFileSync(new URL('../preview/index.html', import.meta.url), 'utf8');
+const source = fs.readFileSync(new URL('../preview/rebuilt.js', import.meta.url), 'utf8');
+const styles = fs.readFileSync(new URL('../preview/rebuilt.css', import.meta.url), 'utf8');
+
+assert.match(html, /rebuilt\.css/);
+assert.match(html, /rebuilt\.js/);
+assert.match(html, /id="load-catalog"/);
+assert.match(html, /id="import-scan"/);
+assert.match(html, /id="command"/);
+assert.match(html, /id="quick-backup"/);
+assert.match(html, /id="catalog-file"/);
+assert.match(html, /id="scan-file"/);
+
+assert.match(source, /addEventListener\('click'/);
+assert.match(source, /addEventListener\('input'/);
+assert.match(source, /addEventListener\('change'/);
+assert.match(source, /All categories/);
+assert.match(source, /All priorities/);
+assert.match(source, /Mark handled/);
+assert.match(source, /Quick Backup|quick-backup/);
+assert.doesNotMatch(source, /safari-touch-activation/);
+assert.doesNotMatch(source, /dispatchEvent\(new MouseEvent/);
+
+assert.match(styles, /\.filters/);
+assert.match(styles, /@media\(max-width:900px\)/);
 
 const databaseSource = fs.readFileSync(new URL('../src/core/database.js', import.meta.url), 'utf8');
 const context = { globalThis: {} };
@@ -19,4 +35,4 @@ vm.runInContext(databaseSource, context);
 assert.equal(typeof context.globalThis.CuratorDatabase?.assertDatabase, 'function');
 assert.equal(context.globalThis.CuratorDatabase.SCHEMA_VERSION, 1);
 
-console.log('worker-era findings stability checks passed');
+console.log('rebuilt CuratorOS findings stability checks passed');

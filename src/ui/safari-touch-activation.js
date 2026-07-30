@@ -11,7 +11,6 @@ export function installSafariTouchActivation(root) {
   const findControl = (target) => {
     const control = target instanceof Element ? target.closest(INTERACTIVE_SELECTOR) : null;
     if (!control || !root.contains(control)) return null;
-    // The workspace switch already receives Safari clicks normally. Leave it native.
     if (control.matches('[data-workspace-mode]')) return null;
     return control;
   };
@@ -53,9 +52,6 @@ export function installSafariTouchActivation(root) {
     const endingControl = findControl(hit);
     if (endingControl !== completed.control) return;
 
-    // Safari is delivering touchstart/touchend to the correct control but is not
-    // synthesizing the click that normally follows. Complete the activation from
-    // touchend, which is still inside the user's gesture.
     event.preventDefault();
     suppressTrustedClick = { control: completed.control, until: performance.now() + 900 };
 
@@ -100,3 +96,6 @@ function isIpadSafari() {
   const safari = /Safari/.test(ua) && !/(CriOS|FxiOS|EdgiOS|OPiOS)/.test(ua);
   return ipad && safari;
 }
+
+const root = document.querySelector('#curatoros-preview');
+if (root) installSafariTouchActivation(root);

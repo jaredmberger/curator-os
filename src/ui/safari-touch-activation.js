@@ -1,3 +1,6 @@
+const CONTROL_SELECTOR = 'button:not([disabled]), a[href], input, select, textarea';
+const NATIVE_FORM_SELECTOR = 'input, select, textarea';
+
 export function installSafariTouchActivation(root) {
   if (!root || !isIpadSafari()) return { destroy() {} };
 
@@ -6,15 +9,33 @@ export function installSafariTouchActivation(root) {
     if (!touch) return;
 
     const hit = document.elementFromPoint(touch.clientX, touch.clientY);
-    const control = hit instanceof Element ? hit.closest('button, a[href], input, select, textarea') : null;
+    const control = hit instanceof Element ? hit.closest(CONTROL_SELECTOR) : null;
     if (!control || !root.contains(control)) return;
 
-    // Leave native links, buttons, inputs, selects, and textareas completely alone.
-    // Safari should deliver their normal trusted click/focus/change behavior.
-    // The only exception is buttons that must open a hidden file input from the
-    // original trusted touch gesture.
+    // Preserve native focus, keyboard, select menus, and text editing.
+    if (control.matches(NATIVE_FORM_SELECTOR)) return;
+
+    // File pickers must be opened directly from the trusted touch gesture.
     if (openImportPicker(control, root)) {
       event.preventDefault();
+      return;
+    }
+
+    // Route every CuratorOS application button explicitly. iPad Safari is not
+    // reliably producing the delegated click that the desktop path expects.
+    if (control instanceof HTMLButtonElement) {
+      event.preventDefault();
+      root.dispatchEvent(new CustomEvent('curatoros:safari-control', {
+        detail: { control }
+      }));
+      return;
+    }
+
+    // Navigate anchors directly from the trusted gesture.
+    if (control instanceof HTMLAnchorElement) {
+      event.preventDefault();
+      if (control.target === '_blank') window.open(control.href, '_blank', 'noopener');
+      else window.location.assign(control.href);
     }
   };
 

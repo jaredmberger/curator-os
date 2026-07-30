@@ -273,18 +273,13 @@ export function installWorkerEraShell(root, context = {}) {
     }
   }
 
-  const clickHandler = (event) => {
-    const workspaceButton = event.target.closest('[data-workspace-mode]');
-    if (workspaceButton) {
-      setWorkspace(workspaceButton.dataset.workspaceMode);
-      return;
-    }
-    const suiteButton = event.target.closest('[data-suite-url]');
-    if (suiteButton) {
-      window.location.href = suiteButton.dataset.suiteUrl;
-      return;
-    }
-    const collapseToggle = event.target.closest('[data-finding-collapse]');
+  const runControlAction = (control) => {
+    if (!(control instanceof Element)) return;
+    const workspaceButton = control.closest('[data-workspace-mode]');
+    if (workspaceButton) { setWorkspace(workspaceButton.dataset.workspaceMode); return; }
+    const suiteButton = control.closest('[data-suite-url]');
+    if (suiteButton) { window.location.href = suiteButton.dataset.suiteUrl; return; }
+    const collapseToggle = control.closest('[data-finding-collapse]');
     if (collapseToggle) {
       const card = collapseToggle.closest('.cos-worker-finding');
       const body = card?.querySelector('[data-finding-body]');
@@ -297,53 +292,28 @@ export function installWorkerEraShell(root, context = {}) {
       }
       return;
     }
-    if (event.target.closest('[data-findings-collapse-all]')) {
-      dashboard.querySelectorAll('.cos-worker-finding').forEach((card) => setFindingCollapsed(card, true));
-      return;
-    }
-    if (event.target.closest('[data-findings-expand-all]')) {
-      dashboard.querySelectorAll('.cos-worker-finding').forEach((card) => setFindingCollapsed(card, false));
-      return;
-    }
-    const viewButton = event.target.closest('[data-worker-view]');
-    if (viewButton) setView(viewButton.dataset.workerView);
-    const filterButton = event.target.closest('[data-worker-filter]');
-    if (filterButton) { state.filter = filterButton.dataset.workerFilter; updateDashboard(); }
-    if (event.target.closest('[data-catalog-import]')) catalogInput.click();
-    if (event.target.closest('[data-findings-import]')) {
-      findingsInput.dataset.requestedSource = '';
-      findingsInput.accept = '.json,.csv,application/json,text/csv';
-      findingsInput.click();
-    }
-    const toolImport = event.target.closest('[data-tool-import]');
-    if (toolImport) {
-      const source = toolImport.dataset.toolImport || '';
-      findingsInput.dataset.requestedSource = source;
-      findingsInput.accept = toolAccept(source);
-      findingsInput.click();
-    }
-    if (event.target.closest('[data-findings-export]')) exportVisibleFindings();
-    if (event.target.closest('[data-findings-clear-filters]')) { state.search = ''; state.category = ''; state.severity = ''; updateDashboard(); }
-    if (event.target.closest('[data-findings-clear-history]') && confirm('Clear saved scan history?')) { saveScanHistory([]); state.notice = 'Scan history cleared.'; updateDashboard(); }
-    if (event.target.closest('[data-findings-clear-imported]') && confirm('Clear all imported findings?')) {
-      saveImported([]);
-      state.notice = 'Imported findings cleared.';
-      updateDashboard();
-    }
-    const findingButton = event.target.closest('[data-finding-action]');
-    if (findingButton) applyFindingAction(findingButton.dataset.findingAction, findingButton.dataset.findingId);
-    const openRecord = event.target.closest('[data-finding-open]');
-    if (openRecord) openFindingRecord(openRecord.dataset.findingOpen);
-    if (event.target.closest('[data-worker-open-registry]')) { setWorkspace('knowledge'); setView('registry'); }
-    if (event.target.closest('[data-worker-open-review]')) { setWorkspace('knowledge'); setView('review'); }
-    if (event.target.closest('[data-worker-command]')) openCommandPalette(root, setView);
-    if (event.target.closest('[data-worker-backup]')) context.onQuickBackup?.();
+    if (control.closest('[data-findings-collapse-all]')) { dashboard.querySelectorAll('.cos-worker-finding').forEach((card) => setFindingCollapsed(card, true)); return; }
+    if (control.closest('[data-findings-expand-all]')) { dashboard.querySelectorAll('.cos-worker-finding').forEach((card) => setFindingCollapsed(card, false)); return; }
+    const viewButton = control.closest('[data-worker-view]');
+    if (viewButton) { setView(viewButton.dataset.workerView); return; }
+    const filterButton = control.closest('[data-worker-filter]');
+    if (filterButton) { state.filter = filterButton.dataset.workerFilter; updateDashboard(); return; }
+    if (control.closest('[data-findings-export]')) { exportVisibleFindings(); return; }
+    if (control.closest('[data-findings-clear-filters]')) { state.search = ''; state.category = ''; state.severity = ''; updateDashboard(); return; }
+    if (control.closest('[data-findings-clear-history]') && confirm('Clear saved scan history?')) { saveScanHistory([]); state.notice = 'Scan history cleared.'; updateDashboard(); return; }
+    if (control.closest('[data-findings-clear-imported]') && confirm('Clear all imported findings?')) { saveImported([]); state.notice = 'Imported findings cleared.'; updateDashboard(); return; }
+    const findingButton = control.closest('[data-finding-action]');
+    if (findingButton) { applyFindingAction(findingButton.dataset.findingAction, findingButton.dataset.findingId); return; }
+    const openRecord = control.closest('[data-finding-open]');
+    if (openRecord) { openFindingRecord(openRecord.dataset.findingOpen); return; }
+    if (control.closest('[data-worker-open-registry]')) { setWorkspace('knowledge'); setView('registry'); return; }
+    if (control.closest('[data-worker-open-review]')) { setWorkspace('knowledge'); setView('review'); return; }
+    if (control.closest('[data-worker-command]')) { openCommandPalette(root, setView); return; }
+    if (control.closest('[data-worker-backup]')) { context.onQuickBackup?.(); return; }
   };
 
-  const safariWorkspaceHandler = (event) => setWorkspace(event.detail?.mode);
-  const safariViewHandler = (event) => setView(event.detail?.view);
-  const safariFindingActionHandler = (event) => applyFindingAction(event.detail?.action, event.detail?.id);
-  const safariOpenRecordHandler = (event) => openFindingRecord(event.detail?.id);
+  const clickHandler = (event) => runControlAction(event.target);
+  const safariControlHandler = (event) => runControlAction(event.detail?.control);
 
   const inputHandler = (event) => {
     if (event.target.matches('[data-findings-search]')) {
@@ -358,10 +328,7 @@ export function installWorkerEraShell(root, context = {}) {
   };
 
   root.addEventListener('click', clickHandler);
-  root.addEventListener('curatoros:safari-workspace', safariWorkspaceHandler);
-  root.addEventListener('curatoros:safari-view', safariViewHandler);
-  root.addEventListener('curatoros:safari-finding-action', safariFindingActionHandler);
-  root.addEventListener('curatoros:safari-open-record', safariOpenRecordHandler);
+  root.addEventListener('curatoros:safari-control', safariControlHandler);
   dashboard.addEventListener('input', inputHandler);
   dashboard.addEventListener('change', changeHandler);
 
@@ -451,10 +418,7 @@ export function installWorkerEraShell(root, context = {}) {
   return {
     destroy() {
       root.removeEventListener('click', clickHandler);
-      root.removeEventListener('curatoros:safari-workspace', safariWorkspaceHandler);
-      root.removeEventListener('curatoros:safari-view', safariViewHandler);
-      root.removeEventListener('curatoros:safari-finding-action', safariFindingActionHandler);
-      root.removeEventListener('curatoros:safari-open-record', safariOpenRecordHandler);
+      root.removeEventListener('curatoros:safari-control', safariControlHandler);
       dashboard.removeEventListener('input', inputHandler);
       dashboard.removeEventListener('change', changeHandler);
     }

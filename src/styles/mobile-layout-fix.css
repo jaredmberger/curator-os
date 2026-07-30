@@ -129,6 +129,86 @@
   }
 }
 
+/*
+ * iPad Safari uses a wider viewport than the phone layout, so the desktop
+ * sticky/scrolling shell remains active there. WebKit can then composite an
+ * invisible layer above the workspace and swallow taps while still allowing
+ * long-press link menus. Flatten the tablet shell into a single scrolling
+ * document and force interactive controls into the hit-testing layer.
+ */
+@media (hover: none) and (pointer: coarse) and (min-width: 761px) and (max-width: 1366px) {
+  .cos-catalog-shell.cos-worker-shell {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .cos-worker-sidebar,
+  .cos-worker-workspace,
+  .cos-worker-workspace > .cos-catalog-sidebar,
+  .cos-worker-workspace > .cos-catalog-inspector {
+    position: static !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    transform: none !important;
+    contain: none !important;
+  }
+
+  .cos-worker-sidebar {
+    width: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--cos-border);
+  }
+
+  .cos-worker-workspace {
+    min-width: 0;
+  }
+
+  .cos-worker-sidebar nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .cos-worker-topbar,
+  .cos-worker-findings-hero,
+  .cos-worker-briefing-head,
+  .cos-worker-health-hero,
+  .cos-worker-session-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cos-worker-scan-launchers,
+  .cos-worker-metrics,
+  .cos-worker-dashboard-grid,
+  .cos-worker-graph-stats,
+  .cos-worker-graph-layout,
+  .cos-worker-intelligence-grid,
+  .cos-worker-developer-grid,
+  .cos-worker-workspace > .cos-catalog-sidebar .cos-catalog-results {
+    grid-template-columns: 1fr;
+  }
+
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  summary,
+  [role="button"] {
+    position: relative;
+    z-index: 2;
+    pointer-events: auto !important;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+  }
+
+  input,
+  select,
+  textarea {
+    -webkit-user-select: text;
+  }
+}
+
 @media (max-width: 430px) {
   .cos-worker-sidebar nav {
     grid-template-columns: 1fr;

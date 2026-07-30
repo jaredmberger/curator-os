@@ -60,10 +60,8 @@ export function installSafariTouchActivation(root) {
     }
 
     if (openImportPicker(completed.control, root)) return;
+    if (runApplicationAction(completed.control, root)) return;
 
-    // HTMLElement.click() is more reliable in iPad Safari than constructing and
-    // dispatching a MouseEvent manually. It invokes the element's existing click
-    // behavior and bubbles through CuratorOS's delegated handlers.
     completed.control.click();
   };
 
@@ -92,6 +90,63 @@ export function installSafariTouchActivation(root) {
       document.removeEventListener('click', onClickCapture, true);
     }
   };
+}
+
+function runApplicationAction(control, root) {
+  const workspace = control.closest('[data-workspace-mode]');
+  if (workspace) {
+    root.dispatchEvent(new CustomEvent('curatoros:safari-workspace', {
+      bubbles: true,
+      detail: { mode: workspace.dataset.workspaceMode || 'operations' }
+    }));
+    return true;
+  }
+
+  const view = control.closest('[data-worker-view]');
+  if (view) {
+    root.dispatchEvent(new CustomEvent('curatoros:safari-view', {
+      bubbles: true,
+      detail: { view: view.dataset.workerView || 'dashboard' }
+    }));
+    return true;
+  }
+
+  const collapse = control.closest('[data-finding-collapse]');
+  if (collapse) {
+    const card = collapse.closest('.cos-worker-finding');
+    const body = card?.querySelector('[data-finding-body]');
+    if (!card || !body) return false;
+    const collapsed = card.dataset.collapsed === 'true';
+    card.dataset.collapsed = collapsed ? 'false' : 'true';
+    body.hidden = !collapsed;
+    collapse.textContent = collapsed ? 'Collapse' : 'Expand';
+    collapse.setAttribute('aria-expanded', String(collapsed));
+    return true;
+  }
+
+  if (control.closest('[data-findings-collapse-all]')) {
+    root.querySelectorAll('.cos-worker-finding').forEach((card) => setFindingCollapsed(card, true));
+    return true;
+  }
+
+  if (control.closest('[data-findings-expand-all]')) {
+    root.querySelectorAll('.cos-worker-finding').forEach((card) => setFindingCollapsed(card, false));
+    return true;
+  }
+
+  return false;
+}
+
+function setFindingCollapsed(card, collapsed) {
+  const body = card.querySelector('[data-finding-body]');
+  const button = card.querySelector('[data-finding-collapse]');
+  if (!body) return;
+  card.dataset.collapsed = collapsed ? 'true' : 'false';
+  body.hidden = collapsed;
+  if (button) {
+    button.textContent = collapsed ? 'Expand' : 'Collapse';
+    button.setAttribute('aria-expanded', String(!collapsed));
+  }
 }
 
 function openImportPicker(control, root) {

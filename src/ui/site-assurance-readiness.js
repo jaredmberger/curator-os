@@ -19,7 +19,11 @@ export function installSiteAssuranceReadiness(root) {
     queued = true;
     requestAnimationFrame(() => { queued = false; render(root); });
   };
-  const observer = new MutationObserver(refresh);
+  const observer = new MutationObserver((mutations) => {
+    const panel = root.querySelector('[data-site-assurance-readiness]');
+    if (panel && mutations.every((mutation) => panel.contains(mutation.target))) return;
+    refresh();
+  });
   observer.observe(root, { childList:true, subtree:true });
   window.addEventListener('storage', refresh);
   refresh();
@@ -53,10 +57,11 @@ function render(root) {
   const openImported = imported.filter((item) => !isClosedDecision(workflow[item.id])).length;
   const readiness = readinessState({ missing, stale, aging, regressed, highOpen });
 
-  panel.innerHTML = `<div class="cos-assurance__head"><div><span class="cos-eyebrow">Unified site assurance</span><h2>${escapeHtml(readiness.title)}</h2><p>${escapeHtml(readiness.detail)}</p></div><span class="cos-assurance__badge ${readiness.level}">${escapeHtml(readiness.label)}</span></div>
+  const markup = `<div class="cos-assurance__head"><div><span class="cos-eyebrow">Unified site assurance</span><h2>${escapeHtml(readiness.title)}</h2><p>${escapeHtml(readiness.detail)}</p></div><span class="cos-assurance__badge ${readiness.level}">${escapeHtml(readiness.label)}</span></div>
     <div class="cos-assurance__summary">${metric(current,'current scans')}${metric(missing+stale,'missing or stale')}${metric(highOpen,'high-priority open')}${metric(regressed,'regressions')}${metric(verified,'verified')}${metric(handled,'handled')}</div>
     <div class="cos-assurance__checks">${checkStates.map(renderCheck).join('')}<article class="cos-assurance__check work-queue"><div class="cos-assurance__check-head"><strong>Repair and verification queue</strong><span class="cos-assurance__state ${regressed?'stale':openImported?'aging':'current'}">${regressed?`${regressed} regressed`:openImported?`${openImported} open`:'clear'}</span></div><p>Review findings, open affected pages in Page Studio, publish repairs, and rerun the relevant scanner to verify them.</p><small>${verified} verified · ${handled} handled · ${openImported} active imported finding${openImported===1?'':'s'}</small></article></div>
     <div class="cos-assurance__foot"><p><strong>How readiness is calculated:</strong> scans are current for ${FRESH_DAYS} days, aging through day ${STALE_DAYS}, and stale afterward. This panel summarizes imported evidence; it does not claim silent synchronization or automatic production checks.</p></div>`;
+  if (panel.innerHTML !== markup) panel.innerHTML = markup;
   if (!existing) anchor.before(panel);
 }
 
@@ -70,7 +75,7 @@ function describeCheck(check, snapshot) {
 }
 
 function renderCheck(item) {
-  return `<article class="cos-assurance__check"><div class="cos-assurance__check-head"><strong>${escapeHtml(item.title)}</strong><span class="cos-assurance__state ${item.state}">${escapeHtml(item.label)}</span></div><p>${escapeHtml(item.purpose)}</p><small>${escapeHtml(item.detail)}${item.snapshot?.importedAt?` · imported ${escapeHtml(formatDate(item.snapshot.importedAt))}`:''}</small><div class="cos-worker-actions"><button type="button" class="cos-worker-action-link" data-suite-url="${escapeHtml(item.href)}">${escapeHtml(item.runLabel)}</button><button type="button" data-tool-import="${escapeHtml(item.importSource)}">${escapeHtml(item.importLabel)}</button></div></article>`;
+  return `<article class="cos-assurance__check"><div class="cos-assurance__check-head"><strong>${escapeHtml(item.title)}</strong><span class="cos-assurance__state ${item.state}">${escapeHtml(item.label)}</span></div><p>${escapeHtml(item.purpose)}</p><small>${escapeHtml(item.detail)}${item.snapshot?.importedAt?` · imported ${escapeHtml(formatDate(item.snapshot.importedAt))}`:''}</small><div class="cos-worker-actions"><a class="cos-worker-action-link" href="${escapeHtml(item.href)}">${escapeHtml(item.runLabel)}</a><button type="button" data-tool-import="${escapeHtml(item.importSource)}">${escapeHtml(item.importLabel)}</button></div></article>`;
 }
 
 function readinessState(v) {

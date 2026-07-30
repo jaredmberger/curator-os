@@ -5,7 +5,7 @@ export function installLinkTapDiagnostics(root) {
 
   const log = [];
   let touchStart = null;
-  let touchNavigatedAt = 0;
+  let touchActivatedAt = 0;
 
   const record = (type, event, target) => {
     const entry = {
@@ -15,6 +15,8 @@ export function installLinkTapDiagnostics(root) {
       target: target?.tagName || '',
       text: target?.textContent?.trim()?.slice(0, 120) || '',
       href: target?.href || target?.dataset?.navigationUrl || target?.dataset?.suiteUrl || '',
+      action: target?.dataset?.findingAction || '',
+      findingId: target?.dataset?.findingId || '',
       pointerEvents: target ? getComputedStyle(target).pointerEvents : '',
       visibility: target ? getComputedStyle(target).visibility : '',
       display: target ? getComputedStyle(target).display : ''
@@ -22,19 +24,22 @@ export function installLinkTapDiagnostics(root) {
     log.push(entry);
     while (log.length > 40) log.shift();
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(log)); } catch {}
-    console.info('[CuratorOS link diagnostics]', entry);
+    console.info('[CuratorOS tap diagnostics]', entry);
   };
 
-  const findLinkTarget = (event) => event.target?.closest?.('a[href], [data-navigation-url], [data-suite-url]') || null;
+  const findTapTarget = (event) => event.target?.closest?.(
+    'a[href], [data-navigation-url], [data-suite-url], [data-finding-action]'
+  ) || null;
+
   const hrefFor = (target) => target?.href || target?.dataset?.navigationUrl || target?.dataset?.suiteUrl || '';
 
   const pointerHandler = (event) => {
-    const target = findLinkTarget(event);
+    const target = findTapTarget(event);
     if (target) record(event.type, event, target);
   };
 
   const touchStartHandler = (event) => {
-    const target = findLinkTarget(event);
+    const target = findTapTarget(event);
     if (!target) {
       touchStart = null;
       return;
@@ -51,7 +56,7 @@ export function installLinkTapDiagnostics(root) {
   };
 
   const touchEndHandler = (event) => {
-    const target = findLinkTarget(event) || touchStart?.target || null;
+    const target = findTapTarget(event) || touchStart?.target || null;
     if (!target) return;
     record('touchend', event, target);
 
@@ -60,30 +65,34 @@ export function installLinkTapDiagnostics(root) {
     const moved = touchStart && touch
       ? Math.hypot(touch.clientX - touchStart.x, touch.clientY - touchStart.y)
       : 0;
-    const href = hrefFor(target) || touchStart?.href || '';
 
-    if (!href || !touchStart || elapsed > 1200 || moved > 18) {
+    if (!touchStart || elapsed > 1200 || moved > 18) {
       touchStart = null;
       return;
     }
 
     event.preventDefault();
     event.stopImmediatePropagation();
-    touchNavigatedAt = Date.now();
+    touchActivatedAt = Date.now();
     touchStart = null;
-    window.location.href = href;
+
+    const href = hrefFor(target);
+    if (href) {
+      window.location.href = href;
+      return;
+    }
+
+    if (target.matches('[data-finding-action]')) {
+      target.click();
+    }
   };
 
   const clickHandler = (event) => {
-    const target = findLinkTarget(event);
+    const target = findTapTarget(event);
     if (!target) return;
     record('click-capture', event, target);
 
-    if (Date.now() - touchNavigatedAt < 1500) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      return;
-    }
+    if (Date.now() - touchActivatedAt < 1500 && !event.isTrusted) return;
 
     const href = hrefFor(target);
     if (!href) return;

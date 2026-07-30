@@ -46,9 +46,8 @@ export function installIpadTapInspector(root = document.querySelector('#curatoro
     const y = Number(point.clientY || 0);
     const hit = Number.isFinite(x) && Number.isFinite(y) ? document.elementFromPoint(x, y) : null;
     const target = event.target;
-    const control = target instanceof Element ? target.closest('a[href],button:not([disabled])') : null;
-    const detail = event.detail && typeof event.detail === 'object' ? JSON.stringify(event.detail) : '';
-    const text = `${event.type} | target:${describe(target)} | control:${describe(control)} | hit:${describe(hit)}${detail ? ` | detail:${detail}` : ''}`;
+    const control = target instanceof Element ? target.closest('a[href],button:not([disabled]),input,select,textarea') : null;
+    const text = `${event.type} | target:${describe(target)} | control:${describe(control)} | hit:${describe(hit)}`;
     display.textContent = text;
     try { localStorage.setItem(LATEST_KEY, text); } catch {}
   };
@@ -63,8 +62,7 @@ export function installIpadTapInspector(root = document.querySelector('#curatoro
     document.addEventListener('pointerdown', report, true);
     document.addEventListener('pointerup', report, true);
     document.addEventListener('click', report, true);
-    root.addEventListener('curatoros:safari-workspace', report, true);
-    root.addEventListener('curatoros:safari-view', report, true);
+    root.addEventListener('curatoros:safari-control', report, true);
   };
 
   const detach = () => {
@@ -75,8 +73,7 @@ export function installIpadTapInspector(root = document.querySelector('#curatoro
     document.removeEventListener('pointerdown', report, true);
     document.removeEventListener('pointerup', report, true);
     document.removeEventListener('click', report, true);
-    root.removeEventListener('curatoros:safari-workspace', report, true);
-    root.removeEventListener('curatoros:safari-view', report, true);
+    root.removeEventListener('curatoros:safari-control', report, true);
   };
 
   const sync = () => {
@@ -116,10 +113,16 @@ export function installIpadTapInspector(root = document.querySelector('#curatoro
     }
   };
 
-  toggle.addEventListener('click', () => {
+  const toggleEnabled = () => {
     enabled = !enabled;
     sync();
-  });
+  };
+
+  toggle.addEventListener('click', toggleEnabled);
+  toggle.addEventListener('touchend', (event) => {
+    event.preventDefault();
+    toggleEnabled();
+  }, { passive: false });
 
   document.body.append(toggle);
   sync();

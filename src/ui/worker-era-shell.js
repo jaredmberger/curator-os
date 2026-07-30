@@ -52,10 +52,10 @@ export function installWorkerEraShell(root, context = {}) {
       <h1 data-worker-title>Findings</h1>
     </div>
     <div class="cos-worker-top-actions">
-      <a class="cos-worker-link" href="https://site-health.oceanliners.net/">Site Health</a>
-      <a class="cos-worker-link" href="https://curator-indexer.oceanliners.net/">Curator Indexer</a>
-      <a class="cos-worker-link" href="https://speed.oceanliners.net/">Curator Speed</a>
-      <a class="cos-worker-link" href="https://page-studio.oceanliners.net/">Page Studio</a>
+      <button type="button" class="cos-worker-link" data-suite-url="https://site-health.oceanliners.net/">Site Health</button>
+      <button type="button" class="cos-worker-link" data-suite-url="https://curator-indexer.oceanliners.net/">Curator Indexer</button>
+      <button type="button" class="cos-worker-link" data-suite-url="https://speed.oceanliners.net/">Curator Speed</button>
+      <button type="button" class="cos-worker-link" data-suite-url="https://page-studio.oceanliners.net/">Page Studio</button>
       <button type="button" data-worker-command>⌘ Command</button>
       <button type="button" data-worker-backup>Quick Backup</button>
     </div>
@@ -226,6 +226,11 @@ export function installWorkerEraShell(root, context = {}) {
       setWorkspace(workspaceButton.dataset.workspaceMode);
       return;
     }
+    const suiteButton = event.target.closest('[data-suite-url]');
+    if (suiteButton) {
+      window.location.href = suiteButton.dataset.suiteUrl;
+      return;
+    }
     const collapseToggle = event.target.closest('[data-finding-collapse]');
     if (collapseToggle) {
       const card = collapseToggle.closest('.cos-worker-finding');
@@ -276,18 +281,10 @@ export function installWorkerEraShell(root, context = {}) {
     if (findingButton) {
       const handled = handledIds();
       const id = findingButton.dataset.findingId;
-      if (!id) return;
-      if (findingButton.dataset.findingAction === 'handle') {
-        handled.add(id);
-        state.notice = 'Finding marked handled and moved to the Handled list.';
-      }
-      if (findingButton.dataset.findingAction === 'reopen') {
-        handled.delete(id);
-        state.notice = 'Finding reopened and returned to the Open findings list.';
-      }
+      if (findingButton.dataset.findingAction === 'handle') handled.add(id);
+      if (findingButton.dataset.findingAction === 'reopen') handled.delete(id);
       saveHandled(handled);
       updateDashboard();
-      return;
     }
     const openRecord = event.target.closest('[data-finding-open]');
     if (openRecord) {
@@ -429,11 +426,11 @@ export function installWorkerEraShell(root, context = {}) {
       }
       if (!imported) {
         state.notice = `${file.name} is a valid CuratorOS catalog with ${records.length.toLocaleString()} records, but this build does not yet expose a catalog-loading hook. Use the Registry import control for now.`;
-        setView('registry');
+        setWorkspace('knowledge');
         return;
       }
       state.notice = `Loaded ${records.length.toLocaleString()} catalog record${records.length === 1 ? '' : 's'} from ${file.name}.`;
-      setView('registry');
+      setWorkspace('knowledge');
     } catch (error) {
       state.notice = `Could not load ${file.name}: ${error instanceof Error ? error.message : String(error)}`;
     } finally {
@@ -443,20 +440,9 @@ export function installWorkerEraShell(root, context = {}) {
   });
 
   const unsubscribe = context.recordService?.subscribe?.(() => updateDashboard()) || (() => {});
-  renderWorkspaceChrome();
   updateDashboard();
+  renderWorkspaceChrome();
   setView(state.workspace === 'knowledge' ? 'registry' : 'dashboard');
-  root.addEventListener('curatoros:worker-view-request', (event) => {
-    const view = event.detail?.view;
-    if (view === 'registry' || view === 'review' || view === 'graph' || view === 'intelligence') state.workspace = 'knowledge';
-    if (view === 'dashboard' || view === 'session' || view === 'developer') state.workspace = 'operations';
-    renderWorkspaceChrome();
-    setView(view || (state.workspace === 'knowledge' ? 'registry' : 'dashboard'));
-    if (event.detail?.recordId) {
-      const id = event.detail.recordId;
-      requestAnimationFrame(() => shell.querySelector(`[data-record-id="${cssEscape(id)}"]`)?.click());
-    }
-  });
   return { updateDashboard, setView, setWorkspace, destroy() { unsubscribe(); root.removeEventListener('click', clickHandler); dashboard.removeEventListener('input', inputHandler); dashboard.removeEventListener('change', changeHandler); } };
 }
 
@@ -549,7 +535,7 @@ function recordExportFindings(records) {
   });
 }
 
-function renderNav(workspace = 'operations') {
+function renderNav(workspace) {
   const modules = MODULES[workspace] || MODULES.operations;
   return modules.map(([group, label], index) => `${index === 0 || modules[index - 1][0] !== group ? `<div class="cos-worker-nav-group">${escapeHtml(group)}</div>` : ''}<button type="button" data-worker-view="${viewKey(label)}">${escapeHtml(label)}</button>`).join('');
 }
@@ -573,11 +559,7 @@ function missingCoreMetadata(record) {
 
 function renderFinding(item, handled) {
   const pageStudioHref = buildPageStudioHref(item);
-  return `<article class="cos-worker-finding ${escapeHtml(item.severity || 'medium')}" data-finding-id="${escapeHtml(item.id)}" data-collapsed="false"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.sourceType || 'CuratorOS')}</small></div><div class="cos-worker-finding-head-actions"><span class="cos-worker-finding-severity">${escapeHtml(item.severity || 'medium')}</span><button type="button" data-finding-collapse aria-expanded="true">Collapse</button></div></div><div data-finding-body><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p><p><strong>Recommended action:</strong> ${escapeHtml(item.recommendation)}</p>${item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : ''}<div class="cos-worker-actions">${item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action || 'Open record')}</button>` : ''}${item.pageUrl ? navigationLink(item.pageUrl, 'Open affected page') : ''}${pageStudioHref ? navigationLink(pageStudioHref, 'Edit in Page Studio', 'data-page-studio-handoff') : ''}${item.targetUrl ? navigationLink(item.targetUrl, 'Open checked URL') : ''}${item.replacementUrl ? navigationLink(item.replacementUrl, 'Open replacement') : ''}<button type="button" data-finding-action="${handled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${handled ? 'Reopen' : 'Mark handled'}</button></div></div></article>`;
-}
-
-function navigationLink(url, label, extraAttributes = '') {
-  return `<a class="cos-worker-action-link" href="${escapeHtml(url)}" ${extraAttributes}>${escapeHtml(label)}</a>`;
+  return `<article class="cos-worker-finding ${escapeHtml(item.severity || 'medium')}" data-finding-id="${escapeHtml(item.id)}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.sourceType || 'CuratorOS')}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.severity || 'medium')}</span></div><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p><p><strong>Recommended action:</strong> ${escapeHtml(item.recommendation)}</p>${item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : ''}<div class="cos-worker-actions">${item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action || 'Open record')}</button>` : ''}${item.pageUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.pageUrl)}">Open affected page</a>` : ''}${pageStudioHref ? `<a class="cos-worker-action-link" href="${escapeHtml(pageStudioHref)}">Edit in Page Studio</a>` : ''}${item.targetUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.targetUrl)}">Open checked URL</a>` : ''}${item.replacementUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.replacementUrl)}">Open replacement</a>` : ''}<button type="button" data-finding-action="${handled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${handled ? 'Reopen' : 'Mark handled'}</button></div></article>`;
 }
 
 function setFindingCollapsed(card, collapsed) {
@@ -627,5 +609,5 @@ function csvCell(value) { const text=String(value ?? ''); return /[",\r\n]/.test
 function downloadText(text, filename, type) { const url=URL.createObjectURL(new Blob([text],{type})); const link=document.createElement('a'); link.href=url; link.download=filename; document.body.append(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000); }
 function cssEscape(value) { return globalThis.CSS?.escape ? CSS.escape(value) : String(value).replace(/["\\]/g,'\\$&'); }
 function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g,(character)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[character])); }
-function openCommandPalette(root, setView) { const existing=root.querySelector('[data-worker-command-overlay]'); if (existing) { existing.remove(); return; } const overlay=document.createElement('div'); overlay.className='cos-worker-command-overlay'; overlay.dataset.workerCommandOverlay=''; overlay.innerHTML=`<div class="cos-worker-command-box"><input type="search" placeholder="Jump to Findings, Registry, Graph, Intelligence, Review Queue, or Developer Mode" autofocus><div>${Object.values(MODULES).flat().map(([,label])=>`<button type="button" data-command-view="${viewKey(label)}">${escapeHtml(label)}</button>`).join('')}</div></div>`; overlay.addEventListener('click',(event)=>{ const button=event.target.closest('[data-command-view]'); if (button) { setView(button.dataset.commandView); overlay.remove(); } else if (event.target===overlay) overlay.remove(); }); root.append(overlay); overlay.querySelector('input')?.focus(); }
+function openCommandPalette(root, setView) { const allModules=[...MODULES.operations,...MODULES.knowledge]; const existing=root.querySelector('[data-worker-command-overlay]'); if (existing) { existing.remove(); return; } const overlay=document.createElement('div'); overlay.className='cos-worker-command-overlay'; overlay.dataset.workerCommandOverlay=''; overlay.innerHTML=`<div class="cos-worker-command-box"><input type="search" placeholder="Jump to Findings, Guided Session, Knowledge Records, Graph, Intelligence, Review Queue, or Developer Mode" autofocus><div>${allModules.map(([,label])=>`<button type="button" data-command-view="${viewKey(label)}">${escapeHtml(label)}</button>`).join('')}</div></div>`; overlay.addEventListener('click',(event)=>{ const button=event.target.closest('[data-command-view]'); if (button) { setView(button.dataset.commandView); overlay.remove(); } else if (event.target===overlay) overlay.remove(); }); root.append(overlay); overlay.querySelector('input')?.focus(); }
 function parseCsv(text) { const rows=[]; let row=[]; let cell=''; let quoted=false; for (let i=0;i<text.length;i+=1) { const char=text[i]; if (quoted) { if (char==='"' && text[i+1]==='"') { cell+='"'; i+=1; } else if (char==='"') quoted=false; else cell+=char; } else if (char==='"') quoted=true; else if (char===',') { row.push(cell); cell=''; } else if (char==='\n') { row.push(cell.replace(/\r$/,'')); rows.push(row); row=[]; cell=''; } else cell+=char; } if (cell || row.length) { row.push(cell.replace(/\r$/,'')); rows.push(row); } if (rows.length<2) return []; const headers=rows[0].map((value)=>value.trim()); return rows.slice(1).filter((values)=>values.some((value)=>String(value).trim())).map((values)=>Object.fromEntries(headers.map((header,index)=>[header,values[index] ?? '']))); }

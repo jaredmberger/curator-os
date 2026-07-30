@@ -23,8 +23,8 @@ import { installWorkerEraDeveloperSessions } from '../src/ui/worker-era-develope
 import { installPageStudioHandoff } from '../src/ui/page-studio-handoff.js';
 import { installCoverageGapIntelligence } from '../src/ui/coverage-gap-intelligence.js';
 import { installSiteAssuranceReadiness } from '../src/ui/site-assurance-readiness.js';
+import { installFindingActionsFix } from '../src/ui/finding-actions-fix.js';
 import { installRedirectInformationSummary } from '../src/ui/redirect-information-summary.js';
-import { installLinkTapDiagnostics } from '../src/ui/link-tap-diagnostics.js';
 
 const seedRecords = [
   { id:'ship.olympic',type:'ship',title:'RMS Olympic',summary:'Lead ship of the Olympic class and a central reference record for the CuratorOS preview.',status:'published',tags:['White Star Line','Olympic class'],relationships:[{target:'company.harland-wolff',relationship:'built_by',confidence:'verified',sourceIds:['source.builder-records'],note:'Documented in builder records.'},{target:'company.white-star-line',relationship:'operated_by',confidence:'verified',sourceIds:['source.builder-records'],note:'Documented in builder and company records.'}],sources:[{id:'source.builder-records',title:'Builder records',type:'archive'}],media:[],notes:[{body:'Developer preview seed record.',kind:'curatorial'}],data:{builder:'company.harland-wolff',operator:'company.white-star-line',yardNumber:'400',launchDate:'1910-10-20',maidenVoyage:'1911-06-14',grossTonnage:'45,324 GRT',length:'882 ft 9 in',beam:'92 ft 6 in',speed:'21 knots'},metadata:{confidence:'verified',reviewed:'2026-07-25'}},
@@ -69,7 +69,7 @@ installWorkerEraShell(root, {
     downloadJson({ exportedAt:new Date().toISOString(),schemaVersion:CuratorDatabase.SCHEMA_VERSION,records:recordService.all() }, `curatoros-quick-backup-${new Date().toISOString().slice(0,10)}.json`);
   }
 });
-installLinkTapDiagnostics(root);
+installFindingActionsFix(root);
 installRedirectInformationSummary(root);
 installPageStudioHandoff(root);
 installCoverageGapIntelligence(root, { recordService });

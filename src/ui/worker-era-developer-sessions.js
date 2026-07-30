@@ -171,6 +171,7 @@ export function installWorkerEraDeveloperSessions(root, context = {}) {
     developer.hidden = event.detail?.view !== 'developer';
     if (!developer.hidden) renderDeveloper();
   });
+  root.addEventListener('curatoros:open-guided-session', openSession);
 
   developer.addEventListener('click', (event) => {
     if (event.target.closest('[data-dev-validate]')) {
@@ -229,7 +230,7 @@ export function installWorkerEraDeveloperSessions(root, context = {}) {
   });
 
   const unsubscribe = context.recordService?.subscribe?.(() => { if (!developer.hidden) renderDeveloper(); }) || (() => {});
-  return { renderDeveloper, openSession, destroy() { unsubscribe(); developer.remove(); sessionOverlay.remove(); } };
+  return { renderDeveloper, openSession, destroy() { unsubscribe(); root.removeEventListener('curatoros:open-guided-session', openSession); developer.remove(); sessionOverlay.remove(); } };
 }
 
 function countBy(values, key) { return values.reduce((out, item) => { const value = item[key] || 'unknown'; out[value] = (out[value] || 0) + 1; return out; }, {}); }

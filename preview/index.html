@@ -5,25 +5,41 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#07100f">
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex">
-  <meta name="googlebot" content="noindex,nofollow,noarchive,nosnippet,noimageindex">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CuratorOS">
   <title>CuratorOS</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=20260730-1328">
+  <link rel="manifest" href="./manifest.webmanifest?v=20260730-rebuilt">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon.svg">
-  <link rel="stylesheet" href="../src/styles/collection-catalog-shell.css?v=20260730-1328">
-  <link rel="stylesheet" href="../src/styles/worker-era-shell.css?v=20260730-1328">
-  <link rel="stylesheet" href="../src/styles/mobile-layout-fix.css?v=20260730-1328">
-  <link rel="stylesheet" href="../src/styles/workspace-hit-testing-fix.css?v=20260730-1328">
+  <link rel="stylesheet" href="./rebuilt.css?v=20260730-rebuilt">
 </head>
 <body>
-  <main id="curatoros-preview"></main>
-  <script src="../src/core/database.js?v=20260730-1328"></script>
-  <script src="../src/core/storage.js?v=20260730-1328"></script>
-  <script src="../src/core/relationships.js?v=20260730-1328"></script>
-  <script type="module" src="../src/ui/safari-touch-activation.js?v=20260730-1328"></script>
-  <script type="module" src="./preview.js?v=20260730-1328"></script>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><small>Ocean Liner Curator</small><h1>CuratorOS</h1></div>
+      <nav class="nav" aria-label="CuratorOS views">
+        <button type="button" class="active" data-view="findings">Findings</button>
+        <button type="button" data-view="records">Knowledge Records</button>
+        <button type="button" data-view="help">About this build</button>
+      </nav>
+      <p class="sidebar-note">This rebuilt interface is intentionally plain underneath the visual design: native form controls, direct listeners, and no global touch interception.</p>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div><span class="eyebrow">Voyage IV · The Curator</span><h2>Site Operations</h2></div>
+        <div class="toolbar">
+          <button type="button" id="load-catalog">Load catalog</button>
+          <button type="button" id="import-scan">Import scan</button>
+          <button type="button" id="command">⌘ Command</button>
+          <button type="button" id="quick-backup">Quick Backup</button>
+        </div>
+      </header>
+      <section id="app"></section>
+    </main>
+  </div>
+  <input id="catalog-file" type="file" accept="application/json,.json" hidden>
+  <input id="scan-file" type="file" accept="application/json,.json,text/csv,.csv" hidden>
+  <script type="module" src="./rebuilt.js?v=20260730-rebuilt"></script>
 </body>
 </html>

@@ -17,13 +17,13 @@ import { installAdvancedSearch } from '../src/ui/advanced-search.js';
 import { installFirstUseOnboarding } from '../src/ui/first-use-onboarding.js';
 import { installOlcSiteManifestBuilder } from '../src/ui/olc-site-manifest-builder.js';
 import { installGitHubCatalogIngestion } from '../src/ui/github-catalog-ingestion.js';
-import { installWorkerEraShell } from '../src/ui/worker-era-shell.js?v=20260730-0848';
+import { installWorkerEraShell } from '../src/ui/worker-era-shell.js?v=20260730-0858';
+import { installNativeNavigationControls } from '../src/ui/native-navigation-controls.js?v=20260730-0858';
 import { installWorkerEraKnowledgeWorkspaces } from '../src/ui/worker-era-graph-intelligence.js';
 import { installWorkerEraDeveloperSessions } from '../src/ui/worker-era-developer-sessions.js';
-import { installPageStudioHandoff } from '../src/ui/page-studio-handoff.js?v=20260730-0848';
+import { installPageStudioHandoff } from '../src/ui/page-studio-handoff.js?v=20260730-0858';
 import { installCoverageGapIntelligence } from '../src/ui/coverage-gap-intelligence.js';
 import { installSiteAssuranceReadiness } from '../src/ui/site-assurance-readiness.js';
-import { installFindingActionsFix } from '../src/ui/finding-actions-fix.js?v=20260730-0848';
 import { installRedirectInformationSummary } from '../src/ui/redirect-information-summary.js';
 
 const seedRecords = [
@@ -69,7 +69,7 @@ installWorkerEraShell(root, {
     downloadJson({ exportedAt:new Date().toISOString(),schemaVersion:CuratorDatabase.SCHEMA_VERSION,records:recordService.all() }, `curatoros-quick-backup-${new Date().toISOString().slice(0,10)}.json`);
   }
 });
-installFindingActionsFix(root);
+installNativeNavigationControls(root);
 installRedirectInformationSummary(root);
 installPageStudioHandoff(root);
 installCoverageGapIntelligence(root, { recordService });

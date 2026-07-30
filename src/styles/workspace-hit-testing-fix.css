@@ -1,0 +1,43 @@
+/* iPad Safari hit-testing safeguard.
+   The Site Operations / Knowledge Records switch lives in the sidebar and remains
+   responsive even when an invisible workspace layer captures taps. Keep inactive
+   panels and overlays entirely outside hit testing, and place the active workspace
+   content in its own interaction layer. */
+
+[hidden],
+dialog:not([open]),
+.cos-worker-command-overlay[hidden],
+.cos-worker-session-overlay[hidden] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.cos-worker-workspace {
+  position: relative;
+  isolation: isolate;
+}
+
+.cos-worker-topbar,
+.cos-worker-dashboard:not([hidden]),
+.cos-worker-workspace > .cos-catalog-sidebar:not([hidden]),
+.cos-worker-workspace > .cos-catalog-inspector:not([hidden]),
+.cos-worker-workspace > .cos-worker-knowledge-view:not([hidden]),
+.cos-worker-workspace > .cos-worker-developer:not([hidden]) {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.cos-worker-workspace [hidden] {
+  pointer-events: none !important;
+}
+
+.cos-worker-workspace button,
+.cos-worker-workspace a,
+.cos-worker-workspace input,
+.cos-worker-workspace select,
+.cos-worker-workspace textarea,
+.cos-worker-sidebar button {
+  pointer-events: auto;
+  touch-action: manipulation;
+}

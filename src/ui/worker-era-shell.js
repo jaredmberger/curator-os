@@ -221,6 +221,12 @@ export function installWorkerEraShell(root, context = {}) {
   }
 
   const clickHandler = (event) => {
+    const navigationButton = event.target.closest('[data-navigation-url]');
+    if (navigationButton) {
+      const url = navigationButton.dataset.navigationUrl;
+      if (url) window.location.assign(url);
+      return;
+    }
     const workspaceButton = event.target.closest('[data-workspace-mode]');
     if (workspaceButton) {
       setWorkspace(workspaceButton.dataset.workspaceMode);
@@ -228,7 +234,7 @@ export function installWorkerEraShell(root, context = {}) {
     }
     const suiteButton = event.target.closest('[data-suite-url]');
     if (suiteButton) {
-      window.location.href = suiteButton.dataset.suiteUrl;
+      window.location.assign(suiteButton.dataset.suiteUrl);
       return;
     }
     const collapseToggle = event.target.closest('[data-finding-collapse]');
@@ -447,20 +453,21 @@ export function installWorkerEraShell(root, context = {}) {
     }
   });
 
-  root.addEventListener('curatoros:worker-view-request', (event) => {
-    const view = event.detail?.view;
-    if (!view) return;
-    if (['registry', 'review', 'graph', 'intelligence'].includes(view)) setWorkspace('knowledge');
-    else setWorkspace('operations');
-    setView(view);
-    const recordId = event.detail?.recordId;
-    if (recordId) requestAnimationFrame(() => shell.querySelector(`[data-record-id="${cssEscape(recordId)}"]`)?.click());
-  });
-
   const unsubscribe = context.recordService?.subscribe?.(() => updateDashboard()) || (() => {});
   renderWorkspaceChrome();
   updateDashboard();
   setView(state.workspace === 'knowledge' ? 'registry' : 'dashboard');
+  root.addEventListener('curatoros:worker-view-request', (event) => {
+    const view = event.detail?.view || 'dashboard';
+    if (['registry','review','graph','intelligence'].includes(view)) state.workspace = 'knowledge';
+    else state.workspace = 'operations';
+    renderWorkspaceChrome();
+    setView(view);
+    if (event.detail?.recordId) {
+      const result = shell.querySelector(`[data-record-id="${cssEscape(event.detail.recordId)}"]`);
+      result?.click();
+    }
+  });
   return { updateDashboard, setView, setWorkspace, destroy() { unsubscribe(); root.removeEventListener('click', clickHandler); dashboard.removeEventListener('input', inputHandler); dashboard.removeEventListener('change', changeHandler); } };
 }
 
@@ -562,7 +569,11 @@ function missingCoreMetadata(record) {
 
 function renderFinding(item, handled) {
   const pageStudioHref = buildPageStudioHref(item);
-  return `<article class="cos-worker-finding ${escapeHtml(item.severity || 'medium')}" data-finding-id="${escapeHtml(item.id)}" data-collapsed="false"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.sourceType || 'CuratorOS')}</small></div><div class="cos-worker-finding-head-actions"><span class="cos-worker-finding-severity">${escapeHtml(item.severity || 'medium')}</span><button type="button" data-finding-collapse aria-expanded="true">Collapse</button></div></div><div data-finding-body><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p><p><strong>Recommended action:</strong> ${escapeHtml(item.recommendation)}</p>${item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : ''}<div class="cos-worker-actions">${item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action || 'Open record')}</button>` : ''}${item.pageUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.pageUrl)}">Open affected page</a>` : ''}${pageStudioHref ? `<a class="cos-worker-action-link" href="${escapeHtml(pageStudioHref)}" data-page-studio-handoff>Edit in Page Studio</a>` : ''}${item.targetUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.targetUrl)}">Open checked URL</a>` : ''}${item.replacementUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.replacementUrl)}">Open replacement</a>` : ''}<button type="button" data-finding-action="${handled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${handled ? 'Reopen' : 'Mark handled'}</button></div></div></article>`;
+  return `<article class="cos-worker-finding ${escapeHtml(item.severity || 'medium')}" data-finding-id="${escapeHtml(item.id)}" data-collapsed="false"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.sourceType || 'CuratorOS')}</small></div><div class="cos-worker-finding-head-actions"><span class="cos-worker-finding-severity">${escapeHtml(item.severity || 'medium')}</span><button type="button" data-finding-collapse aria-expanded="true">Collapse</button></div></div><div data-finding-body><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p><p><strong>Recommended action:</strong> ${escapeHtml(item.recommendation)}</p>${item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : ''}<div class="cos-worker-actions">${item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action || 'Open record')}</button>` : ''}${item.pageUrl ? navigationButton(item.pageUrl, 'Open affected page') : ''}${pageStudioHref ? navigationButton(pageStudioHref, 'Edit in Page Studio', 'data-page-studio-handoff') : ''}${item.targetUrl ? navigationButton(item.targetUrl, 'Open checked URL') : ''}${item.replacementUrl ? navigationButton(item.replacementUrl, 'Open replacement') : ''}<button type="button" data-finding-action="${handled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${handled ? 'Reopen' : 'Mark handled'}</button></div></div></article>`;
+}
+
+function navigationButton(url, label, extraAttributes = '') {
+  return `<button type="button" class="cos-worker-action-link" data-navigation-url="${escapeHtml(url)}" ${extraAttributes}>${escapeHtml(label)}</button>`;
 }
 
 function setFindingCollapsed(card, collapsed) {
@@ -612,5 +623,5 @@ function csvCell(value) { const text=String(value ?? ''); return /[",\r\n]/.test
 function downloadText(text, filename, type) { const url=URL.createObjectURL(new Blob([text],{type})); const link=document.createElement('a'); link.href=url; link.download=filename; document.body.append(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000); }
 function cssEscape(value) { return globalThis.CSS?.escape ? CSS.escape(value) : String(value).replace(/["\\]/g,'\\$&'); }
 function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g,(character)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[character])); }
-function openCommandPalette(root, setView) { const existing=root.querySelector('[data-worker-command-overlay]'); if (existing) { existing.remove(); return; } const overlay=document.createElement('div'); overlay.className='cos-worker-command-overlay'; overlay.dataset.workerCommandOverlay=''; overlay.innerHTML=`<div class="cos-worker-command-box"><input type="search" placeholder="Jump to Findings, Registry, Graph, Intelligence, Review Queue, or Developer Mode" autofocus><div>${[...MODULES.operations, ...MODULES.knowledge].map(([,label])=>`<button type="button" data-command-view="${viewKey(label)}">${escapeHtml(label)}</button>`).join('')}</div></div>`; overlay.addEventListener('click',(event)=>{ const button=event.target.closest('[data-command-view]'); if (button) { setView(button.dataset.commandView); overlay.remove(); } else if (event.target===overlay) overlay.remove(); }); root.append(overlay); overlay.querySelector('input')?.focus(); }
+function openCommandPalette(root, setView) { const existing=root.querySelector('[data-worker-command-overlay]'); if (existing) { existing.remove(); return; } const overlay=document.createElement('div'); overlay.className='cos-worker-command-overlay'; overlay.dataset.workerCommandOverlay=''; overlay.innerHTML=`<div class="cos-worker-command-box"><input type="search" placeholder="Jump to Findings, Registry, Graph, Intelligence, Review Queue, Guided Session, or Developer Mode" autofocus><div>${Object.values(MODULES).flat().map(([,label])=>`<button type="button" data-command-view="${viewKey(label)}">${escapeHtml(label)}</button>`).join('')}</div></div>`; overlay.addEventListener('click',(event)=>{ const button=event.target.closest('[data-command-view]'); if (button) { setView(button.dataset.commandView); overlay.remove(); } else if (event.target===overlay) overlay.remove(); }); root.append(overlay); overlay.querySelector('input')?.focus(); }
 function parseCsv(text) { const rows=[]; let row=[]; let cell=''; let quoted=false; for (let i=0;i<text.length;i+=1) { const char=text[i]; if (quoted) { if (char==='"' && text[i+1]==='"') { cell+='"'; i+=1; } else if (char==='"') quoted=false; else cell+=char; } else if (char==='"') quoted=true; else if (char===',') { row.push(cell); cell=''; } else if (char==='\n') { row.push(cell.replace(/\r$/,'')); rows.push(row); row=[]; cell=''; } else cell+=char; } if (cell || row.length) { row.push(cell.replace(/\r$/,'')); rows.push(row); } if (rows.length<2) return []; const headers=rows[0].map((value)=>value.trim()); return rows.slice(1).filter((values)=>values.some((value)=>String(value).trim())).map((values)=>Object.fromEntries(headers.map((header,index)=>[header,values[index] ?? '']))); }

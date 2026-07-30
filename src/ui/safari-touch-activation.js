@@ -61,7 +61,12 @@ export function installSafariTouchActivation(root) {
 
     if (openImportPicker(completed.control, root)) return;
 
-    completed.control.click();
+    completed.control.dispatchEvent(new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      view: window
+    }));
   };
 
   const onClickCapture = (event) => {

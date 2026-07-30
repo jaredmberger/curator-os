@@ -281,10 +281,18 @@ export function installWorkerEraShell(root, context = {}) {
     if (findingButton) {
       const handled = handledIds();
       const id = findingButton.dataset.findingId;
-      if (findingButton.dataset.findingAction === 'handle') handled.add(id);
-      if (findingButton.dataset.findingAction === 'reopen') handled.delete(id);
+      if (!id) return;
+      if (findingButton.dataset.findingAction === 'handle') {
+        handled.add(id);
+        state.notice = 'Finding marked handled and moved to the Handled list.';
+      }
+      if (findingButton.dataset.findingAction === 'reopen') {
+        handled.delete(id);
+        state.notice = 'Finding reopened and returned to the Open findings list.';
+      }
       saveHandled(handled);
       updateDashboard();
+      return;
     }
     const openRecord = event.target.closest('[data-finding-open]');
     if (openRecord) {
@@ -426,11 +434,11 @@ export function installWorkerEraShell(root, context = {}) {
       }
       if (!imported) {
         state.notice = `${file.name} is a valid CuratorOS catalog with ${records.length.toLocaleString()} records, but this build does not yet expose a catalog-loading hook. Use the Registry import control for now.`;
-        setWorkspace('knowledge');
+        setView('registry');
         return;
       }
       state.notice = `Loaded ${records.length.toLocaleString()} catalog record${records.length === 1 ? '' : 's'} from ${file.name}.`;
-      setWorkspace('knowledge');
+      setView('registry');
     } catch (error) {
       state.notice = `Could not load ${file.name}: ${error instanceof Error ? error.message : String(error)}`;
     } finally {
@@ -439,9 +447,19 @@ export function installWorkerEraShell(root, context = {}) {
     }
   });
 
+  root.addEventListener('curatoros:worker-view-request', (event) => {
+    const view = event.detail?.view;
+    if (!view) return;
+    if (['registry', 'review', 'graph', 'intelligence'].includes(view)) setWorkspace('knowledge');
+    else setWorkspace('operations');
+    setView(view);
+    const recordId = event.detail?.recordId;
+    if (recordId) requestAnimationFrame(() => shell.querySelector(`[data-record-id="${cssEscape(recordId)}"]`)?.click());
+  });
+
   const unsubscribe = context.recordService?.subscribe?.(() => updateDashboard()) || (() => {});
-  updateDashboard();
   renderWorkspaceChrome();
+  updateDashboard();
   setView(state.workspace === 'knowledge' ? 'registry' : 'dashboard');
   return { updateDashboard, setView, setWorkspace, destroy() { unsubscribe(); root.removeEventListener('click', clickHandler); dashboard.removeEventListener('input', inputHandler); dashboard.removeEventListener('change', changeHandler); } };
 }
@@ -478,22 +496,7 @@ function auditRowFinding(row) {
   const replacement = normalized.replacement_url || normalized.replacementurl || '';
   const label = normalized.anchor_text || normalized.anchor || checkedUrl;
 
-  if (redirected && status >= 200 && status < 300) {
-    const destination = finalUrl || (replacement && replacement !== checkedUrl ? replacement : '');
-    return externalFinding({
-      id: `audit:${stableId(`${pageUrl}|${checkedUrl}|REDIRECT`)}`,
-      category: 'link-maintenance',
-      severity: 'low',
-      title: normalized.page_title || normalized.pagetitle || pageUrl || 'Redirected link',
-      summary: `${label} redirects successfully and the final destination returned ${status}.`,
-      recommendation: destination ? `No immediate action is required. During routine maintenance, update the link to point directly to ${destination}.` : 'No immediate action is required. The link is working; updating it is optional maintenance.',
-      action: 'Open affected page',
-      pageUrl,
-      targetUrl: checkedUrl,
-      replacementUrl: destination,
-      context: normalized.context || ''
-    });
-  }
+  if (redirected && status >= 200 && status < 300) return null;
 
   return externalFinding({
     id: `audit:${stableId(`${pageUrl}|${checkedUrl}|${status || category || severity}`)}`,
@@ -535,7 +538,7 @@ function recordExportFindings(records) {
   });
 }
 
-function renderNav(workspace) {
+function renderNav(workspace = 'operations') {
   const modules = MODULES[workspace] || MODULES.operations;
   return modules.map(([group, label], index) => `${index === 0 || modules[index - 1][0] !== group ? `<div class="cos-worker-nav-group">${escapeHtml(group)}</div>` : ''}<button type="button" data-worker-view="${viewKey(label)}">${escapeHtml(label)}</button>`).join('');
 }
@@ -559,7 +562,7 @@ function missingCoreMetadata(record) {
 
 function renderFinding(item, handled) {
   const pageStudioHref = buildPageStudioHref(item);
-  return `<article class="cos-worker-finding ${escapeHtml(item.severity || 'medium')}" data-finding-id="${escapeHtml(item.id)}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.sourceType || 'CuratorOS')}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.severity || 'medium')}</span></div><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p><p><strong>Recommended action:</strong> ${escapeHtml(item.recommendation)}</p>${item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : ''}<div class="cos-worker-actions">${item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action || 'Open record')}</button>` : ''}${item.pageUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.pageUrl)}">Open affected page</a>` : ''}${pageStudioHref ? `<a class="cos-worker-action-link" href="${escapeHtml(pageStudioHref)}">Edit in Page Studio</a>` : ''}${item.targetUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.targetUrl)}">Open checked URL</a>` : ''}${item.replacementUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.replacementUrl)}">Open replacement</a>` : ''}<button type="button" data-finding-action="${handled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${handled ? 'Reopen' : 'Mark handled'}</button></div></article>`;
+  return `<article class="cos-worker-finding ${escapeHtml(item.severity || 'medium')}" data-finding-id="${escapeHtml(item.id)}" data-collapsed="false"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.sourceType || 'CuratorOS')}</small></div><div class="cos-worker-finding-head-actions"><span class="cos-worker-finding-severity">${escapeHtml(item.severity || 'medium')}</span><button type="button" data-finding-collapse aria-expanded="true">Collapse</button></div></div><div data-finding-body><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p><p><strong>Recommended action:</strong> ${escapeHtml(item.recommendation)}</p>${item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : ''}<div class="cos-worker-actions">${item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action || 'Open record')}</button>` : ''}${item.pageUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.pageUrl)}">Open affected page</a>` : ''}${pageStudioHref ? `<a class="cos-worker-action-link" href="${escapeHtml(pageStudioHref)}" data-page-studio-handoff>Edit in Page Studio</a>` : ''}${item.targetUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.targetUrl)}">Open checked URL</a>` : ''}${item.replacementUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.replacementUrl)}">Open replacement</a>` : ''}<button type="button" data-finding-action="${handled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${handled ? 'Reopen' : 'Mark handled'}</button></div></div></article>`;
 }
 
 function setFindingCollapsed(card, collapsed) {
@@ -609,5 +612,5 @@ function csvCell(value) { const text=String(value ?? ''); return /[",\r\n]/.test
 function downloadText(text, filename, type) { const url=URL.createObjectURL(new Blob([text],{type})); const link=document.createElement('a'); link.href=url; link.download=filename; document.body.append(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000); }
 function cssEscape(value) { return globalThis.CSS?.escape ? CSS.escape(value) : String(value).replace(/["\\]/g,'\\$&'); }
 function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g,(character)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[character])); }
-function openCommandPalette(root, setView) { const allModules=[...MODULES.operations,...MODULES.knowledge]; const existing=root.querySelector('[data-worker-command-overlay]'); if (existing) { existing.remove(); return; } const overlay=document.createElement('div'); overlay.className='cos-worker-command-overlay'; overlay.dataset.workerCommandOverlay=''; overlay.innerHTML=`<div class="cos-worker-command-box"><input type="search" placeholder="Jump to Findings, Guided Session, Knowledge Records, Graph, Intelligence, Review Queue, or Developer Mode" autofocus><div>${allModules.map(([,label])=>`<button type="button" data-command-view="${viewKey(label)}">${escapeHtml(label)}</button>`).join('')}</div></div>`; overlay.addEventListener('click',(event)=>{ const button=event.target.closest('[data-command-view]'); if (button) { setView(button.dataset.commandView); overlay.remove(); } else if (event.target===overlay) overlay.remove(); }); root.append(overlay); overlay.querySelector('input')?.focus(); }
+function openCommandPalette(root, setView) { const existing=root.querySelector('[data-worker-command-overlay]'); if (existing) { existing.remove(); return; } const overlay=document.createElement('div'); overlay.className='cos-worker-command-overlay'; overlay.dataset.workerCommandOverlay=''; overlay.innerHTML=`<div class="cos-worker-command-box"><input type="search" placeholder="Jump to Findings, Registry, Graph, Intelligence, Review Queue, or Developer Mode" autofocus><div>${[...MODULES.operations, ...MODULES.knowledge].map(([,label])=>`<button type="button" data-command-view="${viewKey(label)}">${escapeHtml(label)}</button>`).join('')}</div></div>`; overlay.addEventListener('click',(event)=>{ const button=event.target.closest('[data-command-view]'); if (button) { setView(button.dataset.commandView); overlay.remove(); } else if (event.target===overlay) overlay.remove(); }); root.append(overlay); overlay.querySelector('input')?.focus(); }
 function parseCsv(text) { const rows=[]; let row=[]; let cell=''; let quoted=false; for (let i=0;i<text.length;i+=1) { const char=text[i]; if (quoted) { if (char==='"' && text[i+1]==='"') { cell+='"'; i+=1; } else if (char==='"') quoted=false; else cell+=char; } else if (char==='"') quoted=true; else if (char===',') { row.push(cell); cell=''; } else if (char==='\n') { row.push(cell.replace(/\r$/,'')); rows.push(row); row=[]; cell=''; } else cell+=char; } if (cell || row.length) { row.push(cell.replace(/\r$/,'')); rows.push(row); } if (rows.length<2) return []; const headers=rows[0].map((value)=>value.trim()); return rows.slice(1).filter((values)=>values.some((value)=>String(value).trim())).map((values)=>Object.fromEntries(headers.map((header,index)=>[header,values[index] ?? '']))); }

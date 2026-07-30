@@ -300,6 +300,9 @@ export function installWorkerEraShell(root, context = {}) {
     if (event.target.closest('[data-worker-backup]')) context.onQuickBackup?.();
   };
 
+  const safariWorkspaceHandler = (event) => setWorkspace(event.detail?.mode);
+  const safariViewHandler = (event) => setView(event.detail?.view);
+
   const inputHandler = (event) => {
     if (event.target.matches('[data-findings-search]')) {
       state.search = event.target.value;
@@ -313,6 +316,8 @@ export function installWorkerEraShell(root, context = {}) {
   };
 
   root.addEventListener('click', clickHandler);
+  root.addEventListener('curatoros:safari-workspace', safariWorkspaceHandler);
+  root.addEventListener('curatoros:safari-view', safariViewHandler);
   dashboard.addEventListener('input', inputHandler);
   dashboard.addEventListener('change', changeHandler);
 
@@ -443,7 +448,7 @@ export function installWorkerEraShell(root, context = {}) {
   updateDashboard();
   renderWorkspaceChrome();
   setView(state.workspace === 'knowledge' ? 'registry' : 'dashboard');
-  return { updateDashboard, setView, setWorkspace, destroy() { unsubscribe(); root.removeEventListener('click', clickHandler); dashboard.removeEventListener('input', inputHandler); dashboard.removeEventListener('change', changeHandler); } };
+  return { updateDashboard, setView, setWorkspace, destroy() { unsubscribe(); root.removeEventListener('click', clickHandler); root.removeEventListener('curatoros:safari-workspace', safariWorkspaceHandler); root.removeEventListener('curatoros:safari-view', safariViewHandler); dashboard.removeEventListener('input', inputHandler); dashboard.removeEventListener('change', changeHandler); } };
 }
 
 function parseImportedJson(value) {
@@ -468,146 +473,119 @@ function auditRowFinding(row) {
   const category = String(normalized.category || '').toUpperCase();
   const status = Number.parseInt(normalized.status || '', 10);
   const redirected = String(normalized.redirected || '').toLowerCase() === 'true' || category === 'REDIRECT';
-  if (!normalized.checked_url && !normalized.url) return null;
-  if (severity === 'good' || category === 'GOOD') return null;
-  if (status >= 200 && status < 300 && !redirected) return null;
-
-  const pageUrl = normalized.page_url || normalized.pageurl || '';
-  const checkedUrl = normalized.checked_url || normalized.url || '';
-  const finalUrl = normalized.final_url || normalized.finalurl || '';
-  const replacement = normalized.replacement_url || normalized.replacementurl || '';
-  const label = normalized.anchor_text || normalized.anchor || checkedUrl;
-
-  if (redirected && status >= 200 && status < 300) {
-    const destination = finalUrl || (replacement && replacement !== checkedUrl ? replacement : '');
-    return externalFinding({
-      id: `audit:${stableId(`${pageUrl}|${checkedUrl}|REDIRECT`)}`,
-      category: 'link-maintenance',
-      severity: 'low',
-      title: normalized.page_title || normalized.pagetitle || pageUrl || 'Redirected link',
-      summary: `${label} redirects successfully and the final destination returned ${status}.`,
-      recommendation: destination ? `No immediate action is required. During routine maintenance, update the link to point directly to ${destination}.` : 'No immediate action is required. The link is working; updating it is optional maintenance.',
-      action: 'Open affected page',
-      pageUrl,
-      targetUrl: checkedUrl,
-      replacementUrl: destination,
-      context: normalized.context || ''
-    });
-  }
-
-  return externalFinding({
-    id: `audit:${stableId(`${pageUrl}|${checkedUrl}|${status || category || severity}`)}`,
-    category: status >= 400 || category === 'BROKEN' ? 'broken' : 'link-maintenance',
-    severity: severity === 'high' || status >= 500 ? 'high' : severity === 'medium' || status >= 400 ? 'medium' : 'low',
-    title: normalized.page_title || normalized.pagetitle || pageUrl || checkedUrl || 'Link finding',
-    summary: `${label} returned ${status || category || severity || 'an error'}.`,
-    recommendation: replacement && replacement !== checkedUrl ? `Update the link to ${replacement}.` : 'Review the link and replace or remove it if it is no longer valid.',
-    action: 'Open affected page',
+  if (redirected && Number.isFinite(status) && status >= 200 && status < 300) return null;
+  const pageUrl = normalized.page_url || normalized.page || normalized.source_page || normalized.source || '';
+  const targetUrl = normalized.target_url || normalized.url || normalized.target || normalized.link || '';
+  const title = normalized.title || normalized.issue || normalized.message || normalized.description || `Link issue on ${pageUrl || targetUrl || 'unknown page'}`;
+  const summary = normalized.summary || normalized.detail || normalized.error || title;
+  return {
+    id: normalized.id || stableId([pageUrl,targetUrl,status,category,title].join('|')),
+    title,
+    summary,
+    recommendation: normalized.recommendation || normalized.action || 'Review the affected page and repair or remove the failing reference.',
+    category: category === 'BROKEN' || status >= 400 ? 'broken' : category === 'REDIRECT' ? 'link-maintenance' : normalized.category || 'link-maintenance',
+    severity: ['high','medium','low'].includes(severity) ? severity : status >= 500 ? 'high' : status >= 400 ? 'medium' : 'low',
     pageUrl,
-    targetUrl: checkedUrl,
-    replacementUrl: replacement && replacement !== checkedUrl ? replacement : '',
-    context: normalized.context || ''
-  });
+    targetUrl,
+    replacementUrl: normalized.replacement_url || normalized.replacement || '',
+    context: normalized.context || normalized.anchor_text || normalized.text || '',
+    recordId: normalized.record_id || ''
+  };
 }
 
 function indexFindings(value) {
-  const pages = Array.isArray(value.pages) ? value.pages : Array.isArray(value.entities?.pages) ? value.entities.pages : [];
-  const errors = Array.isArray(value.errors) ? value.errors : [];
-  const unlinked = Array.isArray(value.graphs?.unlinkedShipMentions) ? value.graphs.unlinkedShipMentions : [];
   const findings = [];
-  for (const error of errors) {
-    const url = error.url || error.pageUrl || '';
-    findings.push(externalFinding({ id:`index:${stableId(JSON.stringify(error))}`,category:'crawl',severity:'high',title:error.title || url || 'Indexer crawl error',summary:error.message || error.error || 'Curator Indexer reported a crawl error.',recommendation:'Open the affected page and confirm it is reachable and indexable.',action:'Open affected page',pageUrl:url,context:error.context || '' }));
-  }
+  const pages = value.pages || value.entities?.pages || [];
   for (const page of pages) {
-    if (page.error) findings.push(externalFinding({ id:`index:${stableId(`${page.url}|${page.error}`)}`,category:'crawl',severity:'high',title:page.title || page.url || 'Page crawl error',summary:String(page.error),recommendation:'Open the page and repair the crawl or rendering failure.',action:'Open affected page',pageUrl:page.url || '' }));
-    if (!page.sourceCount && !page.sources?.length) findings.push(externalFinding({ id:`index:${stableId(`${page.url}|sources`)}`,category:'unsourced',severity:'medium',title:page.title || page.url || 'Unsourced page',summary:'The index export did not detect a source or citation on this page.',recommendation:'Review the page and add or clarify its source section if appropriate.',action:'Open affected page',pageUrl:page.url || '' }));
+    const url = page.url || page.path || page.canonical || '';
+    const title = page.title || page.name || url || 'Indexed page';
+    if (page.error || page.status >= 400) findings.push({ id:stableId(`index-error|${url}|${page.error || page.status}`),title:`Indexer could not read ${title}`,summary:String(page.error || `HTTP ${page.status}`),recommendation:'Open the page, repair the response or markup problem, and rebuild the site index.',category:'broken',severity:page.status >= 500 ? 'high' : 'medium',pageUrl:url,targetUrl:url,replacementUrl:'',context:'Curator Indexer',recordId:page.recordId || '' });
+    const sources = page.sources || page.sourceUrls || [];
+    if (!sources.length && page.kind === 'ship') findings.push({ id:stableId(`index-unsourced|${url}`),title:`${title} has no indexed source links`,summary:'Curator Indexer did not detect source references on this ship page.',recommendation:'Review the page and attach documented source links or curatorial notes.',category:'unsourced',severity:'high',pageUrl:url,targetUrl:'',replacementUrl:'',context:'Curator Indexer',recordId:page.recordId || '' });
   }
-  for (const item of unlinked) findings.push(externalFinding({ id:`index:${stableId(JSON.stringify(item))}`,category:'link-opportunity',severity:'low',title:item.pageTitle || item.shipName || item.pageUrl || 'Internal link opportunity',summary:item.summary || `${item.shipName || 'A known ship'} appears on this page without a detected guide link.`,recommendation:item.recommendation || 'Review the mention and add a relevant internal link when it improves the reader path.',action:'Open affected page',pageUrl:item.pageUrl || item.url || '',context:item.context || item.snippet || '' }));
+  for (const error of value.errors || []) findings.push({ id:stableId(`index-error|${error.url || error.path}|${error.message || error.error}`),title:error.title || 'Indexer crawl error',summary:error.message || error.error || 'Curator Indexer reported a crawl error.',recommendation:'Open the affected page, repair the failure, and rebuild the index.',category:'broken',severity:'high',pageUrl:error.url || error.path || '',targetUrl:'',replacementUrl:'',context:'Curator Indexer',recordId:error.recordId || '' });
+  for (const item of value.graphs?.unlinkedShipMentions || []) findings.push({ id:stableId(`unlinked|${item.page || item.pageUrl}|${item.ship || item.name}`),title:`Unlinked ship mention: ${item.ship || item.name || 'unknown ship'}`,summary:`${item.ship || item.name || 'A ship'} is mentioned without a detected internal link.`,recommendation:'Confirm the mention and link it to the relevant ship guide when contextually appropriate.',category:'link-opportunity',severity:'low',pageUrl:item.page || item.pageUrl || '',targetUrl:item.shipUrl || '',replacementUrl:item.shipUrl || '',context:item.context || '',recordId:item.recordId || '' });
   return findings;
 }
 
 function recordExportFindings(records) {
   return records.flatMap((record) => {
     const findings = [];
-    if (!(record.sources || []).length) findings.push(finding(record,'unsourced','high',`${record.title || record.id} has no direct source attached.`,'Add at least one source or a curatorial note that explains the evidence basis.','Open record and add source'));
+    const title = record.title || record.id || 'Record';
+    if (!(record.sources || []).length) findings.push({ id:stableId(`record-source|${record.id}`),title:`${title} has no direct source`,summary:'Imported record contains no attached source.',recommendation:'Attach a source or document the evidence basis before publication.',category:'unsourced',severity:'high',pageUrl:record.data?.pageUrl || '',targetUrl:'',replacementUrl:'',context:'CuratorOS record export',recordId:record.id || '' });
+    if (record.status === 'draft' || record.status === 'review') findings.push({ id:stableId(`record-review|${record.id}`),title:`${title} is marked ${record.status}`,summary:'Imported record is not yet published.',recommendation:'Review evidence and metadata before publication.',category:'review',severity:record.status === 'draft' ? 'high' : 'medium',pageUrl:record.data?.pageUrl || '',targetUrl:'',replacementUrl:'',context:'CuratorOS record export',recordId:record.id || '' });
     return findings;
   });
 }
 
+function renderBriefing(history) {
+  if (!history.length) return '<article class="cos-worker-panel"><span class="cos-eyebrow">Site assurance briefing</span><h2>No scan history yet</h2><p>Run Site Health, Curator Indexer, and Curator Speed, then import each report. CuratorOS will compare new results against the previous run and separate new findings, persistent issues, verified fixes, and regressions.</p></article>';
+  const latestBySource = new Map();
+  for (const item of history) if (!latestBySource.has(item.sourceType)) latestBySource.set(item.sourceType, item);
+  const cards = [...latestBySource.values()].map((item) => `<article class="cos-worker-scan-history"><div><span>${escapeHtml(item.sourceType)}</span><strong>${escapeHtml(item.fileName)}</strong></div><small>${new Date(item.importedAt).toLocaleString()}</small><div class="cos-worker-scan-history-metrics">${metric(item.newCount || 0,'New')}${metric(item.persistentCount || 0,'Persistent')}${metric(item.verifiedCount ?? item.resolvedCount ?? 0,'Verified')}${metric(item.regressionCount || 0,'Regressions')}</div>${item.verifiedFindings?.length ? `<details><summary>Verified fixed in this run</summary>${item.verifiedFindings.slice(0,20).map((found) => `<p>${escapeHtml(found.title)}${found.pageUrl ? ` · <a href="${escapeHtml(found.pageUrl)}">open page</a>` : ''}</p>`).join('')}</details>` : ''}</article>`).join('');
+  return `<section class="cos-worker-scan-history-list"><div class="cos-worker-scan-intro"><span class="cos-eyebrow">Site assurance briefing</span><h2>What changed since the last scan</h2><p>Imported reports are compared against earlier runs from the same tool. Missing findings are archived as verified fixes; findings that return are marked as regressions.</p></div>${cards}</section>`;
+}
+
 function renderNav(workspace) {
-  const modules = MODULES[workspace] || MODULES.operations;
-  return modules.map(([group, label], index) => `${index === 0 || modules[index - 1][0] !== group ? `<div class="cos-worker-nav-group">${escapeHtml(group)}</div>` : ''}<button type="button" data-worker-view="${viewKey(label)}">${escapeHtml(label)}</button>`).join('');
+  return MODULES[workspace].map(([icon, label]) => `<button type="button" data-worker-view="${viewId(label)}"><span>${iconGlyph(icon)}</span>${label}</button>`).join('');
 }
 
-function viewKey(label) {
-  return ({ Findings:'dashboard', Registry:'registry', Graph:'graph', Intelligence:'intelligence', 'Review Queue':'review', 'Guided Session':'session', 'Developer Mode':'developer' })[label];
-}
-
-function finding(record, category, severity, summary, recommendation, action) {
-  return { id:`${record.id}:${category}`,recordId:record.id,title:record.title || record.id,category,severity,summary,recommendation,action,pageUrl:record.url || '',targetUrl:'',replacementUrl:'',context:'',sourceType:'local-catalog' };
-}
-
-function externalFinding(value) {
-  return { recordId:'',title:'Finding',category:'finding',severity:'medium',summary:'',recommendation:'Review this item.',action:'Review finding',pageUrl:'',targetUrl:'',replacementUrl:'',context:'',sourceType:'external-scan',...value };
-}
-
-function missingCoreMetadata(record) {
-  const required = record.type === 'ship' ? ['builder','operator'] : [];
-  return required.filter((key) => !record.data?.[key]);
+function viewId(label) {
+  return ({ Findings:'dashboard','Guided Session':'session','Developer Mode':'developer',Registry:'registry',Graph:'graph',Intelligence:'intelligence','Review Queue':'review' })[label];
 }
 
 function renderFinding(item, handled) {
-  const pageStudioHref = buildPageStudioHref(item);
-  return `<article class="cos-worker-finding ${escapeHtml(item.severity || 'medium')}" data-finding-id="${escapeHtml(item.id)}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.sourceType || 'CuratorOS')}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.severity || 'medium')}</span></div><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p><p><strong>Recommended action:</strong> ${escapeHtml(item.recommendation)}</p>${item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : ''}<div class="cos-worker-actions">${item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action || 'Open record')}</button>` : ''}${item.pageUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.pageUrl)}">Open affected page</a>` : ''}${pageStudioHref ? `<a class="cos-worker-action-link" href="${escapeHtml(pageStudioHref)}">Edit in Page Studio</a>` : ''}${item.targetUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.targetUrl)}">Open checked URL</a>` : ''}${item.replacementUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.replacementUrl)}">Open replacement</a>` : ''}<button type="button" data-finding-action="${handled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${handled ? 'Reopen' : 'Mark handled'}</button></div></article>`;
+  const links = [];
+  if (item.pageUrl) links.push(navigationLink(item.pageUrl, 'Open affected page'));
+  if (item.targetUrl && item.targetUrl !== item.pageUrl) links.push(navigationLink(item.targetUrl, 'Open checked URL'));
+  if (item.replacementUrl) links.push(navigationLink(item.replacementUrl, 'Open replacement'));
+  if (item.pageUrl) links.push(navigationLink(`https://page-studio.oceanliners.net/?url=${encodeURIComponent(item.pageUrl)}`, 'Edit in Page Studio'));
+  return `<article class="cos-worker-finding severity-${item.severity}" data-finding-id="${escapeHtml(item.id)}"><div class="cos-worker-finding-head"><div><span>${escapeHtml(labelCategory(item.category))}</span><strong>${escapeHtml(item.title)}</strong></div><span>${escapeHtml(item.severity)} priority</span></div><div class="cos-worker-finding-grid"><div><small>What CuratorOS found</small><p>${escapeHtml(item.summary)}</p></div><div><small>Why this matters</small><p>${escapeHtml(whyItMatters(item))}</p></div><div><small>Recommended action</small><p>${escapeHtml(item.recommendation)}</p></div></div>${item.context ? `<p class="cos-worker-finding-context"><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : ''}<div class="cos-worker-actions">${links.join('')}${item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">Open record</button>` : ''}<button type="button" data-finding-action="${handled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${handled ? 'Reopen finding' : 'Mark handled'}</button></div></article>`;
+}
+
+function navigationLink(url, label) {
+  return `<a class="cos-worker-action-link" href="${escapeHtml(url)}">${escapeHtml(label)}</a>`;
 }
 
 function setFindingCollapsed(card, collapsed) {
   const body = card.querySelector('[data-finding-body]');
   const button = card.querySelector('[data-finding-collapse]');
-  if (!body || !button) return;
+  if (!body) return;
   card.dataset.collapsed = collapsed ? 'true' : 'false';
   body.hidden = collapsed;
-  button.textContent = collapsed ? 'Expand' : 'Collapse';
-  button.setAttribute('aria-expanded', String(!collapsed));
-}
-
-function buildPageStudioHref(item) {
-  const target = item.pageUrl || '';
-  if (!target) return '';
-  try {
-    const url = new URL('https://page-studio.oceanliners.net/');
-    url.searchParams.set('handoff', 'curatoros');
-    url.searchParams.set('url', target);
-    url.searchParams.set('findingId', item.id || '');
-    url.searchParams.set('title', item.title || 'CuratorOS finding');
-    url.searchParams.set('summary', item.summary || '');
-    url.searchParams.set('recommendation', item.recommendation || '');
-    url.searchParams.set('sourceType', item.sourceType || 'CuratorOS');
-    if (item.targetUrl) url.searchParams.set('targetUrl', item.targetUrl);
-    if (item.replacementUrl) url.searchParams.set('replacementUrl', item.replacementUrl);
-    if (item.context) url.searchParams.set('context', item.context);
-    return url.toString();
-  } catch {
-    return '';
+  if (button) {
+    button.textContent = collapsed ? 'Expand' : 'Collapse';
+    button.setAttribute('aria-expanded', String(!collapsed));
   }
 }
 
-function renderBriefing(history) {
-  const latest = history[0];
-  if (!latest) return `<section class="cos-worker-briefing"><div class="cos-worker-briefing-head"><div><span class="cos-eyebrow">Scan briefing</span><h2>No scan imported yet</h2><p>Run one of the scanner tools below, export its report, and import the result here.</p></div></div></section>`;
-  return `<section class="cos-worker-briefing"><div class="cos-worker-briefing-head"><div><span class="cos-eyebrow">Latest scan briefing</span><h2>${escapeHtml(latest.sourceType || latest.fileName || 'Imported scan')}</h2><p>${escapeHtml(latest.fileName || '')} · ${escapeHtml(formatDate(latest.importedAt))}</p></div><button type="button" data-findings-clear-history>Clear history</button></div><div class="cos-worker-scan-history"><div><strong>${latest.newCount || 0}</strong><span>new</span></div><div><strong>${latest.persistentCount || 0}</strong><span>persistent</span></div><div><strong>${latest.verifiedCount ?? latest.resolvedCount ?? 0}</strong><span>verified</span></div><div><strong>${latest.regressionCount || 0}</strong><span>regressed</span></div></div></section>`;
+function finding(record, category, severity, summary, recommendation, actionLabel) {
+  return { id:stableId(`${record.id}|${category}|${summary}`),title:`${record.title || record.id}: ${labelCategory(category)}`,summary,recommendation,category,severity,pageUrl:record.data?.pageUrl || '',targetUrl:'',replacementUrl:'',context:'CuratorOS local catalog',recordId:record.id,actionLabel };
 }
 
-function metric(value, label) { return `<div class="cos-worker-metric"><strong>${Number(value || 0).toLocaleString()}</strong><span>${escapeHtml(label)}</span></div>`; }
-function countBy(items, key) { return items.reduce((out, item) => { out[item[key]] = (out[item[key]] || 0) + 1; return out; }, {}); }
-function labelCategory(value) { return String(value || 'finding').replace(/[-_]+/g,' ').replace(/\b\w/g,(c)=>c.toUpperCase()); }
-function formatDate(value) { const date=new Date(value); return Number.isNaN(date.getTime()) ? 'unknown date' : date.toLocaleString(); }
-function stableId(value) { let hash=2166136261; for (const char of String(value || '')) { hash^=char.charCodeAt(0); hash=Math.imul(hash,16777619); } return (hash>>>0).toString(36); }
-function dedupeFindings(items) { const map=new Map(); for (const item of items) if (item?.id) map.set(item.id,item); return [...map.values()]; }
-function csvCell(value) { const text=String(value ?? ''); return /[",\r\n]/.test(text) ? `"${text.replaceAll('"','""')}"` : text; }
-function downloadText(text, filename, type) { const url=URL.createObjectURL(new Blob([text],{type})); const link=document.createElement('a'); link.href=url; link.download=filename; document.body.append(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000); }
-function cssEscape(value) { return globalThis.CSS?.escape ? CSS.escape(value) : String(value).replace(/["\\]/g,'\\$&'); }
-function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g,(character)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[character])); }
-function openCommandPalette(root, setView) { const allModules=[...MODULES.operations,...MODULES.knowledge]; const existing=root.querySelector('[data-worker-command-overlay]'); if (existing) { existing.remove(); return; } const overlay=document.createElement('div'); overlay.className='cos-worker-command-overlay'; overlay.dataset.workerCommandOverlay=''; overlay.innerHTML=`<div class="cos-worker-command-box"><input type="search" placeholder="Jump to Findings, Guided Session, Knowledge Records, Graph, Intelligence, Review Queue, or Developer Mode" autofocus><div>${allModules.map(([,label])=>`<button type="button" data-command-view="${viewKey(label)}">${escapeHtml(label)}</button>`).join('')}</div></div>`; overlay.addEventListener('click',(event)=>{ const button=event.target.closest('[data-command-view]'); if (button) { setView(button.dataset.commandView); overlay.remove(); } else if (event.target===overlay) overlay.remove(); }); root.append(overlay); overlay.querySelector('input')?.focus(); }
-function parseCsv(text) { const rows=[]; let row=[]; let cell=''; let quoted=false; for (let i=0;i<text.length;i+=1) { const char=text[i]; if (quoted) { if (char==='"' && text[i+1]==='"') { cell+='"'; i+=1; } else if (char==='"') quoted=false; else cell+=char; } else if (char==='"') quoted=true; else if (char===',') { row.push(cell); cell=''; } else if (char==='\n') { row.push(cell.replace(/\r$/,'')); rows.push(row); row=[]; cell=''; } else cell+=char; } if (cell || row.length) { row.push(cell.replace(/\r$/,'')); rows.push(row); } if (rows.length<2) return []; const headers=rows[0].map((value)=>value.trim()); return rows.slice(1).filter((values)=>values.some((value)=>String(value).trim())).map((values)=>Object.fromEntries(headers.map((header,index)=>[header,values[index] ?? '']))); }
+function missingCoreMetadata(record) {
+  const required = record.type === 'ship' ? ['builder','operator','launchDate'] : record.type === 'company' ? ['country'] : record.type === 'object' ? ['category','date'] : record.type === 'photo' ? ['depictedSubject','rights'] : [];
+  return required.filter((key) => !record.data?.[key]);
+}
+
+function countBy(items, key) { return items.reduce((map, item) => ({ ...map, [item[key]]:(map[item[key]] || 0) + 1 }), {}); }
+function labelCategory(value) { return String(value || 'finding').replace(/-/g,' ').replace(/\b\w/g,(c)=>c.toUpperCase()); }
+function metric(value,label) { return `<div><strong>${Number(value).toLocaleString()}</strong><span>${label}</span></div>`; }
+function whyItMatters(item) {
+  if (item.category === 'broken') return 'A visitor or researcher may reach a dead end, weakening trust and discoverability.';
+  if (item.category === 'link-maintenance') return 'Redirect chains and unstable references make maintenance harder and can hide future failures.';
+  if (item.category === 'link-opportunity') return 'A relevant internal connection can improve discovery and make the collection easier to navigate.';
+  if (item.category === 'unsourced') return 'The claim or record lacks a visible evidence trail, which weakens confidence and future review.';
+  if (item.category === 'metadata') return 'Incomplete structured fields limit search, relationships, comparison, and publication reuse.';
+  if (item.category === 'isolated') return 'Unconnected records are harder to discover and do not contribute fully to the knowledge graph.';
+  return 'This item needs curatorial review before it can be considered complete.';
+}
+function stableId(value) { let hash=2166136261; for(const char of String(value||'')){hash^=char.charCodeAt(0);hash=Math.imul(hash,16777619);} return `finding-${(hash>>>0).toString(16)}`; }
+function dedupeFindings(items) { const map=new Map(); for(const item of items) if(item?.id) map.set(item.id,item); return [...map.values()]; }
+function escapeHtml(value) { return String(value??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function cssEscape(value) { return window.CSS?.escape ? CSS.escape(String(value)) : String(value).replace(/[^a-zA-Z0-9_-]/g,'\\$&'); }
+function csvCell(value) { const text=String(value??''); return /[",\r\n]/.test(text)?`"${text.replace(/"/g,'""')}"`:text; }
+function parseCsv(text) { const rows=[]; let row=[],cell='',quoted=false; for(let i=0;i<text.length;i+=1){const char=text[i];if(quoted){if(char==='"'&&text[i+1]==='"'){cell+='"';i+=1;}else if(char==='"')quoted=false;else cell+=char;}else if(char==='"')quoted=true;else if(char===','){row.push(cell);cell='';}else if(char==='\n'){row.push(cell.replace(/\r$/,''));rows.push(row);row=[];cell='';}else cell+=char;}if(cell.length||row.length){row.push(cell.replace(/\r$/,''));rows.push(row);}const headers=rows.shift()?.map((value)=>value.trim())||[];return rows.filter((values)=>values.some((value)=>value.trim())).map((values)=>Object.fromEntries(headers.map((header,index)=>[header,values[index]??'']))); }
+function downloadText(text,filename,type) { const url=URL.createObjectURL(new Blob([text],{type}));const link=document.createElement('a');link.href=url;link.download=filename;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000); }
+function iconGlyph(icon) { return ({home:'⌂',operations:'✓',administration:'⚙',archive:'▣',knowledge:'◎',editorial:'✎'})[icon] || '•'; }
+function openCommandPalette(root,setView) { const dialog=document.createElement('dialog');dialog.className='cos-worker-command-overlay';dialog.innerHTML=`<form method="dialog" class="cos-worker-command"><div><strong>CuratorOS Command</strong><button value="cancel" aria-label="Close">×</button></div><button value="dashboard" data-command-view="dashboard">Open Findings</button><button value="registry" data-command-view="registry">Open Registry</button><button value="review" data-command-view="review">Open Review Queue</button><button value="session" data-command-view="session">Start Guided Session</button><button value="developer" data-command-view="developer">Open Developer Mode</button></form>`;document.body.append(dialog);dialog.addEventListener('close',()=>{const view=dialog.returnValue;if(['dashboard','registry','review','session','developer'].includes(view))setView(view);dialog.remove();},{once:true});dialog.showModal(); }

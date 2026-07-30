@@ -49,7 +49,11 @@ export function installSafariTouchActivation(root) {
     const control = findControl(hit) || findControl(event.target);
     if (!control) return;
 
-    if (isNativeFormControl(control)) return;
+    if (isNativeFormControl(control)) {
+      event.preventDefault();
+      routeNativeFormControl(control, root);
+      return;
+    }
 
     event.preventDefault();
     suppressTrustedClick = { control, until: performance.now() + 900 };
@@ -146,12 +150,42 @@ function runApplicationAction(control, root) {
     return true;
   }
 
+  if (control.matches('[data-worker-command]')) {
+    root.dispatchEvent(new CustomEvent('curatoros:safari-command'));
+    return true;
+  }
+
+  if (control.matches('[data-worker-backup]')) {
+    root.dispatchEvent(new CustomEvent('curatoros:safari-backup'));
+    return true;
+  }
+
   return false;
 }
 
 function isNativeFormControl(control) {
   return control instanceof HTMLSelectElement ||
     (control instanceof HTMLInputElement && ['search', 'text'].includes(control.type));
+}
+
+function routeNativeFormControl(control, root) {
+  if (control instanceof HTMLInputElement) {
+    control.focus({ preventScroll: true });
+    root.dispatchEvent(new CustomEvent('curatoros:safari-filter-focus', {
+      detail: { type: control.type }
+    }));
+    return;
+  }
+
+  if (control instanceof HTMLSelectElement) {
+    control.focus({ preventScroll: true });
+    root.dispatchEvent(new CustomEvent('curatoros:safari-select-open', {
+      detail: {
+        filter: control.hasAttribute('data-findings-category') ? 'category' : 'severity'
+      }
+    }));
+    control.click();
+  }
 }
 
 function setFindingCollapsed(card, collapsed) {

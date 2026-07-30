@@ -60,6 +60,11 @@ export function installSafariTouchActivation(root) {
       return;
     }
 
+    // File pickers must be opened directly from the trusted touchend event.
+    // Calling button.click() first creates an untrusted synthetic click, and
+    // iPad Safari then refuses the nested hidden-input click used by Import.
+    if (openImportPicker(completed.control, root)) return;
+
     completed.control.click();
   };
 
@@ -88,6 +93,50 @@ export function installSafariTouchActivation(root) {
       document.removeEventListener('click', onClickCapture, true);
     }
   };
+}
+
+function openImportPicker(control, root) {
+  const toolImport = control.closest('[data-tool-import]');
+  if (toolImport) {
+    const input = root.querySelector('[data-findings-import-file]');
+    if (!(input instanceof HTMLInputElement)) return false;
+    const source = toolImport.dataset.toolImport || '';
+    input.dataset.requestedSource = source;
+    input.accept = toolAccept(source);
+    input.click();
+    return true;
+  }
+
+  if (control.closest('[data-findings-import]')) {
+    const input = root.querySelector('[data-findings-import-file]');
+    if (!(input instanceof HTMLInputElement)) return false;
+    input.dataset.requestedSource = '';
+    input.accept = '.json,.csv,application/json,text/csv';
+    input.click();
+    return true;
+  }
+
+  if (control.closest('[data-catalog-import]')) {
+    const input = root.querySelector('[data-catalog-import-file]');
+    if (!(input instanceof HTMLInputElement)) return false;
+    input.click();
+    return true;
+  }
+
+  if (control.closest('[data-import-data]')) {
+    const input = root.querySelector('[data-import-file]');
+    if (!(input instanceof HTMLInputElement)) return false;
+    input.click();
+    return true;
+  }
+
+  return false;
+}
+
+function toolAccept(source) {
+  if (source === 'site-health') return '.csv,text/csv';
+  if (source === 'indexer' || source === 'speed') return '.json,application/json';
+  return '.json,.csv,application/json,text/csv';
 }
 
 function isIpadSafari() {

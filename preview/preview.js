@@ -23,7 +23,6 @@ import { installWorkerEraDeveloperSessions } from '../src/ui/worker-era-develope
 import { installPageStudioHandoff } from '../src/ui/page-studio-handoff.js';
 import { installCoverageGapIntelligence } from '../src/ui/coverage-gap-intelligence.js';
 import { installSiteAssuranceReadiness } from '../src/ui/site-assurance-readiness.js';
-import { installFindingActionsFix } from '../src/ui/finding-actions-fix.js';
 import { installRedirectInformationSummary } from '../src/ui/redirect-information-summary.js';
 
 const seedRecords = [
@@ -69,7 +68,6 @@ installWorkerEraShell(root, {
     downloadJson({ exportedAt:new Date().toISOString(),schemaVersion:CuratorDatabase.SCHEMA_VERSION,records:recordService.all() }, `curatoros-quick-backup-${new Date().toISOString().slice(0,10)}.json`);
   }
 });
-installFindingActionsFix(root);
 installRedirectInformationSummary(root);
 installPageStudioHandoff(root);
 installCoverageGapIntelligence(root, { recordService });

@@ -127,6 +127,23 @@ function runApplicationAction(control, root) {
     return true;
   }
 
+  if (control.matches('[data-finding-action]')) {
+    root.dispatchEvent(new CustomEvent('curatoros:safari-finding-action', {
+      detail: {
+        action: control.dataset.findingAction || '',
+        id: control.dataset.findingId || ''
+      }
+    }));
+    return true;
+  }
+
+  if (control.matches('[data-finding-open]')) {
+    root.dispatchEvent(new CustomEvent('curatoros:safari-open-record', {
+      detail: { id: control.dataset.findingOpen || '' }
+    }));
+    return true;
+  }
+
   return false;
 }
 

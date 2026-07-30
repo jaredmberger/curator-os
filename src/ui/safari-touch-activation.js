@@ -61,12 +61,10 @@ export function installSafariTouchActivation(root) {
 
     if (openImportPicker(completed.control, root)) return;
 
-    completed.control.dispatchEvent(new MouseEvent('click', {
-      bubbles: true,
-      cancelable: true,
-      composed: true,
-      view: window
-    }));
+    // HTMLElement.click() is more reliable in iPad Safari than constructing and
+    // dispatching a MouseEvent manually. It invokes the element's existing click
+    // behavior and bubbles through CuratorOS's delegated handlers.
+    completed.control.click();
   };
 
   const onClickCapture = (event) => {

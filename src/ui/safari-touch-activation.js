@@ -1,4 +1,4 @@
-const INTERACTIVE_SELECTOR = 'a[href], button:not([disabled])';
+const INTERACTIVE_SELECTOR = 'a[href], button:not([disabled]), select, input[type="search"], input[type="text"]';
 const MAX_TAP_DISTANCE = 14;
 const MAX_TAP_DURATION = 800;
 
@@ -48,6 +48,8 @@ export function installSafariTouchActivation(root) {
     const hit = document.elementFromPoint(touch.clientX, touch.clientY);
     const control = findControl(hit) || findControl(event.target);
     if (!control) return;
+
+    if (isNativeFormControl(control)) return;
 
     event.preventDefault();
     suppressTrustedClick = { control, until: performance.now() + 900 };
@@ -145,6 +147,11 @@ function runApplicationAction(control, root) {
   }
 
   return false;
+}
+
+function isNativeFormControl(control) {
+  return control instanceof HTMLSelectElement ||
+    (control instanceof HTMLInputElement && ['search', 'text'].includes(control.type));
 }
 
 function setFindingCollapsed(card, collapsed) {

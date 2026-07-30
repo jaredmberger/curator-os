@@ -50,6 +50,9 @@ export function installFirstUseOnboarding(root, context) {
     if (event.target.closest('[data-close-dialog]')) event.target.closest('dialog')?.close();
   });
 
-  if (storage?.getItem?.(key) !== 'true') queueMicrotask(open);
+  // During Safari/iPad stabilization, do not auto-open a modal dialog on first
+  // visit. A modal backdrop can remain active in WebKit even when the dialog is
+  // visually displaced, blocking taps, long-press menus, and text selection over
+  // the entire page. The Guide button still opens the same onboarding content.
   return { destroy() { root.querySelector('[data-open-first-use]')?.remove(); root.querySelector('[data-first-use-dialog]')?.remove(); } };
 }

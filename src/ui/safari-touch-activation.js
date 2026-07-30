@@ -11,7 +11,6 @@ export function installSafariTouchActivation(root) {
   const findControl = (target) => {
     const control = target instanceof Element ? target.closest(INTERACTIVE_SELECTOR) : null;
     if (!control || !root.contains(control)) return null;
-    if (control.matches('[data-workspace-mode]')) return null;
     return control;
   };
 
@@ -60,9 +59,6 @@ export function installSafariTouchActivation(root) {
       return;
     }
 
-    // File pickers must be opened directly from the trusted touchend event.
-    // Calling button.click() first creates an untrusted synthetic click, and
-    // iPad Safari then refuses the nested hidden-input click used by Import.
     if (openImportPicker(completed.control, root)) return;
 
     completed.control.click();

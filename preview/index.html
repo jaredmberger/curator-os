@@ -9,12 +9,22 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CuratorOS">
   <title>CuratorOS</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=20260730-rebuilt">
+  <link rel="manifest" href="./manifest.webmanifest?v=20260730-nav">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon.svg">
-  <link rel="stylesheet" href="./rebuilt.css?v=20260730-rebuilt">
+  <link rel="stylesheet" href="./rebuilt.css?v=20260730-nav">
 </head>
 <body>
+  <header class="suite-nav" aria-label="Ocean Liner Curator tools">
+    <a class="suite-brand" href="https://oceanliners.net/">Ocean Liner Curator</a>
+    <nav class="suite-links">
+      <a class="active" href="https://curator.oceanliners.net/" aria-current="page">CuratorOS</a>
+      <a href="https://site-health.oceanliners.net/">Site Health</a>
+      <a href="https://curator-indexer.oceanliners.net/">Curator Indexer</a>
+      <a href="https://speed.oceanliners.net/">Curator Speed</a>
+      <a href="https://page-studio.oceanliners.net/">Page Studio</a>
+    </nav>
+  </header>
   <div class="app">
     <aside class="sidebar">
       <div class="brand"><small>Ocean Liner Curator</small><h1>CuratorOS</h1></div>
@@ -40,6 +50,6 @@
   </div>
   <input id="catalog-file" type="file" accept="application/json,.json" hidden>
   <input id="scan-file" type="file" accept="application/json,.json,text/csv,.csv" hidden>
-  <script type="module" src="./rebuilt.js?v=20260730-rebuilt"></script>
+  <script type="module" src="./rebuilt.js?v=20260730-nav"></script>
 </body>
 </html>

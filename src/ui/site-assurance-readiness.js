@@ -70,7 +70,7 @@ function describeCheck(check, snapshot) {
 }
 
 function renderCheck(item) {
-  return `<article class="cos-assurance__check"><div class="cos-assurance__check-head"><strong>${escapeHtml(item.title)}</strong><span class="cos-assurance__state ${item.state}">${escapeHtml(item.label)}</span></div><p>${escapeHtml(item.purpose)}</p><small>${escapeHtml(item.detail)}${item.snapshot?.importedAt?` · imported ${escapeHtml(formatDate(item.snapshot.importedAt))}`:''}</small><div class="cos-worker-actions"><a class="cos-worker-action-link" href="${escapeHtml(item.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.runLabel)}</a><button type="button" data-tool-import="${escapeHtml(item.importSource)}">${escapeHtml(item.importLabel)}</button></div></article>`;
+  return `<article class="cos-assurance__check"><div class="cos-assurance__check-head"><strong>${escapeHtml(item.title)}</strong><span class="cos-assurance__state ${item.state}">${escapeHtml(item.label)}</span></div><p>${escapeHtml(item.purpose)}</p><small>${escapeHtml(item.detail)}${item.snapshot?.importedAt?` · imported ${escapeHtml(formatDate(item.snapshot.importedAt))}`:''}</small><div class="cos-worker-actions"><button type="button" class="cos-worker-action-link" data-suite-url="${escapeHtml(item.href)}">${escapeHtml(item.runLabel)}</button><button type="button" data-tool-import="${escapeHtml(item.importSource)}">${escapeHtml(item.importLabel)}</button></div></article>`;
 }
 
 function readinessState(v) {

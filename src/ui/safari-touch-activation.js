@@ -20,14 +20,12 @@ export function installSafariTouchActivation(root) {
       return;
     }
     const touch = event.touches[0];
-    const control = findControl(event.target);
-    gesture = control ? {
-      control,
+    gesture = {
       identifier: touch.identifier,
       x: touch.clientX,
       y: touch.clientY,
       startedAt: performance.now()
-    } : null;
+    };
   };
 
   const onTouchMove = (event) => {
@@ -48,21 +46,21 @@ export function installSafariTouchActivation(root) {
     if (Math.hypot(touch.clientX - completed.x, touch.clientY - completed.y) > MAX_TAP_DISTANCE) return;
 
     const hit = document.elementFromPoint(touch.clientX, touch.clientY);
-    const endingControl = findControl(hit);
-    if (endingControl !== completed.control) return;
+    const control = findControl(hit) || findControl(event.target);
+    if (!control) return;
 
     event.preventDefault();
-    suppressTrustedClick = { control: completed.control, until: performance.now() + 900 };
+    suppressTrustedClick = { control, until: performance.now() + 900 };
 
-    if (completed.control instanceof HTMLAnchorElement) {
-      window.location.assign(completed.control.href);
+    if (control instanceof HTMLAnchorElement) {
+      window.location.assign(control.href);
       return;
     }
 
-    if (openImportPicker(completed.control, root)) return;
-    if (runApplicationAction(completed.control, root)) return;
+    if (openImportPicker(control, root)) return;
+    if (runApplicationAction(control, root)) return;
 
-    completed.control.click();
+    control.click();
   };
 
   const onClickCapture = (event) => {
@@ -93,43 +91,38 @@ export function installSafariTouchActivation(root) {
 }
 
 function runApplicationAction(control, root) {
-  const workspace = control.closest('[data-workspace-mode]');
-  if (workspace) {
+  if (control.matches('[data-workspace-mode]')) {
     root.dispatchEvent(new CustomEvent('curatoros:safari-workspace', {
-      bubbles: true,
-      detail: { mode: workspace.dataset.workspaceMode || 'operations' }
+      detail: { mode: control.dataset.workspaceMode || 'operations' }
     }));
     return true;
   }
 
-  const view = control.closest('[data-worker-view]');
-  if (view) {
+  if (control.matches('[data-worker-view]')) {
     root.dispatchEvent(new CustomEvent('curatoros:safari-view', {
-      bubbles: true,
-      detail: { view: view.dataset.workerView || 'dashboard' }
+      detail: { view: control.dataset.workerView || 'dashboard' }
     }));
     return true;
   }
 
-  const collapse = control.closest('[data-finding-collapse]');
-  if (collapse) {
-    const card = collapse.closest('.cos-worker-finding');
+  if (control.matches('[data-finding-collapse]')) {
+    const card = control.closest('.cos-worker-finding');
     const body = card?.querySelector('[data-finding-body]');
     if (!card || !body) return false;
     const collapsed = card.dataset.collapsed === 'true';
     card.dataset.collapsed = collapsed ? 'false' : 'true';
     body.hidden = !collapsed;
-    collapse.textContent = collapsed ? 'Collapse' : 'Expand';
-    collapse.setAttribute('aria-expanded', String(collapsed));
+    control.textContent = collapsed ? 'Collapse' : 'Expand';
+    control.setAttribute('aria-expanded', String(collapsed));
     return true;
   }
 
-  if (control.closest('[data-findings-collapse-all]')) {
+  if (control.matches('[data-findings-collapse-all]')) {
     root.querySelectorAll('.cos-worker-finding').forEach((card) => setFindingCollapsed(card, true));
     return true;
   }
 
-  if (control.closest('[data-findings-expand-all]')) {
+  if (control.matches('[data-findings-expand-all]')) {
     root.querySelectorAll('.cos-worker-finding').forEach((card) => setFindingCollapsed(card, false));
     return true;
   }

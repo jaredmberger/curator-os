@@ -21,7 +21,6 @@ import { installWorkerEraShell } from '../src/ui/worker-era-shell.js';
 import { installWorkerEraKnowledgeWorkspaces } from '../src/ui/worker-era-graph-intelligence.js';
 import { installWorkerEraDeveloperSessions } from '../src/ui/worker-era-developer-sessions.js';
 import { installPageStudioHandoff } from '../src/ui/page-studio-handoff.js';
-import { installFindingWorkflow } from '../src/ui/finding-workflow.js';
 import { installCoverageGapIntelligence } from '../src/ui/coverage-gap-intelligence.js';
 import { installSiteAssuranceReadiness } from '../src/ui/site-assurance-readiness.js';
 
@@ -69,7 +68,9 @@ installWorkerEraShell(root, {
   }
 });
 installPageStudioHandoff(root);
-installFindingWorkflow(root);
+// Temporarily disabled during iPad Safari diagnosis. The workflow enhancer uses a
+// subtree MutationObserver and mutates finding cards from that observer callback.
+// This is the first feature added immediately before the regression window.
 installCoverageGapIntelligence(root, { recordService });
 installWorkerEraKnowledgeWorkspaces(root, { recordService });
 installWorkerEraDeveloperSessions(root, { recordService });

@@ -23,6 +23,8 @@ import { installWorkerEraDeveloperSessions } from '../src/ui/worker-era-develope
 import { installPageStudioHandoff } from '../src/ui/page-studio-handoff.js';
 import { installCoverageGapIntelligence } from '../src/ui/coverage-gap-intelligence.js';
 import { installSiteAssuranceReadiness } from '../src/ui/site-assurance-readiness.js';
+import { installFindingActionsFix } from '../src/ui/finding-actions-fix.js';
+import { installRedirectInformationSummary } from '../src/ui/redirect-information-summary.js';
 
 const seedRecords = [
   { id:'ship.olympic',type:'ship',title:'RMS Olympic',summary:'Lead ship of the Olympic class and a central reference record for the CuratorOS preview.',status:'published',tags:['White Star Line','Olympic class'],relationships:[{target:'company.harland-wolff',relationship:'built_by',confidence:'verified',sourceIds:['source.builder-records'],note:'Documented in builder records.'},{target:'company.white-star-line',relationship:'operated_by',confidence:'verified',sourceIds:['source.builder-records'],note:'Documented in builder and company records.'}],sources:[{id:'source.builder-records',title:'Builder records',type:'archive'}],media:[],notes:[{body:'Developer preview seed record.',kind:'curatorial'}],data:{builder:'company.harland-wolff',operator:'company.white-star-line',yardNumber:'400',launchDate:'1910-10-20',maidenVoyage:'1911-06-14',grossTonnage:'45,324 GRT',length:'882 ft 9 in',beam:'92 ft 6 in',speed:'21 knots'},metadata:{confidence:'verified',reviewed:'2026-07-25'}},
@@ -67,10 +69,9 @@ installWorkerEraShell(root, {
     downloadJson({ exportedAt:new Date().toISOString(),schemaVersion:CuratorDatabase.SCHEMA_VERSION,records:recordService.all() }, `curatoros-quick-backup-${new Date().toISOString().slice(0,10)}.json`);
   }
 });
+installFindingActionsFix(root);
+installRedirectInformationSummary(root);
 installPageStudioHandoff(root);
-// Temporarily disabled during iPad Safari diagnosis. The workflow enhancer uses a
-// subtree MutationObserver and mutates finding cards from that observer callback.
-// This is the first feature added immediately before the regression window.
 installCoverageGapIntelligence(root, { recordService });
 installWorkerEraKnowledgeWorkspaces(root, { recordService });
 installWorkerEraDeveloperSessions(root, { recordService });
@@ -118,23 +119,32 @@ function installDataPortability(rootElement, service, mountedApp) {
     if (!file) return;
     try {
       const parsed = JSON.parse(await file.text());
-      const migration = importOlcCatalog(parsed);
-      const records = migration.records;
-      const report = migration.report;
-      if (!records.length) throw new Error(`No records could be imported. ${report.errors.map((item)=>item.message).join(' ')}`.trim());
-      const database = CuratorDatabase.createDatabase(records);
-      CuratorDatabase.assertDatabase(database);
-      const summary = `${report.converted} converted · ${report.skipped.length} skipped · ${report.warnings.length} warnings · ${report.errors.length} errors`;
-      if (!confirm(`Review complete: ${summary}. Replace the current ${service.all().length}-record local database with these ${records.length} records?`)) return;
-      localStorage.setItem('curatoros.snapshot.before-import', JSON.stringify({ createdAt:new Date().toISOString(),schemaVersion:CuratorDatabase.SCHEMA_VERSION,records:service.all() }));
-      downloadJson({ exportedAt:new Date().toISOString(),schemaVersion:CuratorDatabase.SCHEMA_VERSION,records:service.all() }, `curatoros-pre-import-backup-${new Date().toISOString().slice(0,10)}.json`);
-      downloadJson({ ...migration, records:undefined }, `curatoros-import-review-${new Date().toISOString().slice(0,10)}.json`);
-      service.replace(records); resetMountedState(mountedApp);
-      alert(`Imported ${records.length} records. ${summary}. A pre-import snapshot, downloadable backup, and import review report were created.`);
-    } catch (error) { alert(error instanceof Error ? error.message : String(error)); } finally { fileInput.value=''; }
+      const imported = importOlcCatalog(parsed);
+      service.replace(imported.records); resetMountedState(mountedApp);
+      alert(`Imported ${imported.records.length} record${imported.records.length===1?'':'s'}.`);
+    } catch (error) { alert(error instanceof Error ? error.message : String(error)); }
+    finally { fileInput.value = ''; }
   });
 }
 
-function resetMountedState(mountedApp) { mountedApp.state.selectedId=null; mountedApp.state.editing=false; mountedApp.updateResults?.(); }
-function downloadJson(payload, filename) { const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const link=document.createElement('a'); link.href=url; link.download=filename; link.click(); URL.revokeObjectURL(url); }
-function formatDate(value) { const date=new Date(value); return Number.isNaN(date.getTime())?'an unknown date':date.toLocaleString(); }
+function resetMountedState(mountedApp) {
+  mountedApp.state.selectedId = null;
+  mountedApp.state.editing = false;
+  mountedApp.updateResults();
+}
+
+function downloadJson(payload, filename) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function formatDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'an unknown date' : date.toLocaleString();
+}

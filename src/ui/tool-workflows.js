@@ -32,16 +32,26 @@ export const TOOL_WORKFLOWS = [
 ];
 
 export function renderToolWorkflowCards() {
-  return TOOL_WORKFLOWS.map((tool) => `<article class="cos-worker-scan-card cos-worker-tool-card" data-tool-workflow="${tool.id}">
-    <span>${tool.title}</span>
-    <p>${tool.description}</p>
+  return TOOL_WORKFLOWS.map((tool) => `<article class="cos-worker-scan-card cos-worker-tool-card" data-tool-workflow="${escapeHtml(tool.id)}">
+    <span>${escapeHtml(tool.title)}</span>
+    <p>${escapeHtml(tool.description)}</p>
     <div class="cos-worker-actions">
-      <button type="button" class="cos-worker-action-link" data-suite-url="${tool.href}">${tool.openLabel}</button>
-      <button type="button" data-tool-import="${tool.source}">${tool.importLabel}</button>
+      <a class="cos-worker-action-link" href="${escapeHtml(tool.href)}">${escapeHtml(tool.openLabel)}</a>
+      <button type="button" data-tool-import="${escapeHtml(tool.source)}">${escapeHtml(tool.importLabel)}</button>
     </div>
   </article>`).join('');
 }
 
 export function toolAccept(source) {
   return TOOL_WORKFLOWS.find((tool) => tool.source === source)?.accept || '.json,.csv,application/json,text/csv';
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character]);
 }

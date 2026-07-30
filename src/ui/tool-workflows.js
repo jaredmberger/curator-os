@@ -36,7 +36,7 @@ export function renderToolWorkflowCards() {
     <span>${tool.title}</span>
     <p>${tool.description}</p>
     <div class="cos-worker-actions">
-      <a class="cos-worker-action-link" href="${tool.href}">${tool.openLabel}</a>
+      <button type="button" class="cos-worker-action-link" data-suite-url="${tool.href}">${tool.openLabel}</button>
       <button type="button" data-tool-import="${tool.source}">${tool.importLabel}</button>
     </div>
   </article>`).join('');

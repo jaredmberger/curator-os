@@ -19,7 +19,14 @@ export function installPageStudioHandoff(root) {
 
 function enhanceFinding(card) {
   const actions = card.querySelector('.cos-worker-actions');
-  if (!actions || actions.querySelector('[data-page-studio-handoff]')) return;
+  if (!actions) return;
+
+  const existing = [...actions.querySelectorAll('a[href],button[data-suite-url]')]
+    .find((control) => {
+      const href = control.matches('a[href]') ? control.href : control.dataset.suiteUrl;
+      return String(href || '').startsWith(PAGE_STUDIO_URL) || control.textContent?.trim() === 'Edit in Page Studio';
+    });
+  if (existing) return;
 
   const pageLink = [...actions.querySelectorAll('a[href]')]
     .find((link) => !link.href.startsWith(PAGE_STUDIO_URL));
@@ -44,8 +51,6 @@ function enhanceFinding(card) {
   const link = document.createElement('a');
   link.className = 'cos-worker-action-link';
   link.href = handoffUrl.href;
-  link.target = '_blank';
-  link.rel = 'noopener';
   link.dataset.pageStudioHandoff = '';
   link.textContent = 'Edit in Page Studio';
   link.setAttribute('aria-label', `Edit ${title} in Page Studio`);

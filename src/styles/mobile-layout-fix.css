@@ -130,38 +130,52 @@
 }
 
 /*
- * iPad Safari uses a wider viewport than the phone layout, so the desktop
- * sticky/scrolling shell remains active there. WebKit can then composite an
- * invisible layer above the workspace and swallow taps while still allowing
- * long-press link menus. Flatten the tablet shell into a single scrolling
- * document and force interactive controls into the hit-testing layer.
+ * iPad Safari may report hover-capable or fine-pointer media features when a
+ * trackpad or keyboard is attached. Width is therefore the reliable tablet
+ * signal for this application. Keep the tablet shell in normal document flow
+ * and remove the overlapping desktop layers that can absorb taps.
  */
-@media (hover: none) and (pointer: coarse) and (min-width: 761px) and (max-width: 1366px) {
+@media (min-width: 761px) and (max-width: 1366px) {
+  html,
+  body,
+  #curatoros-preview,
   .cos-catalog-shell.cos-worker-shell {
-    display: block;
+    overflow-x: hidden;
+  }
+
+  .cos-catalog-shell.cos-worker-shell {
+    display: block !important;
     min-height: 100vh;
   }
 
   .cos-worker-sidebar,
   .cos-worker-workspace,
+  .cos-worker-dashboard,
   .cos-worker-workspace > .cos-catalog-sidebar,
   .cos-worker-workspace > .cos-catalog-inspector {
     position: static !important;
+    inset: auto !important;
+    width: auto;
     height: auto !important;
+    min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
     transform: none !important;
+    filter: none !important;
     contain: none !important;
+    isolation: auto !important;
+    clip-path: none !important;
   }
 
   .cos-worker-sidebar {
-    width: 100%;
+    width: 100% !important;
     border-right: 0;
     border-bottom: 1px solid var(--cos-border);
   }
 
   .cos-worker-workspace {
     min-width: 0;
+    padding: 24px;
   }
 
   .cos-worker-sidebar nav {
@@ -188,6 +202,19 @@
     grid-template-columns: 1fr;
   }
 
+  .cos-worker-sidebar,
+  .cos-worker-workspace,
+  .cos-worker-topbar,
+  .cos-worker-dashboard,
+  .cos-worker-findings-hero,
+  .cos-worker-briefing,
+  .cos-worker-scan-launchers,
+  .cos-worker-panel,
+  .cos-assurance {
+    z-index: auto !important;
+    pointer-events: auto !important;
+  }
+
   a,
   button,
   input,
@@ -196,16 +223,9 @@
   summary,
   [role="button"] {
     position: relative;
-    z-index: 2;
+    z-index: 20 !important;
     pointer-events: auto !important;
     touch-action: manipulation;
-    -webkit-user-select: none;
-  }
-
-  input,
-  select,
-  textarea {
-    -webkit-user-select: text;
   }
 }
 

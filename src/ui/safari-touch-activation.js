@@ -11,7 +11,6 @@ export function installSafariTouchActivation(root) {
   const findControl = (target) => {
     const control = target instanceof Element ? target.closest(INTERACTIVE_SELECTOR) : null;
     if (!control || !root.contains(control)) return null;
-    if (control.matches('[data-workspace-mode]')) return null;
     return control;
   };
 
@@ -65,7 +64,14 @@ export function installSafariTouchActivation(root) {
     // iPad Safari then refuses the nested hidden-input click used by Import.
     if (openImportPicker(completed.control, root)) return;
 
-    completed.control.click();
+    // Dispatch a composed, bubbling application click so delegated handlers in
+    // the CuratorOS shell receive sidebar, collapse, filter, and workflow taps.
+    completed.control.dispatchEvent(new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      view: window
+    }));
   };
 
   const onClickCapture = (event) => {

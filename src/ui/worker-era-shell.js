@@ -152,7 +152,7 @@ export function installWorkerEraShell(root, context = {}) {
     const history = scanHistory();
     dashboard.innerHTML = `${state.notice ? `<div class="cos-worker-notice" role="status">${escapeHtml(state.notice)}</div>` : ''}<div class="cos-worker-findings-hero">
       <div><span class="cos-eyebrow">What should I improve today?</span><h2>${open.length ? `${open.length} actionable finding${open.length === 1 ? '' : 's'}` : 'No open findings in the local catalog'}</h2><p>${records.length || imported.length ? 'Each item explains what CuratorOS found, why it matters, and what to do next.' : 'Load a catalog or import scan results to begin.'}</p></div>
-      <div class="cos-worker-actions"><button type="button" data-catalog-import>Load catalog</button><button type="button" data-findings-import>Import any scan</button><button type="button" data-findings-export>Export visible work list</button><button type="button" data-worker-filter="open" class="${state.filter === 'open' ? 'active' : ''}">Open findings</button><button type="button" data-worker-filter="handled" class="${state.filter === 'handled' ? 'active' : ''}">Handled</button></div>
+      <div class="cos-worker-actions"><button type="button" data-catalog-import>Load catalog</button><button type="button" data-findings-import>Import any scan</button><button type="button" data-findings-export>Export visible work list</button><button type="button" data-worker-filter="open" class="${state.filter === 'open' ? 'active' : ''}">Open findings</button><button type="button" data-worker-filter="handled" class="${state.filter === 'handled' ? 'active' : ''}">Handled</button><button type="button" data-findings-collapse-all>Collapse all</button><button type="button" data-findings-expand-all>Expand all</button></div>
     </div>
     ${renderBriefing(history)}
     <section class="cos-worker-scan-launchers"><div class="cos-worker-scan-intro"><span class="cos-eyebrow">Start with a scan</span><h2>Choose the tool you need</h2><p>Each scanner now has its own Run and Import action, while Import any scan remains available as a fallback.</p></div>${renderToolWorkflowCards()}</section>
@@ -191,6 +191,27 @@ export function installWorkerEraShell(root, context = {}) {
     const suiteButton = event.target.closest('[data-suite-url]');
     if (suiteButton) {
       window.location.href = suiteButton.dataset.suiteUrl;
+      return;
+    }
+    const collapseToggle = event.target.closest('[data-finding-collapse]');
+    if (collapseToggle) {
+      const card = collapseToggle.closest('.cos-worker-finding');
+      const body = card?.querySelector('[data-finding-body]');
+      if (card && body) {
+        const collapsed = card.dataset.collapsed === 'true';
+        card.dataset.collapsed = collapsed ? 'false' : 'true';
+        body.hidden = !collapsed;
+        collapseToggle.textContent = collapsed ? 'Collapse' : 'Expand';
+        collapseToggle.setAttribute('aria-expanded', String(collapsed));
+      }
+      return;
+    }
+    if (event.target.closest('[data-findings-collapse-all]')) {
+      dashboard.querySelectorAll('.cos-worker-finding').forEach((card) => setFindingCollapsed(card, true));
+      return;
+    }
+    if (event.target.closest('[data-findings-expand-all]')) {
+      dashboard.querySelectorAll('.cos-worker-finding').forEach((card) => setFindingCollapsed(card, false));
       return;
     }
     const viewButton = event.target.closest('[data-worker-view]');
@@ -498,7 +519,17 @@ function missingCoreMetadata(record) {
 
 function renderFinding(item, handled) {
   const pageStudioHref = buildPageStudioHref(item);
-  return `<article class="cos-worker-finding ${escapeHtml(item.severity || 'medium')}" data-finding-id="${escapeHtml(item.id)}"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.sourceType || 'CuratorOS')}</small></div><span class="cos-worker-finding-severity">${escapeHtml(item.severity || 'medium')}</span></div><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p><p><strong>Recommended action:</strong> ${escapeHtml(item.recommendation)}</p>${item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : ''}<div class="cos-worker-actions">${item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action || 'Open record')}</button>` : ''}${item.pageUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.pageUrl)}">Open affected page</a>` : ''}${pageStudioHref ? `<a class="cos-worker-action-link" href="${escapeHtml(pageStudioHref)}">Edit in Page Studio</a>` : ''}${item.targetUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.targetUrl)}">Open checked URL</a>` : ''}${item.replacementUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.replacementUrl)}">Open replacement</a>` : ''}<button type="button" data-finding-action="${handled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${handled ? 'Reopen' : 'Mark handled'}</button></div></article>`;
+  return `<article class="cos-worker-finding ${escapeHtml(item.severity || 'medium')}" data-finding-id="${escapeHtml(item.id)}" data-collapsed="false"><div class="cos-worker-finding-head"><div><span class="cos-worker-finding-category">${escapeHtml(labelCategory(item.category))}</span><h2>${escapeHtml(item.title)}</h2><small>${escapeHtml(item.sourceType || 'CuratorOS')}</small></div><div class="cos-worker-finding-head-actions"><span class="cos-worker-finding-severity">${escapeHtml(item.severity || 'medium')}</span><button type="button" data-finding-collapse aria-expanded="true">Collapse</button></div></div><div data-finding-body><p><strong>What CuratorOS found:</strong> ${escapeHtml(item.summary)}</p><p><strong>Recommended action:</strong> ${escapeHtml(item.recommendation)}</p>${item.context ? `<p><strong>Context:</strong> ${escapeHtml(item.context)}</p>` : ''}<div class="cos-worker-actions">${item.recordId ? `<button type="button" data-finding-open="${escapeHtml(item.recordId)}">${escapeHtml(item.action || 'Open record')}</button>` : ''}${item.pageUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.pageUrl)}">Open affected page</a>` : ''}${pageStudioHref ? `<a class="cos-worker-action-link" href="${escapeHtml(pageStudioHref)}" data-page-studio-handoff>Edit in Page Studio</a>` : ''}${item.targetUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.targetUrl)}">Open checked URL</a>` : ''}${item.replacementUrl ? `<a class="cos-worker-action-link" href="${escapeHtml(item.replacementUrl)}">Open replacement</a>` : ''}<button type="button" data-finding-action="${handled ? 'reopen' : 'handle'}" data-finding-id="${escapeHtml(item.id)}">${handled ? 'Reopen' : 'Mark handled'}</button></div></div></article>`;
+}
+
+function setFindingCollapsed(card, collapsed) {
+  const body = card.querySelector('[data-finding-body]');
+  const button = card.querySelector('[data-finding-collapse]');
+  if (!body || !button) return;
+  card.dataset.collapsed = collapsed ? 'true' : 'false';
+  body.hidden = collapsed;
+  button.textContent = collapsed ? 'Expand' : 'Collapse';
+  button.setAttribute('aria-expanded', String(!collapsed));
 }
 
 function buildPageStudioHref(item) {

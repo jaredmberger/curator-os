@@ -9,10 +9,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CuratorOS">
   <title>CuratorOS</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=20260730-nav">
+  <link rel="manifest" href="./manifest.webmanifest?v=20260731-workspaces">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon.svg">
-  <link rel="stylesheet" href="./rebuilt.css?v=20260730-nav">
+  <link rel="stylesheet" href="./rebuilt.css?v=20260731-workspaces">
+  <link rel="stylesheet" href="../src/styles/collection-catalog-shell.css?v=20260731-workspaces">
+  <link rel="stylesheet" href="../src/styles/worker-era-shell.css?v=20260731-workspaces">
+  <link rel="stylesheet" href="../src/styles/mobile-layout-fix.css?v=20260731-workspaces">
+  <link rel="stylesheet" href="../src/styles/workspace-hit-testing-fix.css?v=20260731-workspaces">
 </head>
 <body>
   <header class="suite-nav" aria-label="Ocean Liner Curator tools">
@@ -43,13 +47,19 @@
           <button type="button" id="import-scan">Import scan</button>
           <button type="button" id="command">⌘ Command</button>
           <button type="button" id="quick-backup">Quick Backup</button>
+          <button type="button" id="legacy-workspaces-launcher" aria-expanded="false">Full Workspaces</button>
         </div>
       </header>
       <section id="app"></section>
+      <section id="legacy-workspaces-root" hidden aria-label="Restored CuratorOS workspaces"></section>
     </main>
   </div>
   <input id="catalog-file" type="file" accept="application/json,.json" hidden>
   <input id="scan-file" type="file" accept="application/json,.json,text/csv,.csv" hidden>
-  <script type="module" src="./rebuilt.js?v=20260730-nav"></script>
+  <script src="../src/core/database.js?v=20260731-workspaces"></script>
+  <script src="../src/core/storage.js?v=20260731-workspaces"></script>
+  <script src="../src/core/relationships.js?v=20260731-workspaces"></script>
+  <script type="module" src="./rebuilt.js?v=20260731-workspaces"></script>
+  <script type="module" src="./legacy-workspaces.js?v=20260731-workspaces"></script>
 </body>
 </html>

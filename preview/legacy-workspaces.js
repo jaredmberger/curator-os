@@ -24,28 +24,15 @@ import { installWorkerEraDeveloperSessions } from '../src/ui/worker-era-develope
 
 const STORAGE_KEY = 'curatoros.rebuilt.catalog';
 const fallbackRecords = [];
-const root = document.querySelector('#legacy-workspaces-root');
-const launcher = document.querySelector('#legacy-workspaces-launcher');
 
-launcher?.addEventListener('click', () => {
-  root.hidden = !root.hidden;
-  launcher.setAttribute('aria-expanded', String(!root.hidden));
-  if (!root.hidden && !root.dataset.mounted) mountLegacyWorkspaces();
-});
+export function mountLegacyWorkspaces(root) {
+  if (!root) throw new Error('The Full Workspaces container could not be found.');
+  if (root.dataset.mounted === 'true') return;
 
-function readRecords() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    return Array.isArray(parsed) ? parsed : fallbackRecords;
-  } catch {
-    return fallbackRecords;
-  }
-}
-
-function mountLegacyWorkspaces() {
-  root.dataset.mounted = 'true';
   const recordService = new RecordService({ seedRecords: readRecords() });
   const app = mountCollectionCatalogShell(root, { recordService });
+  root.dataset.mounted = 'true';
+
   const context = {
     recordService,
     getSelectedId() { return app.state.selectedId; },
@@ -74,6 +61,15 @@ function mountLegacyWorkspaces() {
   installWorkerEraDeveloperSessions(root, { recordService });
   installSiteAssuranceReadiness(root);
   installDataPortability(root, recordService, app);
+}
+
+function readRecords() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    return Array.isArray(parsed) ? parsed : fallbackRecords;
+  } catch {
+    return fallbackRecords;
+  }
 }
 
 function installDataPortability(rootElement, service, mountedApp) {

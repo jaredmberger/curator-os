@@ -1,0 +1,16 @@
+#project-import-review{width:min(760px,calc(100vw - 24px));max-height:calc(100vh - 24px);padding:0;border:1px solid rgba(191,164,106,.45);border-radius:18px;background:#0b1413;color:#f4efe3;box-shadow:0 24px 80px rgba(0,0,0,.7)}
+#project-import-review::backdrop{background:rgba(0,0,0,.76);backdrop-filter:blur(5px)}
+.project-import-card{display:grid;gap:16px;padding:22px;margin:0;overflow:auto;max-height:calc(100vh - 28px)}
+.project-import-card h3,.project-import-card h4,.project-import-card p{margin:0}
+.project-import-card .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.project-import-card .metric{display:grid;gap:4px;padding:14px;border:1px solid rgba(191,164,106,.25);border-radius:12px;background:rgba(255,255,255,.035)}
+.project-import-card .metric strong{font-size:1.45rem;color:#d7c18b}
+.project-import-card .metric span{font-size:.82rem;color:#b8c0ba}
+.project-import-card .panel{padding:15px;border:1px solid rgba(191,164,106,.22);border-radius:12px;background:rgba(255,255,255,.025)}
+.project-import-card details summary{cursor:pointer;font-weight:700}
+.project-import-card ul{padding-left:20px;max-height:220px;overflow:auto}
+.project-import-card .badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.project-import-card .badge{padding:6px 9px;border-radius:999px;background:rgba(191,164,106,.12);border:1px solid rgba(191,164,106,.25)}
+.project-import-card .actions{display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:-22px;padding:14px 0 2px;background:linear-gradient(transparent,#0b1413 26%)}
+.project-import-card button{min-height:44px;padding:10px 15px;border-radius:10px}
+@media(max-width:620px){.project-import-card{padding:16px}.project-import-card .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.project-import-card .actions{display:grid;grid-template-columns:1fr}.project-import-card .actions button{width:100%}}

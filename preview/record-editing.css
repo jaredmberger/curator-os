@@ -1,0 +1,12 @@
+.pending-change-panel{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem;margin-bottom:1rem;border:1px solid rgba(191,164,106,.35);border-radius:16px;background:rgba(191,164,106,.08)}
+.pending-change-panel h4{margin:.15rem 0}.pending-change-panel p{margin:.25rem 0 0;max-width:62ch}.pending-change-actions{display:flex;flex-wrap:wrap;gap:.55rem}.pending-change-actions button:disabled{opacity:.45;cursor:not-allowed}
+#project-record-editor,#project-change-review{width:min(960px,calc(100vw - 24px));max-height:calc(100vh - 24px);padding:0;border:1px solid rgba(191,164,106,.45);border-radius:18px;background:#0b1514;color:inherit;box-shadow:0 28px 80px rgba(0,0,0,.55)}
+#project-record-editor::backdrop,#project-change-review::backdrop{background:rgba(0,0,0,.72);backdrop-filter:blur(5px)}
+.record-editor-card,.change-review-card{padding:1.1rem;overflow:auto;max-height:calc(100vh - 24px)}
+.record-editor-header{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}.record-editor-header h3{margin:.15rem 0}.record-editor-header>button{font-size:1.4rem;min-width:44px;min-height:44px}
+.record-editor-safety{padding:.8rem 1rem;border-radius:12px;background:rgba(191,164,106,.08);border:1px solid rgba(191,164,106,.25)}
+.record-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}.record-editor-card label{display:grid;gap:.35rem;margin:.8rem 0}.record-editor-card input,.record-editor-card select,.record-editor-card textarea{width:100%;box-sizing:border-box}.record-editor-card textarea[data-kind="json"]{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86rem;line-height:1.4}.record-editor-wide{grid-column:1/-1}
+.record-editor-error{margin:.8rem 0;padding:.8rem 1rem;border-radius:12px;background:rgba(170,40,40,.18);border:1px solid rgba(220,90,90,.45)}
+.record-editor-actions{display:flex;justify-content:flex-end;gap:.65rem;flex-wrap:wrap;padding-top:1rem}
+.change-review-list{display:grid;gap:.8rem;margin-top:1rem}.change-review-list article{padding:1rem;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.035)}.change-review-list p{margin:.35rem 0}
+@media(max-width:760px){.pending-change-panel{align-items:stretch;flex-direction:column}.pending-change-actions{display:grid;grid-template-columns:1fr}.record-editor-grid{grid-template-columns:1fr}.record-editor-card,.change-review-card{padding:.9rem}.record-editor-actions{display:grid;grid-template-columns:1fr}.record-editor-actions button{width:100%}}

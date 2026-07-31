@@ -9,16 +9,17 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CuratorOS">
   <title>CuratorOS</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=20260731-record-browser">
+  <link rel="manifest" href="./manifest.webmanifest?v=20260731-record-editing">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon.svg">
-  <link rel="stylesheet" href="./rebuilt.css?v=20260731-record-browser">
-  <link rel="stylesheet" href="./project-import.css?v=20260731-record-browser">
-  <link rel="stylesheet" href="./records-browser.css?v=20260731-record-browser">
-  <link rel="stylesheet" href="../src/styles/collection-catalog-shell.css?v=20260731-record-browser">
-  <link rel="stylesheet" href="../src/styles/worker-era-shell.css?v=20260731-record-browser">
-  <link rel="stylesheet" href="../src/styles/mobile-layout-fix.css?v=20260731-record-browser">
-  <link rel="stylesheet" href="../src/styles/workspace-hit-testing-fix.css?v=20260731-record-browser">
+  <link rel="stylesheet" href="./rebuilt.css?v=20260731-record-editing">
+  <link rel="stylesheet" href="./project-import.css?v=20260731-record-editing">
+  <link rel="stylesheet" href="./records-browser.css?v=20260731-record-editing">
+  <link rel="stylesheet" href="./record-editing.css?v=20260731-record-editing">
+  <link rel="stylesheet" href="../src/styles/collection-catalog-shell.css?v=20260731-record-editing">
+  <link rel="stylesheet" href="../src/styles/worker-era-shell.css?v=20260731-record-editing">
+  <link rel="stylesheet" href="../src/styles/mobile-layout-fix.css?v=20260731-record-editing">
+  <link rel="stylesheet" href="../src/styles/workspace-hit-testing-fix.css?v=20260731-record-editing">
 </head>
 <body>
   <header class="suite-nav" aria-label="Ocean Liner Curator tools">
@@ -40,7 +41,7 @@
         <button type="button" data-view="help">Command Help</button>
         <a href="./knowledge-base-guide.html">Knowledge Base Guide</a>
       </nav>
-      <p class="sidebar-note">Import existing Ocean Liner Curator project data, review how it will be interpreted, and inspect the resulting records as CuratorOS's working project index.</p>
+      <p class="sidebar-note">Import existing project data, inspect normalized records, and make reviewable local edits without changing the live website or GitHub source files.</p>
     </aside>
     <main class="main">
       <header class="topbar">
@@ -59,12 +60,13 @@
   </div>
   <input id="catalog-file" type="file" accept="application/json,.json" hidden>
   <input id="scan-file" type="file" accept="application/json,.json,text/csv,.csv" hidden>
-  <script src="../src/core/database.js?v=20260731-record-browser"></script>
-  <script src="../src/core/storage.js?v=20260731-record-browser"></script>
-  <script src="../src/core/relationships.js?v=20260731-record-browser"></script>
-  <script type="module" src="./rebuilt.js?v=20260731-record-browser"></script>
-  <script type="module" src="./project-import.js?v=20260731-record-browser"></script>
-  <script type="module" src="./records-browser.js?v=20260731-record-browser"></script>
-  <script type="module" src="./workspace-loader.js?v=20260731-record-browser"></script>
+  <script src="../src/core/database.js?v=20260731-record-editing"></script>
+  <script src="../src/core/storage.js?v=20260731-record-editing"></script>
+  <script src="../src/core/relationships.js?v=20260731-record-editing"></script>
+  <script type="module" src="./rebuilt.js?v=20260731-record-editing"></script>
+  <script type="module" src="./project-import.js?v=20260731-record-editing"></script>
+  <script type="module" src="./records-browser.js?v=20260731-record-editing"></script>
+  <script type="module" src="./record-editing.js?v=20260731-record-editing"></script>
+  <script type="module" src="./workspace-loader.js?v=20260731-record-editing"></script>
 </body>
 </html>

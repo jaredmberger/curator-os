@@ -9,14 +9,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CuratorOS">
   <title>CuratorOS</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=20260731-workspaces">
+  <link rel="manifest" href="./manifest.webmanifest?v=20260731-guide-fix">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon.svg">
-  <link rel="stylesheet" href="./rebuilt.css?v=20260731-workspaces">
-  <link rel="stylesheet" href="../src/styles/collection-catalog-shell.css?v=20260731-workspaces">
-  <link rel="stylesheet" href="../src/styles/worker-era-shell.css?v=20260731-workspaces">
-  <link rel="stylesheet" href="../src/styles/mobile-layout-fix.css?v=20260731-workspaces">
-  <link rel="stylesheet" href="../src/styles/workspace-hit-testing-fix.css?v=20260731-workspaces">
+  <link rel="stylesheet" href="./rebuilt.css?v=20260731-guide-fix">
+  <link rel="stylesheet" href="../src/styles/collection-catalog-shell.css?v=20260731-guide-fix">
+  <link rel="stylesheet" href="../src/styles/worker-era-shell.css?v=20260731-guide-fix">
+  <link rel="stylesheet" href="../src/styles/mobile-layout-fix.css?v=20260731-guide-fix">
+  <link rel="stylesheet" href="../src/styles/workspace-hit-testing-fix.css?v=20260731-guide-fix">
 </head>
 <body>
   <header class="suite-nav" aria-label="Ocean Liner Curator tools">
@@ -35,9 +35,10 @@
       <nav class="nav" aria-label="CuratorOS views">
         <button type="button" class="active" data-view="findings">Findings</button>
         <button type="button" data-view="records">Knowledge Records</button>
-        <button type="button" data-view="help">About this build</button>
+        <button type="button" data-view="help">Command Help</button>
+        <a href="./knowledge-base-guide.html">Knowledge Base Guide</a>
       </nav>
-      <p class="sidebar-note">This rebuilt interface is intentionally plain underneath the visual design: native form controls, direct listeners, and no global touch interception.</p>
+      <p class="sidebar-note">This rebuilt interface uses native controls and direct listeners. Open the guide for the full knowledge-base operating manual.</p>
     </aside>
     <main class="main">
       <header class="topbar">
@@ -56,10 +57,10 @@
   </div>
   <input id="catalog-file" type="file" accept="application/json,.json" hidden>
   <input id="scan-file" type="file" accept="application/json,.json,text/csv,.csv" hidden>
-  <script src="../src/core/database.js?v=20260731-workspaces"></script>
-  <script src="../src/core/storage.js?v=20260731-workspaces"></script>
-  <script src="../src/core/relationships.js?v=20260731-workspaces"></script>
-  <script type="module" src="./rebuilt.js?v=20260731-workspaces"></script>
-  <script type="module" src="./legacy-workspaces.js?v=20260731-workspaces"></script>
+  <script src="../src/core/database.js?v=20260731-guide-fix"></script>
+  <script src="../src/core/storage.js?v=20260731-guide-fix"></script>
+  <script src="../src/core/relationships.js?v=20260731-guide-fix"></script>
+  <script type="module" src="./rebuilt.js?v=20260731-guide-fix"></script>
+  <script type="module" src="./workspace-loader.js?v=20260731-guide-fix"></script>
 </body>
 </html>

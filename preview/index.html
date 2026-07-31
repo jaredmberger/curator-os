@@ -9,14 +9,15 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CuratorOS">
   <title>CuratorOS</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=20260731-guide-fix">
+  <link rel="manifest" href="./manifest.webmanifest?v=20260731-project-import">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon.svg">
-  <link rel="stylesheet" href="./rebuilt.css?v=20260731-guide-fix">
-  <link rel="stylesheet" href="../src/styles/collection-catalog-shell.css?v=20260731-guide-fix">
-  <link rel="stylesheet" href="../src/styles/worker-era-shell.css?v=20260731-guide-fix">
-  <link rel="stylesheet" href="../src/styles/mobile-layout-fix.css?v=20260731-guide-fix">
-  <link rel="stylesheet" href="../src/styles/workspace-hit-testing-fix.css?v=20260731-guide-fix">
+  <link rel="stylesheet" href="./rebuilt.css?v=20260731-project-import">
+  <link rel="stylesheet" href="./project-import.css?v=20260731-project-import">
+  <link rel="stylesheet" href="../src/styles/collection-catalog-shell.css?v=20260731-project-import">
+  <link rel="stylesheet" href="../src/styles/worker-era-shell.css?v=20260731-project-import">
+  <link rel="stylesheet" href="../src/styles/mobile-layout-fix.css?v=20260731-project-import">
+  <link rel="stylesheet" href="../src/styles/workspace-hit-testing-fix.css?v=20260731-project-import">
 </head>
 <body>
   <header class="suite-nav" aria-label="Ocean Liner Curator tools">
@@ -34,17 +35,17 @@
       <div class="brand"><small>Ocean Liner Curator</small><h1>CuratorOS</h1></div>
       <nav class="nav" aria-label="CuratorOS views">
         <button type="button" class="active" data-view="findings">Findings</button>
-        <button type="button" data-view="records">Knowledge Records</button>
+        <button type="button" data-view="records">Project Records</button>
         <button type="button" data-view="help">Command Help</button>
         <a href="./knowledge-base-guide.html">Knowledge Base Guide</a>
       </nav>
-      <p class="sidebar-note">This rebuilt interface uses native controls and direct listeners. Open the guide for the full knowledge-base operating manual.</p>
+      <p class="sidebar-note">Import existing Ocean Liner Curator project data, review how it will be interpreted, and use the resulting records as CuratorOS's working project index.</p>
     </aside>
     <main class="main">
       <header class="topbar">
         <div><span class="eyebrow">Voyage IV · The Curator</span><h2>Site Operations</h2></div>
         <div class="toolbar">
-          <button type="button" id="load-catalog">Load catalog</button>
+          <button type="button" id="load-catalog">Import project data</button>
           <button type="button" id="import-scan">Import scan</button>
           <button type="button" id="command">⌘ Command</button>
           <button type="button" id="quick-backup">Quick Backup</button>
@@ -57,10 +58,11 @@
   </div>
   <input id="catalog-file" type="file" accept="application/json,.json" hidden>
   <input id="scan-file" type="file" accept="application/json,.json,text/csv,.csv" hidden>
-  <script src="../src/core/database.js?v=20260731-guide-fix"></script>
-  <script src="../src/core/storage.js?v=20260731-guide-fix"></script>
-  <script src="../src/core/relationships.js?v=20260731-guide-fix"></script>
-  <script type="module" src="./rebuilt.js?v=20260731-guide-fix"></script>
-  <script type="module" src="./workspace-loader.js?v=20260731-guide-fix"></script>
+  <script src="../src/core/database.js?v=20260731-project-import"></script>
+  <script src="../src/core/storage.js?v=20260731-project-import"></script>
+  <script src="../src/core/relationships.js?v=20260731-project-import"></script>
+  <script type="module" src="./rebuilt.js?v=20260731-project-import"></script>
+  <script type="module" src="./project-import.js?v=20260731-project-import"></script>
+  <script type="module" src="./workspace-loader.js?v=20260731-project-import"></script>
 </body>
 </html>

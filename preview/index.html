@@ -9,22 +9,22 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CuratorOS">
   <title>CuratorOS</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=20260801-site-sync">
+  <link rel="manifest" href="./manifest.webmanifest?v=20260801-retire-full-workspaces">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon.svg">
-  <link rel="stylesheet" href="./rebuilt.css?v=20260801-site-sync">
-  <link rel="stylesheet" href="./project-import.css?v=20260801-site-sync">
-  <link rel="stylesheet" href="./records-browser.css?v=20260801-site-sync">
-  <link rel="stylesheet" href="./record-editing.css?v=20260801-site-sync">
-  <link rel="stylesheet" href="./extraction-workspace.css?v=20260801-site-sync">
-  <link rel="stylesheet" href="./batch-extraction.css?v=20260801-site-sync">
-  <link rel="stylesheet" href="./site-sync.css?v=20260801-site-sync">
-  <link rel="stylesheet" href="./knowledge-explorer.css?v=20260801-site-sync">
-  <link rel="stylesheet" href="./publication-composer.css?v=20260801-site-sync">
-  <link rel="stylesheet" href="../src/styles/collection-catalog-shell.css?v=20260801-site-sync">
-  <link rel="stylesheet" href="../src/styles/worker-era-shell.css?v=20260801-site-sync">
-  <link rel="stylesheet" href="../src/styles/mobile-layout-fix.css?v=20260801-site-sync">
-  <link rel="stylesheet" href="../src/styles/workspace-hit-testing-fix.css?v=20260801-site-sync">
+  <link rel="stylesheet" href="./rebuilt.css?v=20260801-retire-full-workspaces">
+  <link rel="stylesheet" href="./project-import.css?v=20260801-retire-full-workspaces">
+  <link rel="stylesheet" href="./records-browser.css?v=20260801-retire-full-workspaces">
+  <link rel="stylesheet" href="./record-editing.css?v=20260801-retire-full-workspaces">
+  <link rel="stylesheet" href="./extraction-workspace.css?v=20260801-retire-full-workspaces">
+  <link rel="stylesheet" href="./batch-extraction.css?v=20260801-retire-full-workspaces">
+  <link rel="stylesheet" href="./site-sync.css?v=20260801-retire-full-workspaces">
+  <link rel="stylesheet" href="./knowledge-explorer.css?v=20260801-retire-full-workspaces">
+  <link rel="stylesheet" href="./publication-composer.css?v=20260801-retire-full-workspaces">
+  <link rel="stylesheet" href="../src/styles/collection-catalog-shell.css?v=20260801-retire-full-workspaces">
+  <link rel="stylesheet" href="../src/styles/worker-era-shell.css?v=20260801-retire-full-workspaces">
+  <link rel="stylesheet" href="../src/styles/mobile-layout-fix.css?v=20260801-retire-full-workspaces">
+  <link rel="stylesheet" href="../src/styles/workspace-hit-testing-fix.css?v=20260801-retire-full-workspaces">
 </head>
 <body>
   <header class="suite-nav" aria-label="Ocean Liner Curator tools">
@@ -61,11 +61,9 @@
           <button type="button" id="import-scan">Import scan</button>
           <button type="button" id="command">⌘ Command</button>
           <button type="button" id="quick-backup">Quick Backup</button>
-          <button type="button" id="legacy-workspaces-launcher" aria-expanded="false">Full Workspaces</button>
         </div>
       </header>
       <section id="app"></section>
-      <section id="legacy-workspaces-root" hidden aria-label="Restored CuratorOS workspaces"></section>
     </main>
   </div>
   <input id="catalog-file" type="file" accept="application/json,.json" hidden>
@@ -73,19 +71,18 @@
   <input id="extract-html-file" type="file" accept="text/html,.html,.htm" hidden>
   <input id="batch-html-files" type="file" accept="text/html,.html,.htm" multiple hidden>
   <input id="site-index-file" type="file" accept="application/json,.json" hidden>
-  <script src="../src/core/database.js?v=20260801-site-sync"></script>
-  <script src="../src/core/storage.js?v=20260801-site-sync"></script>
-  <script src="../src/core/relationships.js?v=20260801-site-sync"></script>
-  <script type="module" src="./rebuilt.js?v=20260801-site-sync"></script>
-  <script type="module" src="./project-import.js?v=20260801-site-sync"></script>
-  <script type="module" src="./records-browser.js?v=20260801-site-sync"></script>
-  <script type="module" src="./record-editing.js?v=20260801-site-sync"></script>
-  <script type="module" src="./extraction-workspace.js?v=20260801-site-sync"></script>
-  <script type="module" src="./extraction-controls-fix.js?v=20260801-site-sync"></script>
-  <script type="module" src="./batch-extraction.js?v=20260801-site-sync"></script>
-  <script type="module" src="./site-sync.js?v=20260801-site-sync"></script>
-  <script type="module" src="./knowledge-explorer.js?v=20260801-site-sync"></script>
-  <script type="module" src="./publication-composer.js?v=20260801-site-sync"></script>
-  <script type="module" src="./workspace-loader.js?v=20260801-site-sync"></script>
+  <script src="../src/core/database.js?v=20260801-retire-full-workspaces"></script>
+  <script src="../src/core/storage.js?v=20260801-retire-full-workspaces"></script>
+  <script src="../src/core/relationships.js?v=20260801-retire-full-workspaces"></script>
+  <script type="module" src="./rebuilt.js?v=20260801-retire-full-workspaces"></script>
+  <script type="module" src="./project-import.js?v=20260801-retire-full-workspaces"></script>
+  <script type="module" src="./records-browser.js?v=20260801-retire-full-workspaces"></script>
+  <script type="module" src="./record-editing.js?v=20260801-retire-full-workspaces"></script>
+  <script type="module" src="./extraction-workspace.js?v=20260801-retire-full-workspaces"></script>
+  <script type="module" src="./extraction-controls-fix.js?v=20260801-retire-full-workspaces"></script>
+  <script type="module" src="./batch-extraction.js?v=20260801-retire-full-workspaces"></script>
+  <script type="module" src="./site-sync.js?v=20260801-retire-full-workspaces"></script>
+  <script type="module" src="./knowledge-explorer.js?v=20260801-retire-full-workspaces"></script>
+  <script type="module" src="./publication-composer.js?v=20260801-retire-full-workspaces"></script>
 </body>
 </html>

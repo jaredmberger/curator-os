@@ -9,19 +9,20 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CuratorOS">
   <title>CuratorOS</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=20260801-batch-extraction">
+  <link rel="manifest" href="./manifest.webmanifest?v=20260801-knowledge-explorer">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon.svg">
-  <link rel="stylesheet" href="./rebuilt.css?v=20260801-batch-extraction">
-  <link rel="stylesheet" href="./project-import.css?v=20260801-batch-extraction">
-  <link rel="stylesheet" href="./records-browser.css?v=20260801-batch-extraction">
-  <link rel="stylesheet" href="./record-editing.css?v=20260801-batch-extraction">
-  <link rel="stylesheet" href="./extraction-workspace.css?v=20260801-batch-extraction">
-  <link rel="stylesheet" href="./batch-extraction.css?v=20260801-batch-extraction">
-  <link rel="stylesheet" href="../src/styles/collection-catalog-shell.css?v=20260801-batch-extraction">
-  <link rel="stylesheet" href="../src/styles/worker-era-shell.css?v=20260801-batch-extraction">
-  <link rel="stylesheet" href="../src/styles/mobile-layout-fix.css?v=20260801-batch-extraction">
-  <link rel="stylesheet" href="../src/styles/workspace-hit-testing-fix.css?v=20260801-batch-extraction">
+  <link rel="stylesheet" href="./rebuilt.css?v=20260801-knowledge-explorer">
+  <link rel="stylesheet" href="./project-import.css?v=20260801-knowledge-explorer">
+  <link rel="stylesheet" href="./records-browser.css?v=20260801-knowledge-explorer">
+  <link rel="stylesheet" href="./record-editing.css?v=20260801-knowledge-explorer">
+  <link rel="stylesheet" href="./extraction-workspace.css?v=20260801-knowledge-explorer">
+  <link rel="stylesheet" href="./batch-extraction.css?v=20260801-knowledge-explorer">
+  <link rel="stylesheet" href="./knowledge-explorer.css?v=20260801-knowledge-explorer">
+  <link rel="stylesheet" href="../src/styles/collection-catalog-shell.css?v=20260801-knowledge-explorer">
+  <link rel="stylesheet" href="../src/styles/worker-era-shell.css?v=20260801-knowledge-explorer">
+  <link rel="stylesheet" href="../src/styles/mobile-layout-fix.css?v=20260801-knowledge-explorer">
+  <link rel="stylesheet" href="../src/styles/workspace-hit-testing-fix.css?v=20260801-knowledge-explorer">
 </head>
 <body>
   <header class="suite-nav" aria-label="Ocean Liner Curator tools">
@@ -42,10 +43,11 @@
         <button type="button" data-view="records">Project Records</button>
         <button type="button" id="extract-knowledge">Extract Knowledge</button>
         <button type="button" id="batch-extract-knowledge">Build Corpus</button>
+        <button type="button" id="knowledge-explorer">Knowledge Explorer</button>
         <button type="button" data-view="help">Command Help</button>
         <a href="./knowledge-base-guide.html">Knowledge Base Guide</a>
       </nav>
-      <p class="sidebar-note">Import project data, inspect normalized records, extract reusable knowledge from individual pages or whole batches, and keep every change reviewable before publication.</p>
+      <p class="sidebar-note">Import and extract project knowledge, standardize it into records, then query and combine those records into reusable knowledge collections before publication.</p>
     </aside>
     <main class="main">
       <header class="topbar">
@@ -66,15 +68,16 @@
   <input id="scan-file" type="file" accept="application/json,.json,text/csv,.csv" hidden>
   <input id="extract-html-file" type="file" accept="text/html,.html,.htm" hidden>
   <input id="batch-html-files" type="file" accept="text/html,.html,.htm" multiple hidden>
-  <script src="../src/core/database.js?v=20260801-batch-extraction"></script>
-  <script src="../src/core/storage.js?v=20260801-batch-extraction"></script>
-  <script src="../src/core/relationships.js?v=20260801-batch-extraction"></script>
-  <script type="module" src="./rebuilt.js?v=20260801-batch-extraction"></script>
-  <script type="module" src="./project-import.js?v=20260801-batch-extraction"></script>
-  <script type="module" src="./records-browser.js?v=20260801-batch-extraction"></script>
-  <script type="module" src="./record-editing.js?v=20260801-batch-extraction"></script>
-  <script type="module" src="./extraction-workspace.js?v=20260801-batch-extraction"></script>
-  <script type="module" src="./batch-extraction.js?v=20260801-batch-extraction"></script>
-  <script type="module" src="./workspace-loader.js?v=20260801-batch-extraction"></script>
+  <script src="../src/core/database.js?v=20260801-knowledge-explorer"></script>
+  <script src="../src/core/storage.js?v=20260801-knowledge-explorer"></script>
+  <script src="../src/core/relationships.js?v=20260801-knowledge-explorer"></script>
+  <script type="module" src="./rebuilt.js?v=20260801-knowledge-explorer"></script>
+  <script type="module" src="./project-import.js?v=20260801-knowledge-explorer"></script>
+  <script type="module" src="./records-browser.js?v=20260801-knowledge-explorer"></script>
+  <script type="module" src="./record-editing.js?v=20260801-knowledge-explorer"></script>
+  <script type="module" src="./extraction-workspace.js?v=20260801-knowledge-explorer"></script>
+  <script type="module" src="./batch-extraction.js?v=20260801-knowledge-explorer"></script>
+  <script type="module" src="./knowledge-explorer.js?v=20260801-knowledge-explorer"></script>
+  <script type="module" src="./workspace-loader.js?v=20260801-knowledge-explorer"></script>
 </body>
 </html>

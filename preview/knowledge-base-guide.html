@@ -7,244 +7,151 @@
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex">
   <title>CuratorOS Knowledge Base Guide</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./rebuilt.css?v=20260731-guide">
+  <link rel="stylesheet" href="./rebuilt.css?v=20260802-guide-refresh">
   <style>
-    body{min-height:100vh}.guide-shell{width:min(1120px,calc(100% - 28px));margin:0 auto;padding:22px 0 72px}.guide-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}.guide-top a,.guide-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid var(--line,#806f4f);border-radius:10px;text-decoration:none;color:inherit;background:rgba(255,255,255,.035)}.guide-hero{padding:28px}.guide-hero h1{font-size:clamp(2rem,6vw,4.3rem);margin:.25rem 0 .75rem}.guide-hero p{max-width:820px;font-size:1.05rem;line-height:1.75}.guide-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;margin-top:18px}.guide-card{padding:24px}.guide-card h2{margin-top:0;font-size:1.55rem}.guide-card h3{margin-top:1.6rem}.guide-card p,.guide-card li{line-height:1.72}.guide-card li+li{margin-top:.48rem}.guide-card code{white-space:normal;overflow-wrap:anywhere}.guide-card table{width:100%;border-collapse:collapse;margin:14px 0}.guide-card th,.guide-card td{text-align:left;vertical-align:top;border-bottom:1px solid rgba(191,164,106,.24);padding:10px 8px}.guide-card th{font-weight:700}.callout{border-left:4px solid #bfa46a;padding:12px 16px;background:rgba(191,164,106,.08);border-radius:0 10px 10px 0;margin:16px 0}.checklist{padding-left:1.3rem}.toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.toc a{display:block;padding:12px;border:1px solid rgba(191,164,106,.28);border-radius:10px;text-decoration:none;color:inherit}.guide-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}@media(min-width:900px){.guide-grid{grid-template-columns:minmax(0,1fr) 290px}.guide-main{min-width:0}.guide-aside{position:sticky;top:18px;align-self:start}.guide-aside .guide-card{padding:18px}.guide-aside .toc{display:block}.guide-aside .toc a+a{margin-top:8px}}
+    body{min-height:100vh}.guide-shell{width:min(1120px,calc(100% - 28px));margin:0 auto;padding:22px 0 72px}.guide-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}.guide-top a,.guide-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid var(--line,#806f4f);border-radius:10px;text-decoration:none;color:inherit;background:rgba(255,255,255,.035)}.guide-hero{padding:28px}.guide-hero h1{font-size:clamp(2rem,6vw,4.3rem);margin:.25rem 0 .75rem}.guide-hero p{max-width:860px;font-size:1.05rem;line-height:1.75}.guide-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;margin-top:18px}.guide-card{padding:24px}.guide-card h2{margin-top:0;font-size:1.55rem}.guide-card h3{margin-top:1.5rem}.guide-card p,.guide-card li{line-height:1.72}.guide-card li+li{margin-top:.48rem}.guide-card code{white-space:normal;overflow-wrap:anywhere}.guide-card table{width:100%;border-collapse:collapse;margin:14px 0}.guide-card th,.guide-card td{text-align:left;vertical-align:top;border-bottom:1px solid rgba(191,164,106,.24);padding:10px 8px}.guide-card th{font-weight:700}.callout{border-left:4px solid #bfa46a;padding:12px 16px;background:rgba(191,164,106,.08);border-radius:0 10px 10px 0;margin:16px 0}.pipeline{display:grid;gap:8px;margin:18px 0}.pipeline div{padding:12px 14px;border:1px solid rgba(191,164,106,.28);border-radius:10px;background:rgba(255,255,255,.025)}.toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.toc a{display:block;padding:12px;border:1px solid rgba(191,164,106,.28);border-radius:10px;text-decoration:none;color:inherit}.guide-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.faq details{border-top:1px solid rgba(191,164,106,.22);padding:14px 0}.faq details:first-of-type{border-top:0}.faq summary{font-weight:700;cursor:pointer}.faq details p{margin-bottom:0}@media(min-width:900px){.guide-grid{grid-template-columns:minmax(0,1fr) 290px}.guide-main{min-width:0}.guide-aside{position:sticky;top:18px;align-self:start}.guide-aside .guide-card{padding:18px}.guide-aside .toc{display:block}.guide-aside .toc a+a{margin-top:8px}}
   </style>
 </head>
 <body>
   <main class="guide-shell">
-    <div class="guide-top">
-      <div><span class="eyebrow">CuratorOS operating manual</span></div>
-      <a href="./index.html">← Return to CuratorOS</a>
-    </div>
+    <div class="guide-top"><div><span class="eyebrow">CuratorOS operating manual</span></div><a href="./index.html">← Return to CuratorOS</a></div>
 
     <section class="panel guide-hero">
-      <span class="eyebrow">Knowledge base · About and how-to</span>
-      <h1>Running the CuratorOS Knowledge Base</h1>
-      <p>CuratorOS is not simply a list of ships or a place to store finished prose. Its knowledge base is the structured editorial memory of Ocean Liner Curator: records, evidence, relationships, review status, media, notes, and publication-ready data kept in a form that can be searched, checked, reused, and improved over time.</p>
-      <div class="guide-actions">
-        <a href="#daily-workflow">Start with the daily workflow</a>
-        <a href="#new-record">Add a new record</a>
-        <a href="#safe-operation">Back up and operate safely</a>
-      </div>
+      <span class="eyebrow">Knowledge system · Research infrastructure · Publication support</span>
+      <h1>What CuratorOS is now</h1>
+      <p>CuratorOS is the structured knowledge layer underneath Ocean Liner Curator. It takes information already present across OceanLiners.net and related project data, turns that information into standardized records and relationships, tracks where the knowledge came from, helps identify gaps and useful patterns, and recombines reviewed knowledge into new research collections and publication drafts.</p>
+      <div class="callout"><strong>Core idea:</strong> webpages are representations of knowledge. CuratorOS stores and connects the underlying knowledge so it can be checked, reused, combined, and published in more than one form.</div>
+      <div class="guide-actions"><a href="#pipeline">See the full workflow</a><a href="#workspaces">Learn the current workspaces</a><a href="#faq">Open the FAQ</a></div>
     </section>
 
     <div class="guide-grid">
       <div class="guide-main">
+        <section class="panel guide-card" id="pipeline">
+          <h2>1. The CuratorOS knowledge pipeline</h2>
+          <div class="pipeline">
+            <div><strong>OceanLiners.net + project files</strong><br>Existing ship guides, essays, hubs, reference objects, photographs, indexes, source lists, and machine-readable project data provide raw material.</div>
+            <div><strong>site-index.json</strong><br>Acts as the website manifest: the durable table of contents CuratorOS uses to understand what exists publicly and what may need extraction or review.</div>
+            <div><strong>Extraction</strong><br>CuratorOS reads saved webpage HTML and identifies candidate facts, narrative material, metadata, and entity references.</div>
+            <div><strong>Project Records</strong><br>Approved information becomes normalized records for ships, companies, organizations, people, objects, sources, photographs, and other entities.</div>
+            <div><strong>Entity Resolution</strong><br>Duplicate or variant identities are consolidated around stable canonical records while alternate names are preserved as aliases.</div>
+            <div><strong>Knowledge Graph</strong><br>Relationships connect records: built by, operated by, associated with, depicts, same as, and other explicit links.</div>
+            <div><strong>Knowledge Intelligence</strong><br>CuratorOS derives useful clusters and signals from the connected corpus, such as builder fleets, operator fleets, classes, routes, hubs, and relationship gaps.</div>
+            <div><strong>Knowledge Explorer</strong><br>Records can be queried and saved as reusable knowledge collections.</div>
+            <div><strong>Publication Composer</strong><br>Collections can be shaped into structured briefs and reviewable HTML drafts for future OceanLiners.net pages.</div>
+          </div>
+          <p>The system is deliberately review-first. CuratorOS may suggest, normalize, compare, and assemble, but it does not silently rewrite the live site.</p>
+        </section>
+
         <section class="panel guide-card" id="mental-model">
-          <h2>1. The basic mental model</h2>
-          <p>Think of the knowledge base as a collection of individual records. Each record represents one identifiable thing: a ship, shipping line, builder, source, reference object, photograph, or another supported entity. A record should describe that thing once, then connect it to other records rather than repeating the same information everywhere.</p>
-          <div class="callout"><strong>Core rule:</strong> create one authoritative record for each entity, then connect records through relationships and sources.</div>
-          <table>
-            <thead><tr><th>Part</th><th>Purpose</th></tr></thead>
-            <tbody>
-              <tr><td><strong>ID</strong></td><td>The permanent machine-readable identity, such as <code>ship.olympic</code>. Treat it as stable after creation.</td></tr>
-              <tr><td><strong>Type</strong></td><td>Defines what the record represents and which specialized fields apply.</td></tr>
-              <tr><td><strong>Title</strong></td><td>The human-readable name shown throughout CuratorOS.</td></tr>
-              <tr><td><strong>Summary</strong></td><td>A concise neutral description of the entity, not a full article.</td></tr>
-              <tr><td><strong>Status</strong></td><td>Where the record sits in the editorial lifecycle: draft, review, or published.</td></tr>
-              <tr><td><strong>Data</strong></td><td>Structured facts specific to the record type, such as builder, operator, dates, dimensions, rights, or catalog details.</td></tr>
-              <tr><td><strong>Relationships</strong></td><td>Connections to other records: built by, operated by, depicts, associated with, sourced from, and similar links.</td></tr>
-              <tr><td><strong>Sources</strong></td><td>Evidence directly supporting the record or its claims.</td></tr>
-              <tr><td><strong>Notes</strong></td><td>Curatorial context, uncertainties, working observations, and internal reasoning that should not be mistaken for verified fact.</td></tr>
-              <tr><td><strong>Metadata</strong></td><td>Confidence, review dates, provenance, and other information about the record itself.</td></tr>
-            </tbody>
-          </table>
+          <h2>2. The basic mental model</h2>
+          <p>A Project Record represents an identifiable thing, not a webpage. RMS Olympic is a ship record. Harland &amp; Wolff is a company record. A menu is an object record. A source can support many records. A webpage may expose one record, several records, or only part of a record.</p>
+          <table><thead><tr><th>Layer</th><th>What it answers</th></tr></thead><tbody>
+            <tr><td><strong>Site manifest</strong></td><td>What public pages currently exist?</td></tr>
+            <tr><td><strong>Project Record</strong></td><td>What entity or item do we know about?</td></tr>
+            <tr><td><strong>Structured data</strong></td><td>What standardized facts do we know about it?</td></tr>
+            <tr><td><strong>Source / provenance</strong></td><td>Where did that information come from?</td></tr>
+            <tr><td><strong>Relationship</strong></td><td>How is this record connected to another record?</td></tr>
+            <tr><td><strong>Collection</strong></td><td>Which records satisfy a useful research question?</td></tr>
+            <tr><td><strong>Publication brief</strong></td><td>How can selected knowledge be presented as a new page?</td></tr>
+          </tbody></table>
+          <div class="callout"><strong>Do not duplicate derived knowledge unnecessarily.</strong> If a builder fleet can be obtained by querying every ship with a <code>built_by</code> relationship to one builder record, CuratorOS should derive the fleet rather than maintain a second hard-coded list.</div>
         </section>
 
-        <section class="panel guide-card" id="record-types">
-          <h2>2. Choosing the correct record type</h2>
-          <h3>Ship</h3><p>Use for an individual vessel. Typical fields include builder, operator, yard number, launch date, maiden voyage, dimensions, tonnage, speed, and service details. Do not create a second ship record merely because the vessel changed names; preserve the vessel as one entity unless CuratorOS specifically requires separate identities.</p>
-          <h3>Builder</h3><p>Use for a shipyard or shipbuilding company. Store the builder’s own facts here, then link ships to it with a <em>built by</em> relationship.</p>
-          <h3>Shipping line or company</h3><p>Use for an operating company, line, or corporate entity. Link ships through <em>operated by</em>, <em>owned by</em>, or another accurate relationship. Avoid putting a company biography into every ship record.</p>
-          <h3>Source</h3><p>Use for books, archival records, plans, registers, articles, official documents, or other evidence. A source record should be identifiable and citable. It may support many other records.</p>
-          <h3>Reference object</h3><p>Use for physical collection material such as menus, brochures, passenger lists, keys, stationery, or deck plans. Include dimensions, material, condition, storage location, date, and associated ship or company where known.</p>
-          <h3>Photograph or media</h3><p>Use for cataloged visual material. Record creator, date, depicted subject, source, caption, alt text, rights, and attribution. Distinguish what the image depicts from where the image came from.</p>
+        <section class="panel guide-card" id="workspaces">
+          <h2>3. What each current workspace does</h2>
+          <table><tbody>
+            <tr><td><strong>Findings</strong></td><td>Surfaces actionable quality and maintenance issues from local records and imported scan reports.</td></tr>
+            <tr><td><strong>Project Records</strong></td><td>Browse, inspect, locally edit, review, revert, and export normalized knowledge records.</td></tr>
+            <tr><td><strong>Extract Knowledge</strong></td><td>Load one saved HTML page or pasted page source, inspect candidate facts, normalize them, and approve selected knowledge into Project Records.</td></tr>
+            <tr><td><strong>Build Corpus</strong></td><td>Process many saved HTML pages into a persistent review queue, identify conflicts, and approve clean extractions in batches.</td></tr>
+            <tr><td><strong>Site / Knowledge Sync</strong></td><td>Load <code>site-index.json</code>, compare the public site inventory with Project Records and extraction history, and identify new, changed, unextracted, unmatched, or missing pages.</td></tr>
+            <tr><td><strong>Entity Resolution</strong></td><td>Find likely duplicate entities, choose a canonical identity, preserve aliases, and rewrite relationships through the normal pending-change workflow.</td></tr>
+            <tr><td><strong>Knowledge Graph</strong></td><td>Navigate incoming, outgoing, and second-hop relationships and inspect unresolved targets.</td></tr>
+            <tr><td><strong>Knowledge Intelligence</strong></td><td>Derive useful clusters and publication opportunities from relationships and standardized fields while also surfacing graph-quality gaps.</td></tr>
+            <tr><td><strong>Knowledge Explorer</strong></td><td>Search and query the corpus by record type, status, fields, and relationships, then save the result as a reusable collection.</td></tr>
+            <tr><td><strong>Publication Composer</strong></td><td>Turn a saved collection into a page brief, section plan, and reviewable semantic HTML draft.</td></tr>
+          </tbody></table>
         </section>
 
-        <section class="panel guide-card" id="daily-workflow">
-          <h2>3. Recommended daily workflow</h2>
-          <ol class="checklist">
-            <li><strong>Make a Quick Backup.</strong> Do this before a substantial editing session or import.</li>
-            <li><strong>Open Findings.</strong> Review missing sources, incomplete metadata, review-state records, and imported scanner findings.</li>
-            <li><strong>Choose one bounded task.</strong> Examples: finish one ship record, attach sources to five records, or review one builder cluster.</li>
-            <li><strong>Open Full Workspaces.</strong> Use the specialized authoring and review tools for actual knowledge-base editing.</li>
-            <li><strong>Search before creating.</strong> Confirm that the entity does not already exist under another title or ID.</li>
-            <li><strong>Edit the record and its relationships.</strong> Add structured facts, supporting sources, confidence, and notes.</li>
-            <li><strong>Run the review tools.</strong> Resolve obvious gaps and inspect the publication preview.</li>
-            <li><strong>Change status only when justified.</strong> Draft means incomplete; review means substantially assembled but awaiting verification; published means suitable for trusted reuse.</li>
-            <li><strong>Export or back up again.</strong> End major sessions with a recoverable copy.</li>
-          </ol>
+        <section class="panel guide-card" id="site-index">
+          <h2>4. The role of site-index.json</h2>
+          <p><code>site-index.json</code> is not the knowledge base. It is the website manifest. OceanLiners.net remains authoritative about which public pages exist; CuratorOS remains authoritative about what has been extracted, standardized, reviewed, connected, and reused.</p>
+          <p>Loading a newer site index allows CuratorOS to compare the current site against its prior manifest and the knowledge corpus. When modification timestamps, hashes, or checksums are available, they can help identify pages that may require re-extraction.</p>
+          <p>The goal is incremental maintenance: process only what is new, changed, unmatched, or not yet understood instead of repeatedly rebuilding the entire corpus.</p>
         </section>
 
-        <section class="panel guide-card" id="new-record">
-          <h2>4. Adding a new knowledge record</h2>
-          <h3>Step 1: search for an existing record</h3>
-          <p>Use Knowledge Records or Advanced Search. Search the exact name, alternate spellings, former names, abbreviations, and likely associated entities. Duplicate records fragment evidence and create conflicting facts.</p>
-          <h3>Step 2: choose a stable ID</h3>
-          <p>Use a predictable lowercase namespace. Examples: <code>ship.aquitania</code>, <code>company.cunard-line</code>, <code>source.lloyds-register-1914</code>, or <code>object.olympic-menu-1929</code>. Use hyphens inside the descriptive portion. Avoid dates or labels likely to change unless they distinguish the entity.</p>
-          <h3>Step 3: enter the minimum identity fields</h3>
-          <p>At minimum, provide ID, type, title, status, and a concise summary. Begin as <strong>draft</strong> when the record is skeletal or uncertain.</p>
-          <h3>Step 4: add structured facts</h3>
-          <p>Put facts into the appropriate fields instead of burying them in notes. Preserve original precision: do not convert an approximate date into a false exact date, and do not silently normalize conflicting measurements.</p>
-          <h3>Step 5: attach sources</h3>
-          <p>Add direct evidence whenever possible. A source should support the specific fact or relationship being asserted. A general website about a ship is weaker than a builder record, register, contemporary timetable, archival plan, or carefully documented secondary work.</p>
-          <h3>Step 6: create relationships</h3>
-          <p>Connect the record to existing entities. For a ship this often includes builder, operator, class, sister ships, source records, photographs, and associated objects. Add confidence and a note when the nature of the connection is not self-evident.</p>
-          <h3>Step 7: review and preview</h3>
-          <p>Use the Review Dashboard, Findings, Relationship Explorer, and Publication Preview. Verify that the record makes sense both alone and as part of the wider graph.</p>
+        <section class="panel guide-card" id="records">
+          <h2>5. Project Records and canonical identity</h2>
+          <p>Each record has a stable ID, type, title, publication/review status, structured data, relationships, sources, notes, metadata, and provenance as applicable. Stable IDs matter because relationships and saved collections should point to identities rather than fragile display text.</p>
+          <p>Common record types include ships, companies, organizations, people, sources, objects, photographs, and media. A record may be created through import, extraction, or deliberate local editing.</p>
+          <p>When different records represent the same real entity, use Entity Resolution. The selected canonical record remains active; alternate records are archived and linked to it rather than silently erased.</p>
         </section>
 
-        <section class="panel guide-card" id="sources-confidence">
-          <h2>5. Sources, confidence, and uncertainty</h2>
-          <p>CuratorOS should preserve the difference between evidence, interpretation, and uncertainty. A polished record is not necessarily a verified record.</p>
-          <ul>
-            <li><strong>Verified:</strong> directly supported by reliable evidence and checked.</li>
-            <li><strong>Probable:</strong> well supported but not fully proven or dependent on secondary synthesis.</li>
-            <li><strong>Possible or uncertain:</strong> plausible, disputed, incomplete, or awaiting stronger evidence.</li>
-          </ul>
-          <p>When sources disagree, do not force a false consensus. Record the conflict in a curatorial note, preserve the competing values where the schema permits, and explain why one value is preferred. “Unknown” is a valid result.</p>
-          <div class="callout"><strong>Evidence-first practice:</strong> the database should reveal uncertainty rather than conceal it.</div>
+        <section class="panel guide-card" id="evidence">
+          <h2>6. Evidence, provenance, and uncertainty</h2>
+          <p>CuratorOS should distinguish the standardized value from the evidence that produced it. Extraction preserves the source webpage and raw wording so normalization does not erase provenance.</p>
+          <ul><li><strong>Known:</strong> adequately supported and reviewed.</li><li><strong>Probable:</strong> supported but still dependent on interpretation or incomplete evidence.</li><li><strong>Uncertain:</strong> disputed, incomplete, approximate, or awaiting stronger evidence.</li></ul>
+          <p>Conflicting source values should be surfaced for review instead of collapsed into false certainty. “Unknown” is an acceptable result.</p>
+          <div class="callout"><strong>Direction of travel:</strong> CuratorOS should increasingly preserve fact-level evidence—raw value, normalized value, source, locator, confidence, and review state—rather than only page-level provenance.</div>
         </section>
 
-        <section class="panel guide-card" id="relationships">
-          <h2>6. Building useful relationships</h2>
-          <p>Relationships turn a catalog into a knowledge graph. They allow one source, company, builder, photograph, or object to be reused across many records without duplication.</p>
-          <ul>
-            <li>Use the most precise relationship available.</li>
-            <li>Link to record IDs, not plain-text names, whenever the interface permits.</li>
-            <li>Include source IDs for relationships that make a historical claim.</li>
-            <li>Add a note when the relationship has qualifications or changed over time.</li>
-            <li>Inspect both directions in Relationship Explorer to catch isolated or mislinked records.</li>
-          </ul>
-          <p>Example: RMS Olympic may be linked to Harland and Wolff as <em>built by</em>, White Star Line as <em>operated by</em>, a menu as <em>associated with</em>, a photograph as <em>depicted by</em>, and builder records as supporting evidence.</p>
+        <section class="panel guide-card" id="collections">
+          <h2>7. From connected knowledge to reusable collections</h2>
+          <p>Knowledge Explorer collections are reusable views over stable record IDs. They can originate from a manual query or from Knowledge Intelligence.</p>
+          <p>Examples include ships built by Harland &amp; Wolff, ships operated by White Star Line, vessels sharing a class, route-centered groups, or any custom combination supported by standardized fields and relationships.</p>
+          <p>A collection should remain linked to the underlying records instead of becoming a detached copy. That allows future record improvements to flow into later research and publication work.</p>
         </section>
 
-        <section class="panel guide-card" id="review-publish">
-          <h2>7. Review and publication lifecycle</h2>
-          <h3>Draft</h3><p>The record exists but is incomplete, exploratory, or not sufficiently sourced. Draft records are working material.</p>
-          <h3>Review</h3><p>The record is substantially assembled and ready for deliberate verification. Use the Review Dashboard to check completeness, evidence, relationships, naming, and confidence.</p>
-          <h3>Published</h3><p>The record is suitable for trusted reuse in previews, exports, page packages, or public-facing content. Published does not mean permanently finished; it means the record currently meets the project’s standard.</p>
-          <h3>Before publishing</h3>
-          <ul>
-            <li>Confirm the entity is not a duplicate.</li>
-            <li>Resolve high-priority Findings or document why they remain.</li>
-            <li>Check required type-specific fields.</li>
-            <li>Verify sources and relationship targets.</li>
-            <li>Review rights and attribution for media.</li>
-            <li>Inspect Publication Preview and Page Package Preview.</li>
-            <li>Set or update confidence and reviewed date.</li>
-          </ul>
-        </section>
-
-        <section class="panel guide-card" id="tools">
-          <h2>8. What the Full Workspaces tools are for</h2>
-          <table>
-            <tbody>
-              <tr><td><strong>Authoring workspaces</strong></td><td>Create and edit ships, builders, lines, sources, objects, and photographs with fields appropriate to each type.</td></tr>
-              <tr><td><strong>Review Dashboard</strong></td><td>Find records requiring editorial attention and move them through the review lifecycle.</td></tr>
-              <tr><td><strong>Advanced Search</strong></td><td>Locate records by more than title alone and reduce accidental duplication.</td></tr>
-              <tr><td><strong>Relationship Explorer</strong></td><td>Inspect the graph around a selected record and verify that connected entities are correct.</td></tr>
-              <tr><td><strong>Publication Preview</strong></td><td>See how structured information reads before using it publicly.</td></tr>
-              <tr><td><strong>Publication Export</strong></td><td>Generate reusable output from reviewed records.</td></tr>
-              <tr><td><strong>Page Package Preview</strong></td><td>Inspect a fuller package intended for site-page workflows.</td></tr>
-              <tr><td><strong>Manifest Builder</strong></td><td>Assemble or validate site-level knowledge manifests.</td></tr>
-              <tr><td><strong>GitHub Catalog Ingestion</strong></td><td>Bring supported repository catalog data into the local CuratorOS database.</td></tr>
-              <tr><td><strong>Coverage Gap Intelligence</strong></td><td>Identify missing or thin areas in the knowledge graph.</td></tr>
-              <tr><td><strong>Site Assurance Readiness</strong></td><td>Check whether records and supporting information are ready for broader use.</td></tr>
-              <tr><td><strong>Developer Sessions</strong></td><td>Support technical or structured-data work without mixing it into the editorial record itself.</td></tr>
-            </tbody>
-          </table>
-        </section>
-
-        <section class="panel guide-card" id="findings-scans">
-          <h2>9. Findings and imported scans</h2>
-          <p>Findings are actionable warnings, not records. They point to work that may be needed: missing sources, missing metadata, review status, broken links, redirects, or opportunities found by another tool.</p>
-          <ul>
-            <li><strong>Open</strong> means the issue still needs attention.</li>
-            <li><strong>Handled</strong> means you have resolved it or consciously accepted it.</li>
-            <li><strong>Import scan</strong> adds findings from supported JSON or CSV reports.</li>
-            <li>Marking a finding handled does not itself change the underlying record or webpage.</li>
-          </ul>
-          <p>After fixing the underlying issue, return to Findings and mark it handled. Imported findings remain locally stored until cleared or replaced.</p>
+        <section class="panel guide-card" id="publication">
+          <h2>8. Publication is a view over knowledge</h2>
+          <p>Publication Composer is intentionally separated from the knowledge store. It selects records, proposes a page pattern, creates a section plan, and generates reviewable HTML material without pretending that the draft is already a final OceanLiners.net page.</p>
+          <p>Supported planning patterns include fleet directories, builder collections, timelines, comparisons, research tables, illustrated articles, hubs, and custom briefs.</p>
+          <p>The eventual publication layer should map these briefs into the site’s actual house templates and publish through a reviewable GitHub branch and pull request rather than writing directly to the live site.</p>
         </section>
 
         <section class="panel guide-card" id="safe-operation">
-          <h2>10. Backups, imports, and safe operation</h2>
+          <h2>9. Safety and change boundaries</h2>
           <ul>
-            <li>Use <strong>Quick Backup</strong> before imports, large edits, or experimental work.</li>
-            <li>Keep dated exports outside the browser. Browser storage should not be treated as the only copy.</li>
-            <li>Create a local snapshot before replacing the database.</li>
-            <li>Inspect imported files before confirming replacement.</li>
-            <li>Do not edit IDs casually after relationships have been created.</li>
-            <li>Use one primary working device at a time unless a sync workflow is explicitly active and tested.</li>
+            <li>Extraction does not modify the source HTML.</li>
+            <li>Project Record edits become local pending changes first.</li>
+            <li>Entity consolidation archives duplicates instead of deleting them silently.</li>
+            <li>Knowledge Graph and Knowledge Intelligence analysis are read-only unless you explicitly save a derived collection.</li>
+            <li>Publication Composer produces drafts and packages; it does not publish to OceanLiners.net.</li>
+            <li>Quick Backup should be used before substantial local work.</li>
+            <li>Source-file updates and future publishing should remain reviewable through diffs and GitHub pull requests.</li>
           </ul>
-          <div class="callout"><strong>Important:</strong> CuratorOS currently keeps core working state locally in the browser unless you deliberately export, import, ingest, or sync it. Clearing browser data may remove local changes that were never exported.</div>
         </section>
 
-        <section class="panel guide-card" id="maintenance">
-          <h2>11. Periodic maintenance</h2>
-          <p>Once a week or after a major content expansion:</p>
+        <section class="panel guide-card" id="recommended-workflow">
+          <h2>10. Recommended working rhythm</h2>
           <ol>
-            <li>Export a complete backup.</li>
-            <li>Review all high-priority Findings.</li>
-            <li>Look for duplicate IDs, near-duplicate titles, and orphaned records.</li>
-            <li>Inspect records still in draft or review.</li>
-            <li>Check source records that are used broadly.</li>
-            <li>Review media rights and attribution.</li>
-            <li>Use Coverage Gap Intelligence and Relationship Explorer.</li>
-            <li>Test a publication preview from several record types.</li>
+            <li>Generate the latest <code>site-index.json</code> when the website has materially changed.</li>
+            <li>Load it in Site / Knowledge Sync and review new, changed, unmatched, and unextracted pages.</li>
+            <li>Use Extract Knowledge for one page or Build Corpus for a batch of saved HTML pages.</li>
+            <li>Review and approve normalized knowledge into Project Records.</li>
+            <li>Resolve duplicate entities and unresolved relationship targets.</li>
+            <li>Explore the graph and review Knowledge Intelligence opportunities.</li>
+            <li>Save useful groups as Knowledge Explorer collections.</li>
+            <li>Use Publication Composer when a collection has a clear editorial purpose.</li>
+            <li>Export or back up important local work before clearing browser data or changing devices.</li>
           </ol>
         </section>
 
-        <section class="panel guide-card" id="troubleshooting">
-          <h2>12. Troubleshooting</h2>
-          <h3>A record does not appear</h3><p>Clear filters, search by ID, confirm that the intended catalog is loaded, and check whether the record exists only in another browser or backup.</p>
-          <h3>A relationship target is missing</h3><p>Create or import the target record first, verify its exact ID, then repair the relationship.</p>
-          <h3>Findings return after an import</h3><p>The imported catalog may still contain the underlying issue, or the finding ID may differ from the previously handled version. Fix the source data and reimport.</p>
-          <h3>Data disappeared</h3><p>Stop editing, avoid overwriting browser storage, and restore the most recent export or snapshot. Determine whether browser data was cleared or a different device/browser was used.</p>
-          <h3>The Full Workspaces interface behaves oddly on iPad</h3><p>Return to the rebuilt interface, make a backup, reload the page, and reopen Full Workspaces. The rebuilt shell remains the safer default interface for Findings, records, imports, and backups.</p>
-        </section>
-
-        <section class="panel guide-card" id="golden-rules">
-          <h2>13. The ten golden rules</h2>
-          <ol>
-            <li>Search before creating.</li>
-            <li>One entity, one authoritative record.</li>
-            <li>Keep IDs stable.</li>
-            <li>Store facts in structured fields.</li>
-            <li>Attach evidence directly.</li>
-            <li>Use relationships instead of repeating information.</li>
-            <li>Preserve uncertainty honestly.</li>
-            <li>Review before publishing.</li>
-            <li>Back up before replacing data.</li>
-            <li>Treat the knowledge base as a living archival system, not a finished list.</li>
-          </ol>
-          <div class="guide-actions"><a href="./index.html">Return to CuratorOS</a></div>
+        <section class="panel guide-card faq" id="faq">
+          <h2>11. Frequently asked questions</h2>
+          <details open><summary>Is CuratorOS the website CMS?</summary><p>No. It is the knowledge and research layer underneath the site. Its job is to understand, normalize, connect, audit, and recombine project knowledge. Page assembly and publishing are downstream actions.</p></details>
+          <details><summary>Is site-index.json the database?</summary><p>No. It is the public-site manifest—the inventory of pages. Project Records are the normalized knowledge corpus.</p></details>
+          <details><summary>Does every webpage become exactly one Project Record?</summary><p>No. A page can supply knowledge to one record, several records, or no new entity record at all. The page is evidence/provenance; the record represents the underlying entity or item.</p></details>
+          <details><summary>Can CuratorOS change OceanLiners.net automatically?</summary><p>Not in the current architecture. The system deliberately produces local changes, reports, extraction reviews, collections, and publication drafts first. Future source publishing should be performed through explicit GitHub branches, diffs, and pull requests.</p></details>
+          <details><summary>Why use relationships instead of copying names into every record?</summary><p>Relationships give one real entity one canonical identity. They also let CuratorOS derive fleets, builder groups, reverse links, graph paths, and publication collections without maintaining duplicate lists.</p></details>
+          <details><summary>What happens when two sources disagree?</summary><p>The disagreement should remain visible for review. CuratorOS should not manufacture certainty simply because a structured field expects one value.</p></details>
+          <details><summary>What is Knowledge Intelligence?</summary><p>It is the derived-analysis layer. It notices meaningful groups already implicit in the corpus—such as several ships sharing a builder, operator, class, route, or country—and offers them as research or publication opportunities.</p></details>
+          <details><summary>What happened to Full Workspaces?</summary><p>The legacy launcher was retired after the native workflow replaced its practical functions. The old source modules remain in the repository as historical/reference code, but they are no longer part of the active CuratorOS interface.</p></details>
+          <details><summary>Where is CuratorOS headed next?</summary><p>Toward stronger fact-level provenance, richer relationship intelligence, template-aware page assembly, and a safe GitHub publishing engine that turns reviewed knowledge into reviewable site changes.</p></details>
         </section>
       </div>
 
-      <aside class="guide-aside">
-        <section class="panel guide-card">
-          <span class="eyebrow">On this page</span>
-          <nav class="toc" aria-label="Guide contents">
-            <a href="#mental-model">Mental model</a>
-            <a href="#record-types">Record types</a>
-            <a href="#daily-workflow">Daily workflow</a>
-            <a href="#new-record">Add a record</a>
-            <a href="#sources-confidence">Sources and confidence</a>
-            <a href="#relationships">Relationships</a>
-            <a href="#review-publish">Review and publish</a>
-            <a href="#tools">Workspace tools</a>
-            <a href="#findings-scans">Findings and scans</a>
-            <a href="#safe-operation">Backups and safety</a>
-            <a href="#maintenance">Maintenance</a>
-            <a href="#troubleshooting">Troubleshooting</a>
-            <a href="#golden-rules">Golden rules</a>
-          </nav>
-        </section>
-      </aside>
+      <aside class="guide-aside"><section class="panel guide-card"><span class="eyebrow">Guide contents</span><div class="toc"><a href="#pipeline">Knowledge pipeline</a><a href="#mental-model">Mental model</a><a href="#workspaces">Current workspaces</a><a href="#site-index">site-index.json</a><a href="#records">Project Records</a><a href="#evidence">Evidence & uncertainty</a><a href="#collections">Collections</a><a href="#publication">Publication</a><a href="#safe-operation">Safety</a><a href="#recommended-workflow">Working rhythm</a><a href="#faq">FAQ</a></div></section></aside>
     </div>
   </main>
 </body>

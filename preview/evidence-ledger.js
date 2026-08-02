@@ -36,7 +36,7 @@ function ingestSession(session,claims,seen,mode){
   for(const c of session.candidates||[]){
     if(!c.include||!c.field||c.field==='unmapped'||!String(c.normalizedValue??'').trim())continue;
     const sourceIdentity=session.url||session.filename||'local-page';
-    const id=`claim:${hash(`${recordId}|${c.field}|${c.normalizedValue}|${sourceIdentity}|${approvedAt}`)}`;
+    const id=`claim:${hash(`${recordId}|${c.field}|${c.normalizedValue}|${c.rawLabel||''}|${sourceIdentity}`)}`;
     if(seen.has(id))continue;
     claims.push({id,recordId,field:c.field,value:c.normalizedValue,rawValue:c.rawValue??c.normalizedValue,rawLabel:c.rawLabel||c.field,confidence:c.confidence||'unknown',source:{url:session.url||'',filename:session.filename||'',kind:c.sourceKind||'page',mode},observedAt:session.extractedAt||approvedAt,approvedAt,preferred:false,resolutionNote:''});
     seen.add(id);
@@ -80,10 +80,10 @@ function render(){
 
 function renderConflict(item){
   const preferred=item.claims.find(c=>c.preferred);
-  return `<article class="evidence-conflict"><header><div><strong>${esc(title(item.record)||item.recordId)}</strong><small>${esc(item.recordId)} · ${esc(label(item.field))}</small></div><span class="badge">${item.values.length} values</span></header><p><strong>Current record:</strong> ${esc(display(item.current)||'—')}</p><div class="evidence-options">${item.claims.map(c=>`<label class="evidence-option ${c.preferred?'preferred':''}"><input type="radio" name="pref-${esc(hash(item.key))}" data-prefer-claim="${esc(c.id)}" ${c.preferred?'checked':''}><span><strong>${esc(display(c.value))}</strong><small>${esc(sourceLabel(c))} · ${esc(label(c.confidence||'unknown'))}</small>${c.rawValue!==c.value?`<em>Raw: ${esc(display(c.rawValue))}</em>`:''}</span></label>`).join('')}</div><div class="actions">${preferred?`<button type="button" data-apply-preferred="${esc(item.key)}">Apply preferred value to record</button>`:''}<button type="button" data-clear-preferred="${esc(item.key)}" ${preferred?'':'disabled'}>Clear preference</button></div></article>`;
+  return `<article class="evidence-conflict"><header><div><strong>${esc(item.record?title(item.record):item.recordId)}</strong><small>${esc(item.recordId)} · ${esc(label(item.field))}</small></div><span class="badge">${item.values.length} values</span></header><p><strong>Current record:</strong> ${esc(display(item.current)||'—')}</p><div class="evidence-options">${item.claims.map(c=>`<label class="evidence-option ${c.preferred?'preferred':''}"><input type="radio" name="pref-${esc(hash(item.key))}" data-prefer-claim="${esc(c.id)}" ${c.preferred?'checked':''}><span><strong>${esc(display(c.value))}</strong><small>${esc(sourceLabel(c))} · ${esc(label(c.confidence||'unknown'))}</small>${c.rawValue!==c.value?`<em>Raw: ${esc(display(c.rawValue))}</em>`:''}</span></label>`).join('')}</div><div class="actions">${preferred?`<button type="button" data-apply-preferred="${esc(item.key)}">Apply preferred value to record</button>`:''}<button type="button" data-clear-preferred="${esc(item.key)}" ${preferred?'':'disabled'}>Clear preference</button></div></article>`;
 }
 
-function renderClaim(c,record,isConflict){return `<article class="evidence-claim"><div><div class="badges"><span class="badge">${esc(label(c.field))}</span>${isConflict?'<span class="badge">Conflict</span>':''}${c.preferred?'<span class="badge">Preferred</span>':''}</div><strong>${esc(title(record)||c.recordId)}</strong><p>${esc(display(c.value))}</p><small>${esc(sourceLabel(c))}</small></div><div><code>${esc(c.recordId)}</code><small>${esc(formatDate(c.approvedAt))}</small></div></article>`}
+function renderClaim(c,record,isConflict){return `<article class="evidence-claim"><div><div class="badges"><span class="badge">${esc(label(c.field))}</span>${isConflict?'<span class="badge">Conflict</span>':''}${c.preferred?'<span class="badge">Preferred</span>':''}</div><strong>${esc(record?title(record):c.recordId)}</strong><p>${esc(display(c.value))}</p><small>${esc(sourceLabel(c))}</small></div><div><code>${esc(c.recordId)}</code><small>${esc(formatDate(c.approvedAt))}</small></div></article>`}
 
 function bind(a){
   document.querySelector('#evidence-search')?.addEventListener('input',e=>{search=e.target.value;render();refocus('#evidence-search')});
@@ -118,4 +118,4 @@ function label(v){return String(v||'').replace(/[_-]+/g,' ').replace(/([a-z])([A
 function formatDate(v){if(!v)return'';const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleString()}
 function refocus(sel){setTimeout(()=>{const el=document.querySelector(sel);el?.focus();try{el?.setSelectionRange(el.value.length,el.value.length)}catch{}},0)}
 function download(payload,name){const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();URL.revokeObjectURL(url)}
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[c]))}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}

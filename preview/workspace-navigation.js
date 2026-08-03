@@ -1,36 +1,59 @@
 const ROUTES={
-  findings:'[data-view="findings"]',
-  records:'[data-view="records"]',
-  help:'[data-view="help"]',
-  'guided-workflow':'#guided-workflow',
-  'extract-knowledge':'#extract-knowledge',
-  'batch-extract-knowledge':'#batch-extract-knowledge',
-  'site-sync':'#site-sync',
-  'entity-resolution':'#entity-resolution',
-  'knowledge-graph':'#knowledge-graph',
-  'knowledge-intelligence':'#knowledge-intelligence',
-  'evidence-ledger':'#evidence-ledger',
-  'knowledge-explorer':'#knowledge-explorer',
-  'publication-composer':'#publication-composer',
-  'page-assembly':'#page-assembly'
+  findings:{selector:'[data-view="findings"]',kind:'view',view:'findings'},
+  records:{selector:'[data-view="records"]',kind:'view',view:'records'},
+  help:{selector:'[data-view="help"]',kind:'view',view:'help'},
+  'guided-workflow':{selector:'#guided-workflow',kind:'workspace'},
+  'extract-knowledge':{selector:'#extract-knowledge',kind:'workspace'},
+  'batch-extract-knowledge':{selector:'#batch-extract-knowledge',kind:'workspace'},
+  'site-sync':{selector:'#site-sync',kind:'workspace'},
+  'entity-resolution':{selector:'#entity-resolution',kind:'workspace'},
+  'knowledge-graph':{selector:'#knowledge-graph',kind:'workspace'},
+  'knowledge-intelligence':{selector:'#knowledge-intelligence',kind:'workspace'},
+  'evidence-ledger':{selector:'#evidence-ledger',kind:'workspace'},
+  'knowledge-explorer':{selector:'#knowledge-explorer',kind:'workspace'},
+  'publication-composer':{selector:'#publication-composer',kind:'workspace'},
+  'page-assembly':{selector:'#page-assembly',kind:'workspace'}
 };
 
-window.CuratorOSNavigate={open};
+window.CuratorOSNavigate={open,register};
 window.addEventListener('curatoros:navigate-workspace',event=>open(event.detail?.workspace));
 
+const handlers=new Map();
+function register(workspace,handler){if(typeof handler==='function')handlers.set(workspace,handler);}
+
 function open(workspace){
-  const selector=ROUTES[workspace];
-  if(!selector){console.warn('CuratorOS navigation: unknown workspace',workspace);return false;}
+  const route=ROUTES[workspace];
+  if(!route){console.warn('CuratorOS navigation: unknown workspace',workspace);return false;}
+  try{
+    const explicit=handlers.get(workspace);
+    if(explicit){explicit();finish(route.selector);return true;}
+    const target=document.querySelector(route.selector);
+    if(!target){console.warn('CuratorOS navigation: target not found',workspace,route.selector);return false;}
+    if(route.kind==='view'){
+      target.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));
+      finish(route.selector);
+      return true;
+    }
+    target.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));
+    setTimeout(()=>{
+      if(!target.classList.contains('active')){
+        try{target.click();}catch(error){console.warn('CuratorOS navigation fallback failed',workspace,error);}
+      }
+      finish(route.selector);
+    },0);
+    return true;
+  }catch(error){
+    console.error('CuratorOS navigation failed',workspace,error);
+    return false;
+  }
+}
+
+function finish(selector){
   const target=document.querySelector(selector);
-  if(!target){console.warn('CuratorOS navigation: target not found',workspace,selector);return false;}
-  document.querySelectorAll('.nav .active').forEach(el=>el.classList.remove('active'));
-  target.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerType:'touch'}));
-  target.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));
-  if(!target.classList.contains('active'))target.click();
+  document.querySelectorAll('.nav .active').forEach(el=>{if(el!==target)el.classList.remove('active');});
+  if(target)target.classList.add('active');
   requestAnimationFrame(()=>{
-    if(!target.classList.contains('active'))target.classList.add('active');
-    document.querySelector('.main')?.scrollTo?.({top:0,behavior:'smooth'});
-    window.scrollTo?.({top:0,behavior:'smooth'});
+    document.querySelector('.main')?.scrollTo?.({top:0,behavior:'auto'});
+    window.scrollTo?.({top:0,behavior:'auto'});
   });
-  return true;
 }

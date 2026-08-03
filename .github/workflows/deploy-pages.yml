@@ -18,8 +18,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      - name: Check out CuratorOS repository
         uses: actions/checkout@v4
+
+      - name: Check out Ocean Liner Curator website
+        uses: actions/checkout@v4
+        with:
+          repository: jaredmberger/Ocean-Liner-Curator
+          ref: main
+          path: _oceanliners
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -27,13 +34,15 @@ jobs:
       - name: Prepare production site artifact
         run: |
           rm -rf _site
-          mkdir -p _site
+          mkdir -p _site/link-map
 
           cp preview/index.html _site/index.html
           cp preview/rebuilt.css _site/rebuilt.css
           cp preview/rebuilt.js _site/rebuilt.js
           cp preview/manifest.webmanifest _site/manifest.webmanifest
           cp preview/icon.svg _site/icon.svg
+          cp link-map/static-index.html _site/link-map/index.html
+          node scripts/build-link-map-data.js _oceanliners _site/link-map/link-map-data.json
           touch _site/.nojekyll
 
       - name: Upload Pages artifact

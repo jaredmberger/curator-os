@@ -4,7 +4,6 @@
 
 ## Features
 
-- Live crawl of `https://oceanliners.net`
 - Cytoscape force-directed graph with touch-friendly zoom/pan
 - Search and page-type filters
 - Incoming-only and outgoing-only focus views
@@ -12,25 +11,25 @@
 - Per-page incoming/outgoing link inspector
 - Heuristic potential-connection suggestions based on shared graph neighbors
 - CSV export for link-audit work
-- Six-hour server-side cache when a KV binding is available
 
-## Cloudflare Pages
+## GitHub Pages architecture
 
-The crawler lives at `functions/api/link-map.js`. It will use either of these KV bindings for cache storage, in this order:
+CuratorOS is deployed with GitHub Pages, so the Link Map uses a generated static dataset rather than a runtime server function.
 
-1. `CURATOROS_LINK_MAP`
-2. `CURATOROS_RECORDS`
+During each CuratorOS deployment, GitHub Actions checks out `jaredmberger/Ocean-Liner-Curator` at `main` and runs `scripts/build-link-map-data.js`. The generator scans HTML files, uses canonical URLs as page identities when available, resolves internal links, deduplicates edges, and writes:
 
-A dedicated `CURATOROS_LINK_MAP` namespace is preferred, but the endpoint still works without KV; it will simply crawl live on each request.
+`_site/link-map/link-map-data.json`
 
-The page is available at `/link-map/`. With the CuratorOS Pages project attached to `curator.oceanliners.net`, the intended URL is:
+The Link Map application is deployed as:
+
+`_site/link-map/index.html`
+
+Production URL:
 
 `https://curator.oceanliners.net/link-map/`
 
 ## Refresh behavior
 
-Normal loads use cached graph data for up to six hours when KV is configured. The **Refresh crawl** button calls `/api/link-map?refresh=1` and rebuilds the graph from the live site.
+The graph dataset is regenerated whenever CuratorOS deploys. The **Reload map** button reloads the currently deployed dataset without requiring a server-side API.
 
-## Scope
-
-The crawler follows same-origin HTML pages only. It normalizes `www`, removes fragments and common campaign query parameters, rejects static assets, and caps discovery at 1,200 pages.
+This architecture avoids browser CORS limitations and requires no Cloudflare Pages Function or KV binding.

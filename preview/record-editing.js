@@ -57,14 +57,85 @@ function inferRecordId(dialog) {
 
 function enhanceRecordsView() {
   const panel = document.querySelector('.project-records-panel');
-  if (!panel || panel.querySelector('.pending-change-panel')) return;
+  if (!panel || panel.dataset.editingEnhanced === 'true') return;
+  panel.dataset.editingEnhanced = 'true';
+
   const changes = readChanges();
   const section = document.createElement('section');
   section.className = 'pending-change-panel';
-  section.innerHTML = `<div><span class="eyebrow">Permanent records workspace</span><h4>${changes.length} recent change${changes.length === 1 ? '' : 's'}</h4><p>Approved edits are saved to the permanent CuratorOS Project Records store. The browser copy is only a cache. Export is optional for backup or handoff.</p></div><div class="pending-change-actions"><button type="button" data-review-changes${changes.length ? '' : ' disabled'}>Review recent changes</button><button type="button" data-export-changes${changes.length ? '' : ' disabled'}>Export change set</button><button type="button" data-discard-changes disabled title="Permanent changes cannot be discarded from the local cache alone.">Discard all</button></div>`;
+  section.innerHTML = `<div><span class="eyebrow">Permanent records workspace</span><h4>${changes.length} recent change${changes.length === 1 ? '' : 's'}</h4><p>Create new Project Records here or edit existing ones. Successful saves are written to the permanent CuratorOS Project Records store; the browser copy is only a cache.</p></div><div class="pending-change-actions"><button type="button" data-create-record>Create Project Record</button><button type="button" data-review-changes${changes.length ? '' : ' disabled'}>Review recent changes</button><button type="button" data-export-changes${changes.length ? '' : ' disabled'}>Export change set</button></div>`;
   panel.prepend(section);
+
+  section.querySelector('[data-create-record]')?.addEventListener('click', openCreateRecord);
   section.querySelector('[data-review-changes]')?.addEventListener('click', openChangeReview);
   section.querySelector('[data-export-changes]')?.addEventListener('click', exportChangeSet);
+
+  const list = panel.querySelector('.project-record-list');
+  if (list && readRecords().length === 0) {
+    list.innerHTML = `<div class="empty"><p>No permanent Project Records exist yet.</p><button type="button" data-create-first-record>Create your first Project Record</button></div>`;
+    list.querySelector('[data-create-first-record]')?.addEventListener('click', openCreateRecord);
+  }
+}
+
+function openCreateRecord() {
+  closeDialog('#project-record-editor');
+  const dialog = document.createElement('dialog');
+  dialog.id = 'project-record-editor';
+  dialog.innerHTML = `<form class="record-editor-card"><header class="record-editor-header"><div><span class="eyebrow">New permanent Project Record</span><h3>Create Project Record</h3></div><button type="button" data-close-editor aria-label="Close editor">×</button></header><p class="record-editor-safety">Saving creates a new permanent Project Record in CuratorOS. The record is only treated as saved after the permanent store confirms the write.</p><div class="record-editor-grid">${field('Title', 'edit-title', '')}${field('Type', 'edit-type', 'record')}${selectField('Status', 'edit-status', 'review', ['draft','review','published','archived'])}${field('Record ID', 'edit-id', '')}</div>${textarea('Summary', 'edit-summary', '', 4)}${textarea('Tags — one per line', 'edit-tags', '', 4)}${textarea('Structured data — JSON object', 'edit-data', '{}', 10, 'json')}${textarea('Sources — JSON array', 'edit-sources', '[]', 8, 'json')}${textarea('Relationships — JSON array', 'edit-relationships', '[]', 8, 'json')}${textarea('Curatorial notes — JSON array', 'edit-notes', '[]', 8, 'json')}<div class="record-editor-error" role="alert" hidden></div><footer class="record-editor-actions"><button type="button" data-close-editor>Cancel</button><button type="submit">Create permanent record</button></footer></form>`;
+  document.body.append(dialog);
+  dialog.querySelectorAll('[data-close-editor]').forEach((button) => button.addEventListener('click', () => closeDialog('#project-record-editor')));
+  dialog.querySelector('form')?.addEventListener('submit', (event) => { event.preventDefault(); saveNewRecord(dialog); });
+  dialog.addEventListener('cancel', () => closeDialog('#project-record-editor'));
+  dialog.showModal();
+}
+
+async function saveNewRecord(dialog) {
+  const errorBox = dialog.querySelector('.record-editor-error');
+  try {
+    const title = value(dialog, '#edit-title').trim();
+    const type = value(dialog, '#edit-type').trim() || 'record';
+    const enteredId = value(dialog, '#edit-id').trim();
+    if (!title) throw new Error('Title is required.');
+
+    const id = enteredId || makeRecordId(type, title);
+    const existing = readRecords();
+    if (existing.some((record) => record.id === id)) throw new Error(`A Project Record with ID ${id} already exists.`);
+
+    const now = new Date().toISOString();
+    const record = {
+      id,
+      title,
+      type,
+      status: value(dialog, '#edit-status'),
+      summary: value(dialog, '#edit-summary').trim(),
+      tags: value(dialog, '#edit-tags').split('\n').map((item) => item.trim()).filter(Boolean),
+      data: parseObject(value(dialog, '#edit-data'), 'Structured data'),
+      sources: parseArray(value(dialog, '#edit-sources'), 'Sources'),
+      relationships: parseArray(value(dialog, '#edit-relationships'), 'Relationships'),
+      notes: parseArray(value(dialog, '#edit-notes'), 'Curatorial notes'),
+      metadata: { permanentlyCreatedAt: now },
+      origin: { kind: 'curatoros-native', createdAt: now }
+    };
+
+    const records = [...existing, record];
+    const store = window.CuratorOSProjectRecordsStore;
+    if (!store) throw new Error('Permanent Project Records store is not available.');
+    await store.save(records, `create:${id}`);
+
+    const changes = readChanges();
+    changes.push({ id: `change:${id}:${Date.now()}`, recordId: id, title, changedAt: now, origin: record.origin, before: null, after: record, fields: ['created'], permanent: true });
+    localStorage.setItem(CHANGE_KEY, JSON.stringify(changes));
+    closeDialog('#project-record-editor');
+    window.dispatchEvent(new CustomEvent('curatoros:records-changed',{detail:{source:'permanent-create'}}));
+  } catch (error) {
+    if (errorBox) { errorBox.hidden = false; errorBox.textContent = error instanceof Error ? error.message : String(error); }
+  }
+}
+
+function makeRecordId(type, title) {
+  const prefix = String(type || 'record').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'record';
+  const slug = String(title || 'untitled').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled';
+  return `${prefix}:${slug}`;
 }
 
 function openEditor(recordId) {

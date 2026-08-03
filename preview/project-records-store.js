@@ -37,22 +37,27 @@ async function save(records,reason='update'){
     if(!response.ok){
       throw new Error(payload?.error||`Project Records store returned ${response.status}`);
     }
-    if(payload?.ok!==true||payload?.storage!=='kv'){
-      throw new Error('Permanent Project Records write was not confirmed by KV storage.');
+
+    const confirmedByResponse=payload?.ok===true&&payload?.storage==='kv';
+    const verification=confirmedByResponse?null:await verifyRemoteRecords(records,payload?.version);
+    if(!confirmedByResponse&&!verification?.confirmed){
+      throw new Error('Permanent Project Records write could not be verified after save.');
     }
 
+    const confirmedVersion=payload?.version||verification?.version||null;
     localStorage.setItem(CACHE_KEY,JSON.stringify(records));
     writeMeta({
       mode:'remote',
       permanent:true,
       recordCount:records.length,
       savedAt:new Date().toISOString(),
-      version:payload?.version||null,
+      version:confirmedVersion,
       storage:'kv',
-      key:payload?.key||'project-records'
+      key:payload?.key||'project-records',
+      confirmation:confirmedByResponse?'worker-response':'read-back'
     });
     window.dispatchEvent(new CustomEvent('curatoros:records-changed',{detail:{source:'remote-save'}}));
-    return payload;
+    return {...(payload||{}),ok:true,storage:'kv',verified:true,version:confirmedVersion};
   }catch(error){
     localStorage.setItem(CACHE_KEY,JSON.stringify(records));
     writeMeta({
@@ -64,6 +69,27 @@ async function save(records,reason='update'){
     });
     throw error;
   }
+}
+
+async function verifyRemoteRecords(expectedRecords,expectedVersion){
+  try{
+    const response=await fetch(API_PATH,{headers:{accept:'application/json'},cache:'no-store'});
+    if(!response.ok)return{confirmed:false};
+    const payload=await response.json();
+    const remoteRecords=Array.isArray(payload?.records)?payload.records:null;
+    if(!remoteRecords)return{confirmed:false};
+    const versionMatches=!expectedVersion||!payload?.version||Number(payload.version)>=Number(expectedVersion);
+    const recordsMatch=stableStringify(remoteRecords)===stableStringify(expectedRecords);
+    return{confirmed:recordsMatch&&versionMatches,version:payload?.version||null};
+  }catch{
+    return{confirmed:false};
+  }
+}
+
+function stableStringify(value){
+  if(Array.isArray(value))return`[${value.map(stableStringify).join(',')}]`;
+  if(value&&typeof value==='object')return`{${Object.keys(value).sort().map(key=>`${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+  return JSON.stringify(value);
 }
 
 async function replace(records,reason='replace'){return save(records,reason)}

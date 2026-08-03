@@ -9,33 +9,47 @@ const WORKSPACE_LABELS={
   'site-sync':'Site / Knowledge Sync','extract-knowledge':'Extract Knowledge','entity-resolution':'Entity Resolution','knowledge-graph':'Knowledge Graph','knowledge-intelligence':'Knowledge Intelligence','evidence-ledger':'Evidence & Conflicts','knowledge-explorer':'Knowledge Explorer','publication-composer':'Publication Composer','page-assembly':'Template & Page Assembly',records:'Project Records'
 };
 
-const observer=new MutationObserver(()=>enhance());
-observer.observe(document.body,{childList:true,subtree:true});
-window.addEventListener('curatoros:records-changed',enhance);
-window.addEventListener('curatoros:guided-step-completed',enhance);
-setTimeout(enhance,0);
+window.addEventListener('curatoros:records-changed',()=>scheduleEnhance());
+window.addEventListener('curatoros:guided-step-completed',()=>scheduleEnhance());
+window.addEventListener('curatoros:workspace-opened',()=>scheduleEnhance());
+setTimeout(()=>scheduleEnhance(),0);
 
+let enhancing=false;
+let scheduled=false;
+
+function scheduleEnhance(){
+  if(scheduled)return;
+  scheduled=true;
+  requestAnimationFrame(()=>{scheduled=false;enhance();});
+}
 function readJson(key,fallback){try{return JSON.parse(localStorage.getItem(key)||'null')??fallback}catch{return fallback}}
 function writeJson(key,value){localStorage.setItem(key,JSON.stringify(value));}
 function flow(){return readJson(FLOW_KEY,null)}
 function currentWorkspace(){const active=document.querySelector('.nav .active');if(!active)return'';if(active.dataset?.view==='records')return'records';return active.id||''}
 
 function enhance(){
-  document.querySelector('#guided-workflow-bar')?.remove();
-  const f=flow();if(!f?.workflow||!app)return;
-  const workspace=currentWorkspace();if(!workspace||workspace==='guided-workflow')return;
-  app.querySelector('[data-task-rail]')?.remove();
-  const readiness=window.CuratorOSWorkflowReadiness?.summary?.(f.workflow,f.step)||null;
-  const rail=document.createElement('section');
-  rail.className='panel workflow-task-rail';rail.dataset.taskRail='true';
-  const subject=f.subject?`<span class="badge">${esc(f.subject)}</span>`:'';
-  rail.innerHTML=`<div class="workflow-task-rail-head"><div><span class="eyebrow">Guided task</span><h4>${esc(WORKSPACE_LABELS[workspace]||workspace)}</h4><div class="badges">${subject}<span class="badge">Step ${Number(f.step||0)+1}</span></div></div><button type="button" data-return-guide>Return to workflow</button></div>
-  ${readiness?renderReadiness(readiness):''}
-  ${renderWorkspaceContext(workspace,f)}
-  <div class="workflow-task-rail-note"><strong>Where does this data live?</strong><p>${esc(storageExplanation(workspace))}</p></div>`;
-  app.prepend(rail);
-  rail.querySelector('[data-return-guide]')?.addEventListener('click',()=>document.querySelector('#guided-workflow')?.click());
-  bindContextActions(rail,workspace,f);
+  if(enhancing)return;
+  enhancing=true;
+  try{
+    document.querySelector('#guided-workflow-bar')?.remove();
+    const f=flow();if(!f?.workflow||!app)return;
+    const workspace=currentWorkspace();if(!workspace||workspace==='guided-workflow')return;
+    const existing=app.querySelector('[data-task-rail]');
+    const signature=`${workspace}|${f.workflow}|${f.step}|${f.subject||''}|${readJson(EXTRACTION_KEY,null)?.approvedAt||''}|${(readJson(EXTRACTION_KEY,null)?.candidates||[]).filter(c=>c.include).length}`;
+    if(existing?.dataset.signature===signature)return;
+    existing?.remove();
+    const readiness=window.CuratorOSWorkflowReadiness?.summary?.(f.workflow,f.step)||null;
+    const rail=document.createElement('section');
+    rail.className='panel workflow-task-rail';rail.dataset.taskRail='true';rail.dataset.signature=signature;
+    const subject=f.subject?`<span class="badge">${esc(f.subject)}</span>`:'';
+    rail.innerHTML=`<div class="workflow-task-rail-head"><div><span class="eyebrow">Guided task</span><h4>${esc(WORKSPACE_LABELS[workspace]||workspace)}</h4><div class="badges">${subject}<span class="badge">Step ${Number(f.step||0)+1}</span></div></div><button type="button" data-return-guide>Return to workflow</button></div>
+    ${readiness?renderReadiness(readiness):''}
+    ${renderWorkspaceContext(workspace,f)}
+    <div class="workflow-task-rail-note"><strong>Where does this data live?</strong><p>${esc(storageExplanation(workspace))}</p></div>`;
+    app.prepend(rail);
+    rail.querySelector('[data-return-guide]')?.addEventListener('click',()=>window.CuratorOSNavigate?.open?.('guided-workflow'));
+    bindContextActions(rail,workspace,f);
+  } finally { enhancing=false; }
 }
 
 function renderReadiness(r){const missing=r.checks?.filter(x=>!x.ok)||[];return `<div class="workflow-task-status ${missing.length?'needs-action':'ready'}"><strong>${missing.length?'Action still needed':'Ready to finish this task'}</strong><span>${esc(missing[0]?.detail||'CuratorOS can see the expected prerequisite data for this step.')}</span></div>`}
@@ -73,8 +87,8 @@ function bindContextActions(rail,workspace){
     const key=cb.dataset.flowCandidate;const candidate=(s.candidates||[]).find(c=>candidateKey(c)===key);if(!candidate)return;
     candidate.include=cb.checked;writeJson(EXTRACTION_KEY,s);
     const original=[...document.querySelectorAll('[data-candidate-include]')].find(el=>{const idx=Number(el.dataset.candidateInclude);const c=s.candidates?.[idx];return c&&candidateKey(c)===key});
-    if(original){original.checked=cb.checked;original.dispatchEvent(new Event('change',{bubbles:true}));}
-    enhance();
+    if(original&&original!==cb){original.checked=cb.checked;original.dispatchEvent(new Event('change',{bubbles:true}));}
+    scheduleEnhance();
   }));
 }
 

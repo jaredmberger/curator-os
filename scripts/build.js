@@ -7,6 +7,7 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
 const html = read('views/shell.html');
 const css = read('styles/curatoros.css');
+const linkMapHtml = read('link-map/index.html');
 const modules = [
   'src/core/database.js',
   'src/core/storage.js',
@@ -27,9 +28,9 @@ if (assembled.includes('__CURATOROS_')) {
   throw new Error('Build failed: unresolved assembly token.');
 }
 
-const worker = `const HTML = ${JSON.stringify(assembled)};\n\nexport default {\n  async fetch() {\n    return new Response(HTML, {\n      headers: {\n        'content-type': 'text/html; charset=utf-8',\n        'cache-control': 'no-store'\n      }\n    });\n  }\n};\n`;
+const worker = `const HTML = ${JSON.stringify(assembled)};\nconst LINK_MAP_HTML = ${JSON.stringify(linkMapHtml)};\n\nexport default {\n  async fetch(request) {\n    const url = new URL(request.url);\n    const pathname = url.pathname.replace(/\\/+$/, '') || '/';\n\n    if (pathname === '/link-map') {\n      return new Response(LINK_MAP_HTML, {\n        headers: {\n          'content-type': 'text/html; charset=utf-8',\n          'cache-control': 'no-store'\n        }\n      });\n    }\n\n    return new Response(HTML, {\n      headers: {\n        'content-type': 'text/html; charset=utf-8',\n        'cache-control': 'no-store'\n      }\n    });\n  }\n};\n`;
 
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
 fs.writeFileSync(path.join(root, 'dist/curatoros-worker.js'), worker);
 fs.writeFileSync(path.join(root, 'dist/curatoros-worker.json'), worker);
-console.log('Built dist/curatoros-worker.js');
+console.log('Built dist/curatoros-worker.js with /link-map routing');

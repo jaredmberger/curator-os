@@ -10,6 +10,7 @@ CuratorOS is the home application for a connected maintenance and publishing sui
 
 - **CuratorOS:** `https://curator.oceanliners.net/`
 - **Site Health:** `https://site-health.oceanliners.net/`
+- **Curator Integrity:** `https://integrity.oceanliners.net/`
 - **Search Intelligence:** `https://search-intelligence.oceanliners.net/`
 - **Curator Indexer:** `https://curator-indexer.oceanliners.net/`
 - **Curator Speed:** `https://speed.oceanliners.net/`
@@ -19,7 +20,7 @@ The official 1.0 workflow is:
 
 `Scan → Explain → Locate → Recommend → Repair → Publish → Verify`
 
-1. Run Site Health, Search Intelligence, Curator Indexer, or Curator Speed.
+1. Run Site Health, Curator Integrity, Search Intelligence, Curator Indexer, or Curator Speed.
 2. Export or review the relevant scanner/intelligence report.
 3. Import findings into CuratorOS when the tool provides an exchange report.
 4. Review the finding, recommendation, history, and curator decision.
@@ -61,7 +62,7 @@ CuratorOS 1.0 includes:
 
 - structured authoring for ships, builders, shipping lines, sources, reference objects, and photos or media
 - evidence relationships, review queues, advanced search, and publication previews
-- imported findings from Site Health, Curator Indexer, and Curator Speed
+- imported findings from Site Health, Curator Integrity, Curator Indexer, and Curator Speed
 - new, persistent, verified, and regressed scan history
 - durable Open, Handled, Verified, and Regressed curator decisions with notes
 - contextual repair handoff into Page Studio

@@ -10,6 +10,7 @@ CuratorOS is the home application for a connected maintenance and publishing sui
 
 - **CuratorOS:** `https://curator.oceanliners.net/`
 - **Site Health:** `https://site-health.oceanliners.net/`
+- **Search Intelligence:** `https://search-intelligence.oceanliners.net/`
 - **Curator Indexer:** `https://curator-indexer.oceanliners.net/`
 - **Curator Speed:** `https://speed.oceanliners.net/`
 - **Page Studio:** `https://page-studio.oceanliners.net/`
@@ -18,16 +19,16 @@ The official 1.0 workflow is:
 
 `Scan → Explain → Locate → Recommend → Repair → Publish → Verify`
 
-1. Run Site Health, Curator Indexer, or Curator Speed.
-2. Export the report from the scanner.
-3. Import it into CuratorOS.
+1. Run Site Health, Search Intelligence, Curator Indexer, or Curator Speed.
+2. Export or review the relevant scanner/intelligence report.
+3. Import findings into CuratorOS when the tool provides an exchange report.
 4. Review the finding, recommendation, history, and curator decision.
 5. Open the affected page directly in Page Studio.
 6. Edit and validate the page.
 7. Create a GitHub branch and pull request through the secure publishing Worker.
-8. Rerun the relevant scanner and verify that the finding is resolved.
+8. Rerun the relevant scanner or intelligence tool and verify the result.
 
-The scanners remain independent engines. CuratorOS is their operating surface and review system. The integration is intentionally honest: launch, export, and import rather than claiming silent synchronization.
+The scanners and intelligence tools remain independent engines. CuratorOS is their operating surface and review system. Integrations are explicit and should not claim silent synchronization unless a service actually provides it.
 
 The stable exchange formats and compatibility rules are documented in [`docs/curatoros-suite-contract.md`](docs/curatoros-suite-contract.md).
 

@@ -48,3 +48,36 @@ function finish(selector,workspace){
     window.scrollTo?.({top:0,behavior:'auto'});
   });
 }
+
+function readHandoff(){
+  const params=new URLSearchParams(location.search);
+  const workspace=String(params.get('workspace')||'').trim();
+  if(!workspace||!ROUTES[workspace])return null;
+  return {
+    workspace,
+    subject:String(params.get('subject')||'').trim(),
+    page:String(params.get('page')||'').trim(),
+    action:String(params.get('action')||'').trim(),
+    source:String(params.get('source')||'').trim(),
+    recommendation:String(params.get('recommendation')||'').trim()
+  };
+}
+
+function applyHandoff(){
+  const handoff=readHandoff();
+  if(!handoff)return;
+  try{sessionStorage.setItem('curatoros.handoff',JSON.stringify({...handoff,receivedAt:new Date().toISOString()}));}catch{}
+  let attempts=0;
+  const timer=setInterval(()=>{
+    attempts+=1;
+    if(open(handoff.workspace)){
+      clearInterval(timer);
+      window.dispatchEvent(new CustomEvent('curatoros:handoff',{detail:handoff}));
+      return;
+    }
+    if(attempts>=40)clearInterval(timer);
+  },250);
+}
+
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',applyHandoff);
+else applyHandoff();

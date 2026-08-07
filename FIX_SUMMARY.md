@@ -1,0 +1,1 @@
+v0.4.1 fixes ship Key Facts extraction by making the div/ARIA fact table visible to the existing structured-table collector and mapping its labels into canonical Ship Record schema v2.

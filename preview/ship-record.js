@@ -71,9 +71,9 @@ function renderShipFacts(record){
 }
 
 function renderFactSection(section,data,record){
-  const values=section.fields.map(([key,labelText])=>[key,labelText,displayShipValue(data[key])]).filter(([, ,value])=>value);
+  const values=section.fields.map(([key,labelText])=>[key,labelText,displayShipValue(data[key])]).filter(([, ,shown])=>shown);
   if(!values.length)return'';
-  return `<section class="ship-record-section"><h4>${esc(section.title)}</h4><dl class="ship-record-facts">${values.map(([key,labelText,value])=>`<div><dt>${esc(labelText)}</dt><dd>${esc(value)}${renderEvidenceMarker(record,key)}</dd></div>`).join('')}</dl></section>`;
+  return `<section class="ship-record-section"><h4>${esc(section.title)}</h4><dl class="ship-record-facts">${values.map(([key,labelText,shown])=>`<div><dt>${esc(labelText)}</dt><dd>${esc(shown)}${renderEvidenceMarker(record,key)}</dd></div>`).join('')}</dl></section>`;
 }
 function renderEvidenceMarker(record,key){
   const evidence=record?.fieldEvidence?.[key];if(!evidence)return'';
@@ -123,7 +123,8 @@ async function saveShipRecord(before,dialog,isEdit){
 function shipData(record){
   const d=record?.data&&typeof record.data==='object'?record.data:{};
   const legacyOperator=d.shippingLine||d.line||d.operator||d.company||'';
-  return {...d,shippingLine:legacyOperator,originalOperator:d.originalOperator||legacyOperator,operatorHistory:d.operatorHistory||d.operators||legacyOperator?[legacyOperator]:[],builder:d.builder||d.builtBy||d.shipbuilder||'',launchDate:d.launchDate||d.launched||d.launchYear||'',enteredServiceDate:d.enteredServiceDate||d.enteredService||d.serviceStart||'',grossTonnage:d.grossTonnage||d.tonnage||d.grt||'',serviceSpeed:d.serviceSpeed||d.speed||'',shipClass:d.shipClass||d.class||'',sisterShips:d.sisterShips||d.sisters||[]};
+  const operatorHistory=Array.isArray(d.operatorHistory)?d.operatorHistory:Array.isArray(d.operators)?d.operators:(legacyOperator?[legacyOperator]:[]);
+  return {...d,shippingLine:legacyOperator,originalOperator:d.originalOperator||legacyOperator,operatorHistory,builder:d.builder||d.builtBy||d.shipbuilder||'',launchDate:d.launchDate||d.launched||d.launchYear||'',enteredServiceDate:d.enteredServiceDate||d.enteredService||d.serviceStart||'',grossTonnage:d.grossTonnage||d.tonnage||d.grt||'',serviceSpeed:d.serviceSpeed||d.speed||'',shipClass:d.shipClass||d.class||'',sisterShips:d.sisterShips||d.sisters||[]};
 }
 function isShipRecord(record){return String(record?.type||'').toLowerCase()==='ship'||String(record?.id||'').startsWith('ship:');}
 function shipRecordIdFromInspector(dialog){const dt=[...dialog.querySelectorAll('dt')].find(n=>n.textContent.trim().toLowerCase()==='record id');return dt?.nextElementSibling?.textContent?.trim()||'';}
@@ -141,4 +142,4 @@ function input(labelText,id,val,readonly=false,help=''){return `<label><span>${e
 function textarea(labelText,id,val,rows=4){return `<label class="ship-editor-wide"><span>${esc(labelText)}</span><textarea id="${id}" rows="${rows}">${esc(val)}</textarea></label>`;}
 function select(labelText,id,val,options){return `<label><span>${esc(labelText)}</span><select id="${id}">${options.map(o=>`<option value="${o}"${o===val?' selected':''}>${esc(o)}</option>`).join('')}</select></label>`;}
 function closeShipEditor(){const d=document.querySelector('#ship-record-editor');if(!d)return;try{d.close()}catch{}d.remove();}
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[c]));}

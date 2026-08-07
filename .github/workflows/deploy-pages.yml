@@ -44,20 +44,34 @@ jobs:
           mkdir -p _site/src
           rsync -a src/ _site/src/
 
+          # Load the canonical version module in the deployed application.
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('_site/index.html')
+          html = path.read_text()
+          marker = '</body>'
+          script = '  <script type="module" src="./version.js"></script>\n'
+          if script not in html:
+              html = html.replace(marker, script + marker)
+          path.write_text(html)
+          PY
+
           # Build the Link Map from the public Ocean Liner Curator repository.
           cp link-map/static-index.html _site/link-map/index.html
           node scripts/build-link-map-data.js _oceanliners _site/link-map/link-map-data.json
 
           touch _site/.nojekyll
 
-          # Fail the deployment early if canonical record assets are missing.
+          # Fail the deployment early if canonical record/version assets are missing.
           test -f _site/project-records-store.js
           test -f _site/records-browser.js
           test -f _site/record-editing.js
           test -f _site/ship-record.js
           test -f _site/ship-record.css
+          test -f _site/version.js
           test -f _site/src/core/database.js
           test -f _site/src/core/storage.js
+          grep -q 'version.js' _site/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

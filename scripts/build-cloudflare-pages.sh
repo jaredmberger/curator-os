@@ -12,6 +12,17 @@ mkdir -p "$OUT/link-map" "$OUT/src"
 cp -R "$ROOT/preview/." "$OUT/"
 cp -R "$ROOT/src/." "$OUT/src/"
 
+# Ensure the canonical version badge is loaded in production regardless of host.
+python - <<'PY'
+from pathlib import Path
+path = Path('dist-pages/index.html')
+html = path.read_text()
+script = '  <script type="module" src="./version.js"></script>\n'
+if script not in html:
+    html = html.replace('</body>', script + '</body>')
+path.write_text(html)
+PY
+
 # Build the Link Map from the current public Ocean Liner Curator repository.
 cp "$ROOT/link-map/static-index.html" "$OUT/link-map/index.html"
 git clone --depth 1 https://github.com/jaredmberger/Ocean-Liner-Curator.git "$SITE_REPO"
@@ -33,5 +44,6 @@ test -f "$OUT/version.js"
 test -f "$OUT/src/core/database.js"
 test -f "$OUT/src/core/storage.js"
 test -f "$OUT/link-map/link-map-data.json"
+grep -q 'version.js' "$OUT/index.html"
 
 echo "Built Cloudflare Pages artifact in dist-pages/"

@@ -1,6 +1,6 @@
 // Canonical CuratorOS application version.
 // Bump this value whenever a user-visible CuratorOS release is deployed.
-export const CURATOROS_VERSION = '0.4.1';
+export const CURATOROS_VERSION = '0.5.0';
 
 window.CURATOROS_VERSION = CURATOROS_VERSION;
 document.documentElement.dataset.curatorosVersion = CURATOROS_VERSION;

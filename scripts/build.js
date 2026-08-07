@@ -36,17 +36,34 @@ const jsonResponse = (value, status = 200) => new Response(JSON.stringify(value,
   status,
   headers: {
     'content-type': 'application/json; charset=utf-8',
-    'cache-control': 'no-store'
+    'cache-control': 'no-store',
+    'x-curatoros-backend': 'project-records-worker'
   }
 });
 
-async function handleProjectRecords(request, env) {
-  const store = env && env.CURATOROS_RECORDS;
+function projectRecordsStore(env) {
+  return env && env.CURATOROS_RECORDS ? env.CURATOROS_RECORDS : null;
+}
+
+async function handleProjectRecords(request, env, pathname) {
+  const store = projectRecordsStore(env);
+
+  if (pathname === '/api/project-records/health') {
+    return jsonResponse({
+      ok: Boolean(store),
+      service: 'curatoros-project-records',
+      storage: store ? 'kv' : 'unconfigured',
+      binding: 'CURATOROS_RECORDS'
+    }, store ? 200 : 503);
+  }
+
   if (!store) {
     return jsonResponse({
       ok: false,
+      service: 'curatoros-project-records',
+      storage: 'unconfigured',
       error: 'CURATOROS_RECORDS binding is not configured on this Worker.'
-    }, 500);
+    }, 503);
   }
 
   if (request.method === 'GET') {
@@ -54,7 +71,12 @@ async function handleProjectRecords(request, env) {
     const payload = raw && Array.isArray(raw.records)
       ? raw
       : { records: [], version: 0, updatedAt: null, reason: 'uninitialized' };
-    return jsonResponse(payload);
+    return jsonResponse({
+      ok: true,
+      storage: 'kv',
+      key: PROJECT_RECORDS_KEY,
+      ...payload
+    });
   }
 
   if (request.method === 'PUT') {
@@ -62,11 +84,11 @@ async function handleProjectRecords(request, env) {
     try {
       body = await request.json();
     } catch {
-      return jsonResponse({ ok: false, error: 'Invalid JSON body.' }, 400);
+      return jsonResponse({ ok: false, storage: 'kv', error: 'Invalid JSON body.' }, 400);
     }
 
     if (!Array.isArray(body && body.records)) {
-      return jsonResponse({ ok: false, error: 'records must be an array.' }, 400);
+      return jsonResponse({ ok: false, storage: 'kv', error: 'records must be an array.' }, 400);
     }
 
     const previous = await store.get(PROJECT_RECORDS_KEY, 'json');
@@ -82,6 +104,7 @@ async function handleProjectRecords(request, env) {
 
     return jsonResponse({
       ok: true,
+      service: 'curatoros-project-records',
       storage: 'kv',
       key: PROJECT_RECORDS_KEY,
       version,
@@ -94,7 +117,8 @@ async function handleProjectRecords(request, env) {
     status: 405,
     headers: {
       allow: 'GET, PUT',
-      'cache-control': 'no-store'
+      'cache-control': 'no-store',
+      'x-curatoros-backend': 'project-records-worker'
     }
   });
 }
@@ -104,8 +128,8 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname.replace(/\\/+$/, '') || '/';
 
-    if (pathname === '/api/project-records') {
-      return handleProjectRecords(request, env);
+    if (pathname === '/api/project-records' || pathname === '/api/project-records/health') {
+      return handleProjectRecords(request, env, pathname);
     }
 
     if (pathname === '/link-map') {
@@ -130,4 +154,4 @@ export default {
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
 fs.writeFileSync(path.join(root, 'dist/curatoros-worker.js'), worker);
 fs.writeFileSync(path.join(root, 'dist/curatoros-worker.json'), worker);
-console.log('Built dist/curatoros-worker.js with KV-backed Project Records API and /link-map routing');
+console.log('Built dist/curatoros-worker.js with durable KV Project Records API, health check, and /link-map routing');

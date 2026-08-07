@@ -1,17 +1,30 @@
 const CACHE_KEY='curatoros.rebuilt.catalog';
 const STORE_META_KEY='curatoros.project.storeMeta';
 const API_PATH='/api/project-records';
+const HEALTH_PATH='/api/project-records/health';
 
-window.CuratorOSProjectRecordsStore={load,save,replace,getStatus};
+window.CuratorOSProjectRecordsStore={load,save,replace,getStatus,health};
+
+async function health(){
+  const response=await fetch(HEALTH_PATH,{headers:{accept:'application/json'},cache:'no-store'});
+  const payload=await readJsonResponse(response);
+  if(!response.ok||payload?.service!=='curatoros-project-records'||payload?.storage!=='kv'){
+    throw new Error(payload?.error||`Durable Project Records backend is not active (${response.status}).`);
+  }
+  return payload;
+}
 
 async function load(){
   try{
     const response=await fetch(API_PATH,{headers:{accept:'application/json'},cache:'no-store'});
-    if(!response.ok)throw new Error(`Project Records store returned ${response.status}`);
-    const payload=await response.json();
-    const records=Array.isArray(payload?.records)?payload.records:[];
+    const payload=await readJsonResponse(response);
+    if(!response.ok)throw new Error(payload?.error||`Project Records store returned ${response.status}`);
+    if(payload?.ok!==true||payload?.storage!=='kv'||!Array.isArray(payload?.records)){
+      throw new Error('Project Records response did not come from the durable KV backend.');
+    }
+    const records=payload.records;
     localStorage.setItem(CACHE_KEY,JSON.stringify(records));
-    writeMeta({mode:'remote',permanent:true,recordCount:records.length,loadedAt:new Date().toISOString(),version:payload?.version||0,storage:'kv'});
+    writeMeta({mode:'remote',permanent:true,recordCount:records.length,loadedAt:new Date().toISOString(),version:payload?.version||0,storage:'kv',key:payload?.key||'project-records'});
     window.dispatchEvent(new CustomEvent('curatoros:records-changed',{detail:{source:'remote-load'}}));
     return records;
   }catch(error){
@@ -31,14 +44,13 @@ async function save(records,reason='update'){
       body:JSON.stringify({records,reason})
     });
 
-    let payload=null;
-    try{payload=await response.json()}catch{}
+    const payload=await readJsonResponse(response);
 
     if(!response.ok){
       throw new Error(payload?.error||`Project Records store returned ${response.status}`);
     }
 
-    const confirmedByResponse=payload?.ok===true&&payload?.storage==='kv';
+    const confirmedByResponse=payload?.ok===true&&payload?.storage==='kv'&&payload?.service==='curatoros-project-records';
     const verification=confirmedByResponse?null:await verifyRemoteRecords(records,payload?.version);
     if(!confirmedByResponse&&!verification?.confirmed){
       throw new Error('Permanent Project Records write could not be verified after save.');
@@ -74,8 +86,8 @@ async function save(records,reason='update'){
 async function verifyRemoteRecords(expectedRecords,expectedVersion){
   try{
     const response=await fetch(API_PATH,{headers:{accept:'application/json'},cache:'no-store'});
-    if(!response.ok)return{confirmed:false};
-    const payload=await response.json();
+    const payload=await readJsonResponse(response);
+    if(!response.ok||payload?.storage!=='kv'||payload?.ok!==true)return{confirmed:false};
     const remoteRecords=Array.isArray(payload?.records)?payload.records:null;
     if(!remoteRecords)return{confirmed:false};
     const versionMatches=!expectedVersion||!payload?.version||Number(payload.version)>=Number(expectedVersion);
@@ -84,6 +96,14 @@ async function verifyRemoteRecords(expectedRecords,expectedVersion){
   }catch{
     return{confirmed:false};
   }
+}
+
+async function readJsonResponse(response){
+  const contentType=response.headers.get('content-type')||'';
+  if(!contentType.includes('application/json')){
+    throw new Error('Durable Project Records API route is not active; the request did not reach the CuratorOS Worker.');
+  }
+  try{return await response.json()}catch{throw new Error('Durable Project Records API returned invalid JSON.');}
 }
 
 function stableStringify(value){

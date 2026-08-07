@@ -1,4 +1,5 @@
 import './ship-schema-validation-set.js';
+import './ship-extraction-v2.js';
 
 const OLYMPIC_CATALOG_KEY='curatoros.rebuilt.catalog';
 const OLYMPIC_ID='ship:rms-olympic';

@@ -36,14 +36,28 @@ jobs:
           rm -rf _site
           mkdir -p _site/link-map
 
-          cp preview/index.html _site/index.html
-          cp preview/rebuilt.css _site/rebuilt.css
-          cp preview/rebuilt.js _site/rebuilt.js
-          cp preview/manifest.webmanifest _site/manifest.webmanifest
-          cp preview/icon.svg _site/icon.svg
+          # CuratorOS is composed of many cooperating preview modules/styles.
+          # Publish the complete application instead of a small legacy subset.
+          rsync -a preview/ _site/
+
+          # preview/index.html references shared core/style assets at /src/.
+          mkdir -p _site/src
+          rsync -a src/ _site/src/
+
+          # Build the Link Map from the public Ocean Liner Curator repository.
           cp link-map/static-index.html _site/link-map/index.html
           node scripts/build-link-map-data.js _oceanliners _site/link-map/link-map-data.json
+
           touch _site/.nojekyll
+
+          # Fail the deployment early if canonical record assets are missing.
+          test -f _site/project-records-store.js
+          test -f _site/records-browser.js
+          test -f _site/record-editing.js
+          test -f _site/ship-record.js
+          test -f _site/ship-record.css
+          test -f _site/src/core/database.js
+          test -f _site/src/core/storage.js
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

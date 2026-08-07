@@ -53,7 +53,6 @@ async function saveCanonicalShipRecord(){
   const records=readRecords();
   const existing=findExistingShip(records,session);
   const id=existing?.id||`ship:${slug(session.recordTitle)}`;
-  const before=existing?clone(existing):null;
   const now=new Date().toISOString();
   const sourceId=`source.page-${slug(session.url||session.filename||session.recordTitle)}`;
   const source={id:sourceId,title:`Website page: ${session.title||session.recordTitle}`,url:session.url||undefined,sourceType:'website-page'};
@@ -90,7 +89,8 @@ async function saveCanonicalShipRecord(){
       record.summary=String(candidate.normalizedValue).trim();
       continue;
     }
-    const targetField=FIELD_TRANSLATION[candidate.field]||candidate.field;
+    const targetField=FIELD_TRANSLATION[candidate.field];
+    if(!targetField)continue;
     const value=normalizeForShipField(targetField,candidate.normalizedValue);
     if(value===undefined||value===null||value===''||(Array.isArray(value)&&!value.length))continue;
     record.data[targetField]=value;

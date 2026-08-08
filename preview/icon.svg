@@ -3,6 +3,6 @@
   <g transform="rotate(180 256 256)">
     <circle cx="256" cy="256" r="166" fill="none" stroke="#bfa46a" stroke-width="20"/>
     <path d="M256 112v288M176 232h160M196 400h120" fill="none" stroke="#f3efe6" stroke-width="22" stroke-linecap="round"/>
-    <path d="M192 176c16-30 40-46 64-46s48 16 64 46" fill="none" stroke="#bfa46a" stroke-width="18" stroke-linecap="round"/>
+    <path d="M192 176c16-30 40-46 64-46s48 16 64 46" fill="none" stroke="#f3efe6" stroke-width="18" stroke-linecap="round"/>
   </g>
 </svg>

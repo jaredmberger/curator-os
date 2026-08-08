@@ -22,9 +22,10 @@ mkdir -p "$OUT/link-map" "$OUT/src"
 cp -R "$ROOT/preview/." "$OUT/"
 cp -R "$ROOT/src/." "$OUT/src/"
 
-# Ensure the canonical version badge is loaded in production and cache-bust all
-# local JS/CSS assets with the current CuratorOS release version. The HTML shell
-# itself is revalidated on every visit via _headers below.
+# Ensure the canonical version badge is loaded in production and add a release
+# token to local JS/CSS URLs. The token is useful for release visibility, while
+# _headers below now requires revalidation so a stale Safari/edge cache can never
+# keep an older CuratorOS module indefinitely.
 CURATOROS_BUILD_VERSION="$VERSION" python - <<'PY'
 import os
 import re
@@ -38,16 +39,15 @@ script = '  <script type="module" src="./version.js"></script>\n'
 if script not in html and './version.js' not in html:
     html = html.replace('</body>', script + '</body>')
 
-# Replace any existing local asset version token with the current release, or
-# append one when none exists. External URLs and non-JS/CSS links are untouched.
 pattern = re.compile(r'(?P<prefix>(?:src|href)=["\'])(?P<url>(?:\.\.?/|/)[^"\']+?\.(?:js|css))(?:\?v=[^"\']*)?(?P<suffix>["\'])')
 html = pattern.sub(lambda m: f"{m.group('prefix')}{m.group('url')}?v={version}{m.group('suffix')}", html)
 path.write_text(html)
 PY
 
-# Cloudflare Pages custom headers. HTML is always revalidated so Safari sees
-# newly deployed asset URLs immediately. Versioned static assets can be cached
-# aggressively because every CuratorOS release gives them a new URL.
+# Cloudflare Pages custom headers. CuratorOS is a frequently updated internal app,
+# so correctness and freshness matter more than year-long immutable browser caches.
+# `no-cache` allows Safari to retain a local copy, but requires revalidation before
+# reuse; unchanged assets can still return efficiently via normal HTTP validation.
 cat > "$OUT/_headers" <<EOF
 /
   Cache-Control: no-cache, max-age=0, must-revalidate
@@ -59,16 +59,16 @@ cat > "$OUT/_headers" <<EOF
   Cache-Control: no-cache, max-age=0, must-revalidate
 
 /*.js
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: no-cache, max-age=0, must-revalidate
 
 /*.css
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: no-cache, max-age=0, must-revalidate
 
 /src/*.js
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: no-cache, max-age=0, must-revalidate
 
 /src/*.css
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: no-cache, max-age=0, must-revalidate
 EOF
 
 # Build the Link Map from the current public Ocean Liner Curator repository.

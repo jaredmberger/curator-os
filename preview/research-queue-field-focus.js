@@ -2,6 +2,9 @@ const FOCUS_KEY='curatoros.recordFieldFocus';
 const SECTION_BY_FIELD={
   originalOperator:'Core identity',builder:'Core identity',launchDate:'Construction & dates',completedDate:'Construction & dates',maidenVoyageDate:'Construction & dates',grossTonnage:'Dimensions & machinery',length:'Dimensions & machinery',beam:'Dimensions & machinery',routes:'Capacity & service',serviceEras:'Capacity & service',fate:'End of service & fate'
 };
+const DISPLAY_BY_FIELD={
+  originalOperator:'Original operator',builder:'Built by',launchDate:'Launched',completedDate:'Completed',maidenVoyageDate:'Maiden voyage',grossTonnage:'Gross tonnage',length:'Length',beam:'Beam',routes:'Routes',serviceEras:'Service eras',fate:'Fate'
+};
 const observer=new MutationObserver(()=>applyFocus());
 observer.observe(document.body,{childList:true,subtree:true});
 setTimeout(applyFocus,0);
@@ -12,14 +15,13 @@ function applyFocus(){
   const inspector=document.querySelector('#project-record-inspector');
   const overview=inspector?.querySelector('.ship-record-overview');
   if(!inspector||!overview||inspector.dataset.researchFieldFocused)return;
-  const currentTitle=overview.querySelector('.ship-record-title-row h4')?.textContent?.trim()||'';
-  if(!currentTitle)return;
-  let target=[...overview.querySelectorAll('.ship-record-facts > div')].find(row=>row.querySelector('dt')?.textContent?.trim().toLowerCase()===(focus.label||'').replace(/ relationship$/i,'').trim().toLowerCase());
+  const expectedLabel=(DISPLAY_BY_FIELD[focus.field]||focus.label||focus.field).trim().toLowerCase();
+  let target=[...overview.querySelectorAll('.ship-record-facts > div')].find(row=>row.querySelector('dt')?.textContent?.trim().toLowerCase()===expectedLabel);
   if(!target){
     const sectionTitle=SECTION_BY_FIELD[focus.field];
     const section=[...overview.querySelectorAll('.ship-record-section')].find(s=>s.querySelector('h4')?.textContent?.trim()===sectionTitle);
     const list=section?.querySelector('.ship-record-facts');
-    if(list){target=document.createElement('div');target.className='research-field-focus research-field-missing';target.innerHTML=`<dt>${esc(focus.label||focus.field)}</dt><dd>Not recorded <small>Research Queue target</small></dd>`;list.append(target);}
+    if(list){target=document.createElement('div');target.className='research-field-focus research-field-missing';target.innerHTML=`<dt>${esc(DISPLAY_BY_FIELD[focus.field]||focus.label||focus.field)}</dt><dd>Not recorded <small>Research Queue target</small></dd>`;list.append(target);}
   }
   if(!target)return;
   inspector.dataset.researchFieldFocused='true';

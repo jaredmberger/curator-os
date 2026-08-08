@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'curatoros.rebuilt.catalog';
 const IMPORT_KEY = 'curatoros.project.lastImport';
 const STORE_META_KEY = 'curatoros.project.storeMeta';
+const OPEN_RECORD_KEY = 'curatoros.openRecordId';
 const app = document.querySelector('#app');
 const recordsButton = document.querySelector('[data-view="records"]');
 
@@ -55,6 +56,20 @@ function renderProjectRecords() {
     </section>`;
 
   bindBrowserControls();
+  window.requestAnimationFrame(openPendingRecord);
+}
+
+function openPendingRecord() {
+  let recordId = '';
+  try { recordId = sessionStorage.getItem(OPEN_RECORD_KEY) || ''; } catch {}
+  if (!recordId) return;
+  const record = readRecords().find((item) => item.id === recordId);
+  if (!record) return;
+  try { sessionStorage.removeItem(OPEN_RECORD_KEY); } catch {}
+  browserState.search = '';
+  browserState.type = '';
+  browserState.status = '';
+  openRecordInspector(recordId);
 }
 
 function renderStoreSummary(meta, importMetadata) {

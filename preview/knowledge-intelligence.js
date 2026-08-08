@@ -16,123 +16,64 @@ function saveCollections(value){localStorage.setItem(COLLECTIONS_KEY,JSON.string
 function relName(rel){return rel?.relationship||rel?.type||'related_to'}
 function relTarget(rel){return rel?.target||rel?.id||rel?.recordId||''}
 function title(r){return r?.title||r?.name||r?.id||'Untitled record'}
+function shipRecords(all){return all.filter(r=>r?.type==='ship'||String(r?.id||'').startsWith('ship:'))}
+function values(v){if(Array.isArray(v))return v.map(x=>typeof x==='object'?(x.name||x.value||x.label||JSON.stringify(x)):x).filter(Boolean);if(v==null||String(v).trim()==='')return[];return[String(v).trim()]}
+function hasValue(v){return values(v).length>0}
+function firstData(record,...keys){for(const key of keys)if(hasValue(record?.data?.[key]))return record.data[key];return''}
+
+const CORE_FIELDS=[
+  ['originalOperator','Original operator'],['builder','Builder'],['launchDate','Launch date'],['completedDate','Completed date'],['maidenVoyage','Maiden voyage'],['grossTonnage','Gross tonnage'],['length','Length'],['beam','Beam'],['routes','Route / service'],['servicePeriod','Service period'],['fate','Fate']
+];
 
 function analyze(all){
+  const ships=shipRecords(all);
   const byId=new Map(all.map(r=>[r.id,r]));
-  const inbound=new Map();
-  const unresolved=[];
-  const relationshipGaps=[];
-  const structuredGroups=[];
+  const inbound=new Map(),unresolved=[],relationshipGaps=[],structuredGroups=[];
 
   for(const record of all){
     const rels=Array.isArray(record.relationships)?record.relationships:[];
-    for(const rel of rels){
-      const target=relTarget(rel);if(!target)continue;
-      const key=`${relName(rel)}|${target}`;
-      if(!inbound.has(key))inbound.set(key,{relationship:relName(rel),target,records:[]});
-      inbound.get(key).records.push(record);
-      if(!byId.has(target))unresolved.push({record,relationship:relName(rel),target});
-    }
+    for(const rel of rels){const target=relTarget(rel);if(!target)continue;const key=`${relName(rel)}|${target}`;if(!inbound.has(key))inbound.set(key,{relationship:relName(rel),target,records:[]});inbound.get(key).records.push(record);if(!byId.has(target))unresolved.push({record,relationship:relName(rel),target});}
     const data=record.data||{};
-    if(data.builder&&!rels.some(r=>relName(r)==='built_by'))relationshipGaps.push({record,kind:'builder',value:data.builder,expected:'built_by'});
-    if(data.operator&&!rels.some(r=>relName(r)==='operated_by'))relationshipGaps.push({record,kind:'operator',value:data.operator,expected:'operated_by'});
+    const builder=firstData(record,'builder');
+    const operator=firstData(record,'originalOperator','operator');
+    if(builder&&!rels.some(r=>relName(r)==='built_by'))relationshipGaps.push({record,kind:'builder',value:String(builder),expected:'built_by'});
+    if(operator&&!rels.some(r=>relName(r)==='operated_by'))relationshipGaps.push({record,kind:'originalOperator',value:String(operator),expected:'operated_by'});
   }
 
-  const clusters=[...inbound.values()]
-    .filter(group=>group.records.length>=minSize)
-    .map(group=>({
-      id:`rel:${group.relationship}:${group.target}`,
-      kind:'relationship-cluster',
-      relationship:group.relationship,
-      targetId:group.target,
-      target:byId.get(group.target)||null,
-      records:unique(group.records),
-      score:group.records.length
-    }));
+  const clusters=[...inbound.values()].filter(g=>g.records.length>=minSize).map(g=>({id:`rel:${g.relationship}:${g.target}`,kind:'relationship-cluster',relationship:g.relationship,targetId:g.target,target:byId.get(g.target)||null,records:unique(g.records),score:g.records.length}));
 
-  for(const field of ['class','routeFocus','country']){
-    const groups=new Map();
-    for(const record of all){
-      const value=record.data?.[field];if(value==null||String(value).trim()==='')continue;
-      const key=normalize(value);if(!key)continue;
-      if(!groups.has(key))groups.set(key,{field,value:String(value).trim(),records:[]});
-      groups.get(key).records.push(record);
-    }
-    for(const group of groups.values())if(group.records.length>=minSize)structuredGroups.push({id:`field:${field}:${normalize(group.value)}`,kind:'structured-cluster',field, value:group.value,records:unique(group.records),score:group.records.length});
-  }
+  const groupSpecs=[['shipClass','class'],['routes','routeFocus'],['registry','country'],['builder'],['originalOperator','operator']];
+  for(const keys of groupSpecs){const field=keys[0],groups=new Map();for(const record of ships){for(const value of values(firstData(record,...keys))){const key=normalize(value);if(!key)continue;if(!groups.has(key))groups.set(key,{field,value:String(value).trim(),records:[]});groups.get(key).records.push(record)}}for(const group of groups.values())if(unique(group.records).length>=minSize)structuredGroups.push({id:`field:${field}:${normalize(group.value)}`,kind:'structured-cluster',field,value:group.value,records:unique(group.records),score:unique(group.records).length});}
 
-  const hubs=all.map(record=>{
-    const incomingCount=[...inbound.values()].filter(g=>g.target===record.id).reduce((n,g)=>n+g.records.length,0);
-    const outgoingCount=record.relationships?.length||0;
-    return{record,incomingCount,outgoingCount,total:incomingCount+outgoingCount};
-  }).filter(x=>x.total>=minSize).sort((a,b)=>b.total-a.total);
+  const completeness=ships.map(record=>{const missing=CORE_FIELDS.filter(([field])=>!hasValue(record.data?.[field]));const present=CORE_FIELDS.length-missing.length;return{record,present,missing,percent:Math.round((present/CORE_FIELDS.length)*100)}}).sort((a,b)=>a.percent-b.percent||title(a.record).localeCompare(title(b.record)));
+  const fieldCoverage=CORE_FIELDS.map(([field,labelText])=>{const present=ships.filter(r=>hasValue(r.data?.[field])).length;return{field,label:labelText,present,missing:ships.length-present,percent:ships.length?Math.round((present/ships.length)*100):0}}).sort((a,b)=>a.percent-b.percent);
+  const sparse=completeness.filter(x=>x.percent<60);
+  const strong=completeness.filter(x=>x.percent>=80);
 
+  const evidenceGaps=[];
+  for(const record of ships){const evidence=record.fieldEvidence||record.evidence||{};for(const [field,labelText] of CORE_FIELDS){if(hasValue(record.data?.[field])&&!evidence[field])evidenceGaps.push({record,field,label:labelText,value:record.data[field]});}}
+
+  const hubs=all.map(record=>{const incomingCount=[...inbound.values()].filter(g=>g.target===record.id).reduce((n,g)=>n+g.records.length,0);const outgoingCount=record.relationships?.length||0;return{record,incomingCount,outgoingCount,total:incomingCount+outgoingCount}}).filter(x=>x.total>=minSize).sort((a,b)=>b.total-a.total);
   const ideas=[...clusters,...structuredGroups].map(toIdea).filter(Boolean).sort((a,b)=>b.score-a.score);
-  return{byId,clusters,structuredGroups,hubs,unresolved,relationshipGaps,ideas};
+  return{all,ships,byId,clusters,structuredGroups,hubs,unresolved,relationshipGaps,ideas,completeness,fieldCoverage,sparse,strong,evidenceGaps};
 }
 
-function toIdea(cluster){
-  const count=cluster.records.length;
-  if(cluster.kind==='relationship-cluster'){
-    const targetTitle=cluster.target?title(cluster.target):cluster.targetId;
-    if(cluster.relationship==='built_by')return{...cluster,ideaType:'builder-fleet',title:`Ships built by ${targetTitle}`,reason:`${count} records share the same built-by relationship.`,suggestedTemplate:'builder collection'};
-    if(cluster.relationship==='operated_by')return{...cluster,ideaType:'operator-fleet',title:`Ships operated by ${targetTitle}`,reason:`${count} records share the same operator relationship.`,suggestedTemplate:'fleet directory'};
-    return{...cluster,ideaType:'relationship-collection',title:`${label(cluster.relationship)}: ${targetTitle}`,reason:`${count} records share this relationship target.`,suggestedTemplate:'research table'};
-  }
-  if(cluster.field==='class')return{...cluster,ideaType:'class-group',title:`${cluster.value} class`,reason:`${count} records share the same standardized class value.`,suggestedTemplate:'comparison'};
-  if(cluster.field==='routeFocus')return{...cluster,ideaType:'route-group',title:`Ships associated with ${cluster.value}`,reason:`${count} records share the same standardized route focus.`,suggestedTemplate:'hub page'};
-  if(cluster.field==='country')return{...cluster,ideaType:'country-group',title:`Ocean liners associated with ${cluster.value}`,reason:`${count} records share this standardized country value.`,suggestedTemplate:'research table'};
-  return null;
-}
+function toIdea(cluster){const count=cluster.records.length;if(cluster.kind==='relationship-cluster'){const targetTitle=cluster.target?title(cluster.target):cluster.targetId;if(cluster.relationship==='built_by')return{...cluster,ideaType:'builder-fleet',title:`Ships built by ${targetTitle}`,reason:`${count} records share the same built-by relationship.`,suggestedTemplate:'builder collection'};if(cluster.relationship==='operated_by')return{...cluster,ideaType:'operator-fleet',title:`Ships operated by ${targetTitle}`,reason:`${count} records share the same operator relationship.`,suggestedTemplate:'fleet directory'};return{...cluster,ideaType:'relationship-collection',title:`${label(cluster.relationship)}: ${targetTitle}`,reason:`${count} records share this relationship target.`,suggestedTemplate:'research table'};}if(cluster.field==='shipClass')return{...cluster,ideaType:'class-group',title:`${cluster.value} class`,reason:`${count} ship records share this class.`,suggestedTemplate:'comparison'};if(cluster.field==='routes')return{...cluster,ideaType:'route-group',title:`Ships associated with ${cluster.value}`,reason:`${count} ship records share this route or service.`,suggestedTemplate:'hub page'};if(cluster.field==='builder')return{...cluster,ideaType:'builder-fleet',title:`Ships built by ${cluster.value}`,reason:`${count} ship records name the same builder.`,suggestedTemplate:'builder collection'};if(cluster.field==='originalOperator')return{...cluster,ideaType:'operator-fleet',title:`Ships originally operated by ${cluster.value}`,reason:`${count} ship records name the same original operator.`,suggestedTemplate:'fleet directory'};if(cluster.field==='registry')return{...cluster,ideaType:'registry-group',title:`Ships associated with ${cluster.value}`,reason:`${count} ship records share this registry value.`,suggestedTemplate:'research table'};return null;}
 
-function render(){
-  if(!app)return;
-  const all=records();
-  const analysis=analyze(all);
-  const visibleIdeas=analysis.ideas.filter(idea=>filter==='all'||idea.ideaType===filter);
-  const ideaTypes=[...new Set(analysis.ideas.map(x=>x.ideaType))].sort();
-  app.innerHTML=`
-  <section class="panel intelligence-hero"><div><span class="eyebrow">Knowledge intelligence</span><h3>Let the corpus suggest useful connections</h3><p>CuratorOS analyzes canonical relationships and standardized fields to surface reusable clusters, publication opportunities, and knowledge gaps. Nothing is changed automatically.</p></div><div class="intelligence-hero-stat"><strong>${analysis.ideas.length}</strong><span>derived opportunities</span></div></section>
+function render(){if(!app)return;const analysis=analyze(records());const visibleIdeas=analysis.ideas.filter(i=>filter==='all'||i.ideaType===filter);const ideaTypes=[...new Set(analysis.ideas.map(x=>x.ideaType))].sort();const avg=analysis.completeness.length?Math.round(analysis.completeness.reduce((n,x)=>n+x.percent,0)/analysis.completeness.length):0;app.innerHTML=`
+<section class="panel intelligence-hero"><div><span class="eyebrow">Corpus intelligence · v0.6</span><h3>What does Ocean Liner Curator know?</h3><p>CuratorOS reads the canonical ship corpus as a whole: what is well documented, what is missing, where evidence is thin, which ships connect, and what new research or publication opportunities emerge from the collection.</p></div><div class="intelligence-hero-stat"><strong>${analysis.ships.length}</strong><span>canonical ship records</span></div></section>
+<section class="metrics intelligence-metrics">${metric(avg+'%','Average core completeness')}${metric(analysis.strong.length,'Strong records')}${metric(analysis.sparse.length,'Sparse records')}${metric(analysis.evidenceGaps.length,'Facts lacking field evidence')}${metric(analysis.ideas.length,'Derived opportunities')}</section>
+<section class="intelligence-columns"><section class="panel"><span class="eyebrow">Corpus health</span><h4>Core field coverage</h4><div class="intelligence-list">${analysis.fieldCoverage.map(f=>`<article><div><strong>${esc(f.label)}</strong><small>${f.present} present · ${f.missing} missing</small></div><span>${f.percent}%</span></article>`).join('')||'<p class="empty">No ship records yet.</p>'}</div></section><section class="panel"><span class="eyebrow">Research queue</span><h4>Ships with the largest knowledge gaps</h4><div class="intelligence-list">${analysis.completeness.slice(0,30).map(x=>`<article><div><strong>${esc(title(x.record))}</strong><small>${esc(x.missing.map(m=>m[1]).join(', ')||'Core fields complete')}</small></div><span>${x.percent}%</span></article>`).join('')||'<p class="empty">No ship records yet.</p>'}</div></section></section>
+<section class="panel intelligence-controls"><label><span>Opportunity type</span><select id="intelligence-filter"><option value="all">All opportunities</option>${ideaTypes.map(v=>`<option value="${esc(v)}"${filter===v?' selected':''}>${esc(label(v))}</option>`).join('')}</select></label><label><span>Minimum cluster size</span><select id="intelligence-min">${[2,3,4,5,10].map(v=>`<option value="${v}"${minSize===v?' selected':''}>${v}+ records</option>`).join('')}</select></label><button id="intelligence-export" type="button">Export corpus intelligence</button></section>
+<section class="panel intelligence-opportunities"><div class="intelligence-section-head"><div><span class="eyebrow">Derived knowledge</span><h4>Research & publication opportunities</h4></div><span>${visibleIdeas.length} shown</span></div><div class="intelligence-grid">${visibleIdeas.length?visibleIdeas.map(renderIdea).join(''):'<p class="empty">No opportunities meet the current threshold.</p>'}</div></section>
+<section class="intelligence-columns"><section class="panel"><span class="eyebrow">Evidence health</span><h4>Documented facts without field-level evidence</h4><div class="intelligence-list">${analysis.evidenceGaps.slice(0,50).map(g=>`<article><div><strong>${esc(title(g.record))}</strong><small>${esc(g.label)}: ${esc(String(g.value))}</small></div><span class="badge">Evidence gap</span></article>`).join('')||'<p class="empty">Core facts currently carry field-level evidence.</p>'}</div></section><section class="panel"><span class="eyebrow">Relationship health</span><h4>Facts that could become graph relationships</h4><div class="intelligence-list">${analysis.relationshipGaps.slice(0,50).map(g=>`<article><div><strong>${esc(title(g.record))}</strong><small>${esc(label(g.kind))}: ${esc(g.value)}</small></div><span class="badge">Needs ${esc(label(g.expected))}</span></article>`).join('')||'<p class="empty">No obvious builder/operator relationship gaps.</p>'}</div></section></section>
+<section class="intelligence-columns"><section class="panel"><span class="eyebrow">Graph hubs</span><h4>Highly connected records</h4><div class="intelligence-list">${analysis.hubs.slice(0,30).map(h=>`<article><div><strong>${esc(title(h.record))}</strong><small>${esc(h.record.id||'')} · ${esc(label(h.record.type||'record'))}</small></div><span>${h.total} links</span></article>`).join('')||'<p class="empty">No connected hubs yet.</p>'}</div></section><section class="panel"><span class="eyebrow">Graph integrity</span><h4>Unresolved relationship targets</h4><div class="intelligence-list">${analysis.unresolved.slice(0,50).map(x=>`<article><div><strong>${esc(title(x.record))}</strong><small>${esc(label(x.relationship))}</small></div><code>${esc(x.target)}</code></article>`).join('')||'<p class="empty">Every relationship target currently resolves.</p>'}</div></section></section>`;bind(analysis);}
 
-  <section class="metrics intelligence-metrics">${metric(analysis.clusters.length,'Relationship clusters')}${metric(analysis.structuredGroups.length,'Structured clusters')}${metric(analysis.relationshipGaps.length,'Relationship gaps')}${metric(analysis.unresolved.length,'Unresolved targets')}</section>
-
-  <section class="panel intelligence-controls"><label><span>Opportunity type</span><select id="intelligence-filter"><option value="all">All opportunities</option>${ideaTypes.map(v=>`<option value="${esc(v)}"${filter===v?' selected':''}>${esc(label(v))}</option>`).join('')}</select></label><label><span>Minimum cluster size</span><select id="intelligence-min">${[2,3,4,5,10].map(v=>`<option value="${v}"${minSize===v?' selected':''}>${v}+ records</option>`).join('')}</select></label><button id="intelligence-export" type="button">Export intelligence report</button></section>
-
-  <section class="panel intelligence-opportunities"><div class="intelligence-section-head"><div><span class="eyebrow">Derived knowledge</span><h4>Collection & publication opportunities</h4></div><span>${visibleIdeas.length} shown</span></div><div class="intelligence-grid">${visibleIdeas.length?visibleIdeas.map(renderIdea).join(''):'<p class="empty">No opportunities meet the current threshold.</p>'}</div></section>
-
-  <section class="intelligence-columns">
-    <section class="panel"><span class="eyebrow">Graph hubs</span><h4>Highly connected records</h4><div class="intelligence-list">${analysis.hubs.slice(0,30).map(h=>`<article><div><strong>${esc(title(h.record))}</strong><small>${esc(h.record.id||'')} · ${esc(label(h.record.type||'record'))}</small></div><span>${h.total} links</span></article>`).join('')||'<p class="empty">No connected hubs yet.</p>'}</div></section>
-    <section class="panel"><span class="eyebrow">Knowledge gaps</span><h4>Structured facts missing relationships</h4><div class="intelligence-list">${analysis.relationshipGaps.slice(0,60).map(g=>`<article><div><strong>${esc(title(g.record))}</strong><small>${esc(label(g.kind))}: ${esc(g.value)}</small></div><span class="badge">Needs ${esc(label(g.expected))}</span></article>`).join('')||'<p class="empty">No obvious builder/operator relationship gaps.</p>'}</div></section>
-  </section>
-
-  <section class="panel"><span class="eyebrow">Graph integrity</span><h4>${analysis.unresolved.length} unresolved target${analysis.unresolved.length===1?'':'s'}</h4>${analysis.unresolved.length?`<div class="intelligence-list">${analysis.unresolved.slice(0,80).map(x=>`<article><div><strong>${esc(title(x.record))}</strong><small>${esc(label(x.relationship))}</small></div><code>${esc(x.target)}</code></article>`).join('')}</div>`:'<p>Every relationship target currently resolves to a Project Record.</p>'}</section>`;
-  bind(analysis);
-}
-
-function renderIdea(idea){
-  const names=idea.records.slice(0,6).map(title);
-  return `<article class="intelligence-card"><div class="badges"><span class="badge">${esc(label(idea.ideaType))}</span><span class="badge">${idea.records.length} records</span></div><h4>${esc(idea.title)}</h4><p>${esc(idea.reason)}</p><small>Suggested page pattern: ${esc(label(idea.suggestedTemplate))}</small><div class="intelligence-members">${names.map(n=>`<span>${esc(n)}</span>`).join('')}${idea.records.length>names.length?`<span>+${idea.records.length-names.length} more</span>`:''}</div><div class="actions"><button type="button" data-save-derived="${esc(idea.id)}">Save as knowledge collection</button><button type="button" data-export-derived="${esc(idea.id)}">Export cluster</button></div></article>`;
-}
-
-function bind(analysis){
-  document.querySelector('#intelligence-filter')?.addEventListener('change',e=>{filter=e.target.value;render();});
-  document.querySelector('#intelligence-min')?.addEventListener('change',e=>{minSize=Number(e.target.value)||2;render();});
-  document.querySelector('#intelligence-export')?.addEventListener('click',()=>downloadReport(analysis));
-  document.querySelectorAll('[data-save-derived]').forEach(b=>b.addEventListener('click',()=>saveDerived(analysis.ideas.find(x=>x.id===b.dataset.saveDerived))));
-  document.querySelectorAll('[data-export-derived]').forEach(b=>b.addEventListener('click',()=>exportDerived(analysis.ideas.find(x=>x.id===b.dataset.exportDerived))));
-}
-
-function saveDerived(idea){
-  if(!idea)return;
-  const list=collections();
-  const existing=list.find(x=>x.derivedFrom?.id===idea.id);
-  const payload={id:existing?.id||`collection-${Date.now()}`,name:idea.title,createdAt:existing?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString(),query:{},recordIds:idea.records.map(r=>r.id),recordCount:idea.records.length,derivedFrom:{kind:'knowledge-intelligence',id:idea.id,ideaType:idea.ideaType,reason:idea.reason,suggestedTemplate:idea.suggestedTemplate}};
-  const next=existing?list.map(x=>x.id===existing.id?payload:x):[...list,payload];
-  saveCollections(next);
-  alert(`Saved “${idea.title}” as a reusable Knowledge Explorer collection.`);
-}
-function exportDerived(idea){if(!idea)return;download({format:'curatoros-derived-knowledge-cluster',formatVersion:1,createdAt:new Date().toISOString(),idea:{id:idea.id,ideaType:idea.ideaType,title:idea.title,reason:idea.reason,suggestedTemplate:idea.suggestedTemplate},recordCount:idea.records.length,records:idea.records},`${slug(idea.title)}-${dateStamp()}.json`)}
-function downloadReport(a){download({format:'curatoros-knowledge-intelligence',formatVersion:1,createdAt:new Date().toISOString(),summary:{relationshipClusters:a.clusters.length,structuredClusters:a.structuredGroups.length,relationshipGaps:a.relationshipGaps.length,unresolvedTargets:a.unresolved.length},opportunities:a.ideas.map(i=>({id:i.id,ideaType:i.ideaType,title:i.title,reason:i.reason,suggestedTemplate:i.suggestedTemplate,recordIds:i.records.map(r=>r.id)})),relationshipGaps:a.relationshipGaps.map(g=>({recordId:g.record.id,field:g.kind,value:g.value,expectedRelationship:g.expected})),unresolved:a.unresolved.map(x=>({recordId:x.record.id,relationship:x.relationship,target:x.target}))},`curatoros-knowledge-intelligence-${dateStamp()}.json`)}
+function renderIdea(idea){const names=idea.records.slice(0,6).map(title);return `<article class="intelligence-card"><div class="badges"><span class="badge">${esc(label(idea.ideaType))}</span><span class="badge">${idea.records.length} records</span></div><h4>${esc(idea.title)}</h4><p>${esc(idea.reason)}</p><small>Suggested page pattern: ${esc(label(idea.suggestedTemplate))}</small><div class="intelligence-members">${names.map(n=>`<span>${esc(n)}</span>`).join('')}${idea.records.length>names.length?`<span>+${idea.records.length-names.length} more</span>`:''}</div><div class="actions"><button type="button" data-save-derived="${esc(idea.id)}">Save as knowledge collection</button><button type="button" data-export-derived="${esc(idea.id)}">Export cluster</button></div></article>`;}
+function bind(a){document.querySelector('#intelligence-filter')?.addEventListener('change',e=>{filter=e.target.value;render()});document.querySelector('#intelligence-min')?.addEventListener('change',e=>{minSize=Number(e.target.value)||2;render()});document.querySelector('#intelligence-export')?.addEventListener('click',()=>downloadReport(a));document.querySelectorAll('[data-save-derived]').forEach(b=>b.addEventListener('click',()=>saveDerived(a.ideas.find(x=>x.id===b.dataset.saveDerived))));document.querySelectorAll('[data-export-derived]').forEach(b=>b.addEventListener('click',()=>exportDerived(a.ideas.find(x=>x.id===b.dataset.exportDerived))));}
+function saveDerived(idea){if(!idea)return;const list=collections(),existing=list.find(x=>x.derivedFrom?.id===idea.id);const payload={id:existing?.id||`collection-${Date.now()}`,name:idea.title,createdAt:existing?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString(),query:{},recordIds:idea.records.map(r=>r.id),recordCount:idea.records.length,derivedFrom:{kind:'corpus-intelligence',id:idea.id,ideaType:idea.ideaType,reason:idea.reason,suggestedTemplate:idea.suggestedTemplate}};saveCollections(existing?list.map(x=>x.id===existing.id?payload:x):[...list,payload]);alert(`Saved “${idea.title}” as a reusable Knowledge Explorer collection.`);}
+function exportDerived(idea){if(!idea)return;download({format:'curatoros-derived-knowledge-cluster',formatVersion:2,createdAt:new Date().toISOString(),idea:{id:idea.id,ideaType:idea.ideaType,title:idea.title,reason:idea.reason,suggestedTemplate:idea.suggestedTemplate},recordCount:idea.records.length,records:idea.records},`${slug(idea.title)}-${dateStamp()}.json`)}
+function downloadReport(a){download({format:'curatoros-corpus-intelligence',formatVersion:2,createdAt:new Date().toISOString(),summary:{shipRecords:a.ships.length,averageCoreCompleteness:a.completeness.length?Math.round(a.completeness.reduce((n,x)=>n+x.percent,0)/a.completeness.length):0,strongRecords:a.strong.length,sparseRecords:a.sparse.length,evidenceGaps:a.evidenceGaps.length,relationshipGaps:a.relationshipGaps.length,unresolvedTargets:a.unresolved.length,opportunities:a.ideas.length},fieldCoverage:a.fieldCoverage,recordCompleteness:a.completeness.map(x=>({recordId:x.record.id,title:title(x.record),percent:x.percent,missing:x.missing.map(m=>m[0])})),opportunities:a.ideas.map(i=>({id:i.id,ideaType:i.ideaType,title:i.title,reason:i.reason,suggestedTemplate:i.suggestedTemplate,recordIds:i.records.map(r=>r.id)})),evidenceGaps:a.evidenceGaps.map(g=>({recordId:g.record.id,field:g.field,value:g.value})),relationshipGaps:a.relationshipGaps.map(g=>({recordId:g.record.id,field:g.kind,value:g.value,expectedRelationship:g.expected})),unresolved:a.unresolved.map(x=>({recordId:x.record.id,relationship:x.relationship,target:x.target}))},`curatoros-corpus-intelligence-${dateStamp()}.json`)}
 function unique(items){const seen=new Set();return items.filter(r=>r&&!seen.has(r.id)&&seen.add(r.id))}
 function normalize(v){return String(v??'').toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,' ').trim()}
 function metric(v,l){return `<div class="metric"><strong>${v}</strong><span>${esc(l)}</span></div>`}
@@ -140,4 +81,4 @@ function label(v){return String(v||'').replace(/[_-]+/g,' ').replace(/([a-z])([A
 function slug(v){return String(v||'cluster').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'cluster'}
 function dateStamp(){return new Date().toISOString().slice(0,10)}
 function download(payload,name){const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();URL.revokeObjectURL(url)}
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[c]))}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}

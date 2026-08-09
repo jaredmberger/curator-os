@@ -2,12 +2,12 @@ name: Stable Keel
 
 on:
   push:
-    branches: [main, feature/stable-keel]
+    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
-  validate-build-test:
+  validate-current-curatoros:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -16,12 +16,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Validate, test, and build
+      - name: Validate current CuratorOS surface
         run: npm run check
-      - name: Upload deployable Worker
-        uses: actions/upload-artifact@v4
-        with:
-          name: curatoros-worker
-          path: |
-            dist/curatoros-worker.js
-            dist/curatoros-worker.json
+
+# Production deployment is owned by Cloudflare Pages.
+# Stable Keel validates the repository; it does not package or deploy the retired standalone Worker.

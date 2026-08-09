@@ -71,17 +71,19 @@ The research lifecycle is deliberately gated:
 
 No interpretive conclusion silently becomes a canonical historical fact.
 
-## Permanence
+## Permanence and integrity
 
 Project Records are permanently stored in Cloudflare KV. Browser storage is a working cache, not the institutional source of truth.
 
 Research state is also persisted through Cloudflare KV, including research decisions, Investigation Notebooks, supported conclusions, review decisions, promotion packages, incorporation history, relationship proposals, publication notes, and canonical Record Activity.
 
-This allows the institutional research history to survive browser cache clearing and continue across devices and browsers.
+The Institutional State indicator verifies whether Project Records and Research State are currently backed by their durable stores. Cache-only or unverified states are surfaced as degraded rather than being described as permanent.
+
+This allows the institutional research history to survive browser cache clearing and continue across devices and browsers while making storage health inspectable.
 
 ## Ship Record history
 
-A canonical Ship Record now keeps three concepts separate:
+A canonical Ship Record keeps three concepts separate:
 
 1. **Historical Record** — what CuratorOS currently knows about the ship.
 2. **Research History** — how that knowledge was investigated, interpreted, reviewed, and incorporated.
@@ -135,9 +137,14 @@ Stable Keel validates the active application shell and core database behavior on
 
 - `main` — production source branch
 - feature branches — isolated development
+- release branches — stabilization only
 - pull requests — review before production
 - `preview/version.js` — canonical user-visible CuratorOS version
 
-The v0.9 series is the v1.0 readiness phase: simplify the product surface, strengthen permanence and provenance, improve cross-navigation and auditability, and remove assumptions inherited from earlier CuratorOS prototypes.
+**Current release phase: `v1.0.0-rc.1`.**
 
-A 1.0 designation should represent the current institutional research system—not the retired dashboard/workflow architecture that preceded it.
+The v1.0 feature set is now frozen. During the release-candidate period, changes should be limited to defects, reliability issues, accessibility/usability regressions, deployment problems, and documentation corrections.
+
+The acceptance gate for promotion to `v1.0.0` is documented in [`V1_RELEASE_CANDIDATE.md`](V1_RELEASE_CANDIDATE.md).
+
+A 1.0 designation represents the current institutional research system—not the retired dashboard/workflow architecture that preceded it.

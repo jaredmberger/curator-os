@@ -1,136 +1,143 @@
 # CuratorOS
 
-CuratorOS is the evidence-first, iPad-first institutional operating system behind Ocean Liner Curator.
+CuratorOS is the evidence-first, iPad-first institutional research operating system behind Ocean Liner Curator.
 
-This repository is organized so development happens in modular source files while the browser application is assembled into a clean production site artifact for deployment.
+Its purpose is to transform accumulated research into connected, interrogable, evidence-aware institutional knowledge while keeping the concrete historical record at the center of the system.
 
-## CuratorOS suite
+> Every meaningful function of CuratorOS should help Ocean Liner Curator know, understand, preserve, or act intelligently on its knowledge.
 
-CuratorOS is the home application for a connected maintenance and publishing suite:
+## Production architecture
 
-- **CuratorOS:** `https://curator.oceanliners.net/`
-- **Site Health:** `https://site-health.oceanliners.net/`
-- **Curator Integrity:** `https://integrity.oceanliners.net/`
-- **Search Intelligence:** `https://search-intelligence.oceanliners.net/`
-- **Curator Indexer:** `https://curator-indexer.oceanliners.net/`
-- **Curator Speed:** `https://speed.oceanliners.net/`
-- **Page Studio:** `https://page-studio.oceanliners.net/`
+- **Source control:** GitHub — `jaredmberger/curator-os`
+- **Production host:** Cloudflare Pages
+- **Production application:** `https://curator.oceanliners.net/`
+- **Server-side API:** Cloudflare Pages Functions
+- **Canonical Project Records:** Cloudflare KV binding `CURATOROS_RECORDS`
+- **Durable research state:** Cloudflare KV via `/api/research-state`
 
-The official 1.0 workflow is:
+GitHub Pages and the former standalone CuratorOS Worker are retired production paths.
 
-`Scan → Explain → Locate → Recommend → Repair → Publish → Verify`
+Cloudflare Pages builds from `main` with:
 
-1. Run Site Health, Curator Integrity, Search Intelligence, Curator Indexer, or Curator Speed.
-2. Export or review the relevant scanner/intelligence report.
-3. Import findings into CuratorOS when the tool provides an exchange report.
-4. Review the finding, recommendation, history, and curator decision.
-5. Open the affected page directly in Page Studio.
-6. Edit and validate the page.
-7. Create a GitHub branch and pull request through the secure publishing Worker.
-8. Rerun the relevant scanner or intelligence tool and verify the result.
+```text
+Build command: bash scripts/build-cloudflare-pages.sh
+Build output:  dist-pages
+Root directory: repository root (leave the Cloudflare field blank)
+```
 
-The scanners and intelligence tools remain independent engines. CuratorOS is their operating surface and review system. Integrations are explicit and should not claim silent synchronization unless a service actually provides it.
+## Product model
 
-The stable exchange formats and compatibility rules are documented in [`docs/curatoros-suite-contract.md`](docs/curatoros-suite-contract.md).
+CuratorOS is record-first.
 
-## Open CuratorOS
+**Real-world entity → canonical record → structured facts → evidence → relationships → interpretation**
 
-After GitHub Pages is enabled with **GitHub Actions** as the source, every merge to `main` deploys the application automatically.
+For Ship Records, the record represents the actual ship. Evidence explains why individual facts are trusted; it does not replace the record.
 
-Primary application address:
+The live product surface is organized around four areas.
 
-`https://curator.oceanliners.net/`
+### Records
 
-GitHub Pages fallback address:
+- Project Records
+- canonical Ship Record inspector/editor
+- field-level evidence
+- Research History
+- Record Activity and before/after change detail
 
-`https://jaredmberger.github.io/curator-os/`
+### Build & maintain the corpus
 
-Both addresses open CuratorOS directly at the site root. The deployment workflow can also be run manually from the Actions tab.
+- Extract Knowledge
+- Build Corpus
+- Site / Knowledge Sync
+- Entity Resolution
 
-### Open it on iPad or iPhone
+### Understand the corpus
+
+- Knowledge Graph
+- Corpus Intelligence
+- Evidence & Conflicts
+
+### Research lifecycle
+
+- Research Desk
+- Research Queue
+- Investigation Notebook
+- Conclusion Review
+- Knowledge Promotion
+- Incorporation Review
+
+The research lifecycle is deliberately gated:
+
+`Discovery → question → investigation → supported conclusion → routing → review → promotion → incorporation`
+
+No interpretive conclusion silently becomes a canonical historical fact.
+
+## Permanence
+
+Project Records are permanently stored in Cloudflare KV. Browser storage is a working cache, not the institutional source of truth.
+
+Research state is also persisted through Cloudflare KV, including research decisions, Investigation Notebooks, supported conclusions, review decisions, promotion packages, incorporation history, relationship proposals, publication notes, and canonical Record Activity.
+
+This allows the institutional research history to survive browser cache clearing and continue across devices and browsers.
+
+## Ship Record history
+
+A canonical Ship Record now keeps three concepts separate:
+
+1. **Historical Record** — what CuratorOS currently knows about the ship.
+2. **Research History** — how that knowledge was investigated, interpreted, reviewed, and incorporated.
+3. **Record Activity** — how the canonical record itself changed, including inspectable before/after detail when snapshots are available.
+
+## Related Ocean Liner Curator tools
+
+CuratorOS sits within a wider suite of purpose-built tools:
+
+- `https://site-health.oceanliners.net/`
+- `https://integrity.oceanliners.net/`
+- `https://search-intelligence.oceanliners.net/`
+- `https://curator-indexer.oceanliners.net/`
+- `https://speed.oceanliners.net/`
+- `https://page-studio.oceanliners.net/`
+
+These remain independent tools. CuratorOS should only claim an integration where an actual data handoff or shared workflow exists.
+
+## iPad and iPhone
+
+CuratorOS is designed to remain fully usable from Safari on iPad and iPhone.
+
+To install it as a Home Screen web app:
 
 1. Open `https://curator.oceanliners.net/` in Safari.
-2. Tap the Share button.
+2. Tap **Share**.
 3. Choose **Add to Home Screen**.
-4. Launch **CuratorOS** from the Home Screen like an app.
+4. Launch CuratorOS from the Home Screen.
 
-CuratorOS stores its catalog and workflow state locally in that browser. Use catalog exports, snapshots, and finding-workflow exports regularly, especially before clearing Safari website data or changing devices.
+Desktop access is supported but is not required for ordinary CuratorOS work.
 
-## Core 1.0 capabilities
+## Development and release checks
 
-CuratorOS 1.0 includes:
+Local preview:
 
-- structured authoring for ships, builders, shipping lines, sources, reference objects, and photos or media
-- evidence relationships, review queues, advanced search, and publication previews
-- imported findings from Site Health, Curator Integrity, Curator Indexer, and Curator Speed
-- new, persistent, verified, and regressed scan history
-- durable Open, Handled, Verified, and Regressed curator decisions with notes
-- contextual repair handoff into Page Studio
-- secure branch, commit, and pull-request creation through the Page Studio Worker
-- unified site-assurance readiness
-- coverage and content-gap intelligence
-- local snapshots, guarded import, full export, and recovery backups
+```bash
+npm start
+```
 
-## Custom domain
+Then open `http://localhost:4173/preview/`.
 
-The application is intended to run at:
-
-`https://curator.oceanliners.net/`
-
-The repository-side deployment publishes the application at the hostname root rather than redirecting to `/preview/`.
-
-Cloudflare DNS should contain a `CNAME` record named `curator` pointing to `jaredmberger.github.io`. GitHub Pages should list `curator.oceanliners.net` as the custom domain with HTTPS enabled when available.
-
-For private access, place the hostname behind Cloudflare Access and require your chosen identity provider or one-time PIN. Cloudflare DNS and Access settings are account-side configuration; they are not changed by repository commits.
-
-## Deployment layout
-
-Source files remain organized under `preview/` and `src/`. The Pages workflow creates a temporary production artifact where:
-
-- `preview/index.html` becomes the deployed root `index.html`
-- the application entry file, manifest, icon, and service worker are published at the root
-- `src/` is copied beside them
-- deployment-only asset paths are rewritten for root hosting
-
-The generated `_site` directory is a deployment artifact and is not committed to the repository.
-
-## Local use and release checks
-
-1. Run `npm start` from the repository root.
-2. Open `http://localhost:4173/preview/`.
-
-Before a release, run:
+Current validation gate:
 
 ```bash
 npm run check
 ```
 
-The manual release gate is documented in [`docs/release-1.0-acceptance.md`](docs/release-1.0-acceptance.md). Release notes are maintained in [`RELEASE_NOTES.md`](RELEASE_NOTES.md).
-
-## Protecting catalog data
-
-Canonical records are stored in the browser. Use **Export** and **Snapshot** regularly. CuratorOS creates both a local recovery snapshot and a downloadable full backup before replacing the database through import.
-
-Finding decisions and notes have their own export and import workflow so maintenance history can be backed up independently.
-
-Browser storage is device- and browser-specific. Clearing site data can remove the local catalog and workflow state unless backups have been exported.
-
-## Synchronization architecture
-
-CuratorOS remains local-first. The provider-neutral synchronization boundary, conflict states, recovery guarantees, and implementation sequence are defined in [`docs/synchronization-contract.md`](docs/synchronization-contract.md).
-
-The current interface uses a local mock sync provider. It does not claim authenticated cloud synchronization or silent remote deployment. The contract requires explicit authentication, visible sync state, canonical validation, recovery snapshots before replacement, and no silent last-write-wins behavior.
+Stable Keel validates the active application shell and core database behavior on pull requests and `main`. Production deployment itself is owned by Cloudflare Pages rather than GitHub Actions.
 
 ## Release model
 
-- `main` — stable releases
-- feature and release branches — isolated development
-- pull requests — review and acceptance before release
-- `1.0.0-rc.1` — current release candidate
-- `1.0.0` — final official release after the acceptance checklist passes
+- `main` — production source branch
+- feature branches — isolated development
+- pull requests — review before production
+- `preview/version.js` — canonical user-visible CuratorOS version
 
-## Current milestone
+The v0.9 series is the v1.0 readiness phase: simplify the product surface, strengthen permanence and provenance, improve cross-navigation and auditability, and remove assumptions inherited from earlier CuratorOS prototypes.
 
-**CuratorOS 1.0 Release Candidate 1 — iPad-First Site Operations**
-
-The complete operational loop now exists in the browser. The remaining work before the official 1.0 designation is acceptance testing, any stabilization fixes discovered during that testing, deployment verification, and the final version change to `1.0.0`.
+A 1.0 designation should represent the current institutional research system—not the retired dashboard/workflow architecture that preceded it.

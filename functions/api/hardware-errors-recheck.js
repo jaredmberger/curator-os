@@ -1,6 +1,6 @@
 const ERROR_RECHECK_URL = 'https://errors.oceanliners.net/api/recheck-active';
 const ERROR_STATUS_URL = 'https://errors.oceanliners.net/api/status';
-const TIMEOUT_MS = 25000;
+const TIMEOUT_MS = 90000;
 
 export async function onRequestPost() {
   const startedAt = Date.now();

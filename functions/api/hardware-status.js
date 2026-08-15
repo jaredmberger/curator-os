@@ -1,8 +1,8 @@
 const SOURCES = {
   siteHealth: 'https://site-health.oceanliners.net/api/site-health-snapshot',
   errors: 'https://errors.oceanliners.net/api/status',
-  speed: 'https://speed.oceanliners.net/api/speed-snapshot',
-  integrity: 'https://integrity.oceanliners.net/api/integrity-snapshot',
+  speed: 'https://speed.oceanliners.net/api/curator-intelligence',
+  integrity: 'https://integrity.oceanliners.net/api/curator-intelligence',
 };
 
 const FETCH_TIMEOUT_MS = 7000;
@@ -28,7 +28,7 @@ export async function onRequestGet() {
 
   const payload = {
     ok: unavailable === 0,
-    schemaVersion: 1,
+    schemaVersion: 2,
     service: 'CuratorOS Hardware Status',
     generatedAt: new Date().toISOString(),
     responseTimeMs: Date.now() - startedAt,
@@ -48,10 +48,7 @@ export async function onRequestGet() {
 }
 
 export async function onRequestOptions() {
-  return new Response(null, {
-    status: 204,
-    headers: corsHeaders(),
-  });
+  return new Response(null, { status: 204, headers: corsHeaders() });
 }
 
 async function getJson(url) {
@@ -64,7 +61,7 @@ async function getJson(url) {
       method: 'GET',
       headers: {
         accept: 'application/json',
-        'user-agent': 'CuratorOS-Hardware-Status/1.0 (+https://curator.oceanliners.net/)',
+        'user-agent': 'CuratorOS-Hardware-Status/2.0 (+https://curator.oceanliners.net/)',
       },
       signal: controller.signal,
     });
@@ -120,16 +117,10 @@ function summarizeSiteHealth(raw) {
   const snapshot = raw.data?.snapshot || null;
   if (!snapshot) {
     return {
-      id: 'site-health',
-      name: 'Site Health',
-      available: true,
-      status: 'unknown',
-      statusLabel: 'Building baseline',
-      problemPageCount: 0,
-      checkedPageCount: 0,
-      discoveredPageCount: 0,
-      coveragePct: 0,
-      updatedAt: raw.data?.generatedAt || null,
+      id: 'site-health', name: 'Site Health', available: true,
+      status: 'unknown', statusLabel: 'Building baseline',
+      problemPageCount: 0, checkedPageCount: 0, discoveredPageCount: 0,
+      coveragePct: 0, updatedAt: raw.data?.generatedAt || null,
       upstreamResponseMs: raw.responseTimeMs,
     };
   }
@@ -139,9 +130,7 @@ function summarizeSiteHealth(raw) {
   const discovered = number(snapshot.discoveredPageCount);
 
   return {
-    id: 'site-health',
-    name: 'Site Health',
-    available: true,
+    id: 'site-health', name: 'Site Health', available: true,
     status: problems > 0 ? 'attention' : 'healthy',
     statusLabel: problems > 0 ? 'Attention' : 'Healthy',
     problemPageCount: problems,
@@ -180,9 +169,7 @@ function summarizeErrors(raw) {
   const p2 = firstFinite([data.p2, data.counts?.p2, data.summary?.p2], 0);
 
   return {
-    id: 'errors',
-    name: 'Errors',
-    available: true,
+    id: 'errors', name: 'Errors', available: true,
     status: count > 0 ? 'attention' : 'healthy',
     statusLabel: count > 0 ? 'Active incidents' : 'Clear',
     count,
@@ -195,40 +182,45 @@ function summarizeErrors(raw) {
 function summarizeSpeed(raw) {
   if (!raw.available) return unavailableSummary('speed', 'Speed', raw);
 
-  const snapshot = raw.data?.snapshot || null;
-  if (!snapshot) {
-    return {
-      id: 'speed',
-      name: 'Speed',
-      available: true,
-      status: 'unknown',
-      statusLabel: 'Building baseline',
-      averageResponseTimeMs: null,
-      p90ResponseTimeMs: null,
-      attentionPageCount: 0,
-      auditedPageCount: 0,
-      updatedAt: null,
-      upstreamResponseMs: raw.responseTimeMs,
-    };
-  }
+  const data = raw.data || {};
+  const metrics = data.metrics || {};
+  const snapshot = data.snapshot || null;
 
-  const attention = number(snapshot.attentionPageCount) + number(snapshot.errorPageCount);
+  const average = firstNullable([
+    metrics.averageResponseTimeMs,
+    snapshot?.averageResponseTimeMs,
+  ]);
+
+  const p90 = firstNullable([
+    metrics.p90ResponseTimeMs,
+    snapshot?.p90ResponseTimeMs,
+  ]);
+
+  const attention = firstFinite([
+    metrics.attentionPageCount,
+    snapshot?.attentionPageCount,
+  ], 0);
+
+  const errors = firstFinite([
+    metrics.errorPageCount,
+    snapshot?.errorPageCount,
+  ], 0);
+
+  const systemStatus = String(data.system?.status || '').toLowerCase();
+  const status = systemStatus === 'warning' || attention > 0 || errors > 0 ? 'attention' : 'healthy';
 
   return {
-    id: 'speed',
-    name: 'Speed',
-    available: true,
-    status: attention > 0 ? 'attention' : 'healthy',
-    statusLabel: attention > 0 ? 'Attention' : 'Good',
-    averageResponseTimeMs: nullableNumber(snapshot.averageResponseTimeMs),
-    medianResponseTimeMs: nullableNumber(snapshot.medianResponseTimeMs),
-    p90ResponseTimeMs: nullableNumber(snapshot.p90ResponseTimeMs),
-    attentionPageCount: number(snapshot.attentionPageCount),
-    errorPageCount: number(snapshot.errorPageCount),
-    auditedPageCount: number(snapshot.auditedPageCount),
-    discoveredPageCount: number(snapshot.discoveredPageCount),
-    coveragePct: number(snapshot.coveragePct),
-    updatedAt: snapshot.generatedAt || null,
+    id: 'speed', name: 'Speed', available: true,
+    status,
+    statusLabel: status === 'attention' ? 'Attention' : 'Good',
+    averageResponseTimeMs: average,
+    p90ResponseTimeMs: p90,
+    attentionPageCount: attention,
+    errorPageCount: errors,
+    auditedPageCount: firstFinite([metrics.auditedPageCount, snapshot?.auditedPageCount], 0),
+    discoveredPageCount: firstFinite([metrics.discoveredPageCount, snapshot?.discoveredPageCount], 0),
+    coveragePct: firstFinite([metrics.coveragePct, snapshot?.coveragePct], 0),
+    updatedAt: data.generatedAt || snapshot?.generatedAt || null,
     upstreamResponseMs: raw.responseTimeMs,
   };
 }
@@ -236,40 +228,57 @@ function summarizeSpeed(raw) {
 function summarizeIntegrity(raw) {
   if (!raw.available) return unavailableSummary('integrity', 'Integrity', raw);
 
-  const snapshot = raw.data?.snapshot || null;
-  if (!snapshot) {
-    return {
-      id: 'integrity',
-      name: 'Integrity',
-      available: true,
-      status: 'unknown',
-      statusLabel: 'Building baseline',
-      problemPageCount: 0,
-      findingCount: 0,
-      auditedPageCount: 0,
-      updatedAt: null,
-      upstreamResponseMs: raw.responseTimeMs,
-    };
-  }
+  const data = raw.data || {};
+  const metrics = data.metrics || {};
+  const snapshot = data.siteSnapshot || data.snapshot || null;
 
-  const problems = number(snapshot.problemPageCount);
-  const critical = number(snapshot.severityCounts?.critical) + number(snapshot.severityCounts?.error);
-  const findings = number(snapshot.findingCount);
+  const problems = firstFinite([
+    metrics.siteProblemPageCount,
+    metrics.problemPageCount,
+    snapshot?.problemPageCount,
+  ], 0);
+
+  const findings = firstFinite([
+    metrics.siteFindingCount,
+    metrics.findingCount,
+    snapshot?.findingCount,
+  ], 0);
+
+  const critical = firstFinite([
+    metrics.siteCriticalFindingCount,
+    snapshot?.severityCounts?.critical,
+  ], 0) + firstFinite([
+    snapshot?.severityCounts?.error,
+  ], 0);
+
+  const systemStatus = String(data.system?.status || '').toLowerCase();
+  const status = systemStatus === 'warning' || problems > 0 || critical > 0 ? 'attention' : 'healthy';
 
   return {
-    id: 'integrity',
-    name: 'Integrity',
-    available: true,
-    status: problems > 0 || critical > 0 ? 'attention' : 'healthy',
-    statusLabel: problems > 0 || critical > 0 ? 'Attention' : 'Pass',
+    id: 'integrity', name: 'Integrity', available: true,
+    status,
+    statusLabel: status === 'attention' ? 'Attention' : 'Pass',
     problemPageCount: problems,
     findingCount: findings,
     criticalErrorFindingCount: critical,
-    warningFindingCount: number(snapshot.severityCounts?.warning),
-    auditedPageCount: number(snapshot.auditedPageCount),
-    inventoryCount: number(snapshot.inventoryCount),
-    pendingInitialAuditCount: number(snapshot.pendingInitialAuditCount),
-    updatedAt: snapshot.generatedAt || null,
+    warningFindingCount: firstFinite([
+      metrics.siteWarningFindingCount,
+      snapshot?.severityCounts?.warning,
+    ], 0),
+    auditedPageCount: firstFinite([
+      metrics.siteAuditedPageCount,
+      metrics.checkedPageCount,
+      snapshot?.auditedPageCount,
+    ], 0),
+    inventoryCount: firstFinite([
+      metrics.siteInventoryCount,
+      snapshot?.inventoryCount,
+    ], 0),
+    pendingInitialAuditCount: firstFinite([
+      metrics.sitePendingInitialAuditCount,
+      snapshot?.pendingInitialAuditCount,
+    ], 0),
+    updatedAt: data.generatedAt || snapshot?.generatedAt || null,
     upstreamResponseMs: raw.responseTimeMs,
   };
 }
@@ -293,10 +302,13 @@ function number(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function nullableNumber(value) {
-  if (value === null || value === undefined || value === '') return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
+function firstNullable(values) {
+  for (const value of values) {
+    if (value === null || value === undefined || value === '') continue;
+    const n = Number(value);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
 }
 
 function firstFinite(values, fallback) {

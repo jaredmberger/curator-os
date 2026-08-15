@@ -30,7 +30,7 @@ export async function onRequestGet(context) {
       method: 'GET',
       headers: {
         accept: 'image/jpeg,image/*;q=0.8',
-        'user-agent': 'CuratorOS-Hardware-Ship-Image/1.1 (+https://curator.oceanliners.net/)'
+        'user-agent': 'CuratorOS-Hardware-Ship-Image/1.2 (+https://curator.oceanliners.net/)'
       },
       signal: controller.signal,
       cf: {
@@ -42,7 +42,10 @@ export async function onRequestGet(context) {
           fit: 'cover',
           gravity: 'center',
           quality: 72,
-          format: 'jpeg'
+          // TJpg_Decoder on the ESP32 does not support progressive JPEGs.
+          // Cloudflare's plain "jpeg" output is progressive, so explicitly
+          // request a baseline sequential JPEG for embedded compatibility.
+          format: 'baseline-jpeg'
         }
       }
     });

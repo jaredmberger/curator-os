@@ -30,7 +30,7 @@ export async function onRequestGet(context) {
       method: 'GET',
       headers: {
         accept: 'image/jpeg,image/*;q=0.8',
-        'user-agent': 'CuratorOS-Hardware-Ship-Image/1.0 (+https://curator.oceanliners.net/)'
+        'user-agent': 'CuratorOS-Hardware-Ship-Image/1.1 (+https://curator.oceanliners.net/)'
       },
       signal: controller.signal,
       cf: {
@@ -51,17 +51,24 @@ export async function onRequestGet(context) {
       return text(`Image upstream returned HTTP ${upstream.status}.`, 502);
     }
 
+    // Buffer the transformed image before returning it. The ESP32 client uses
+    // Content-Length to allocate its JPEG buffer, while Cloudflare may stream
+    // transformed images without providing that header on the upstream response.
+    const bytes = await upstream.arrayBuffer();
+
+    if (!bytes.byteLength) {
+      return text('Image transform returned an empty response.', 502);
+    }
+
     const headers = new Headers();
-    headers.set('content-type', upstream.headers.get('content-type') || 'image/jpeg');
+    headers.set('content-type', 'image/jpeg');
+    headers.set('content-length', String(bytes.byteLength));
     headers.set('cache-control', 'public, max-age=3600');
     headers.set('access-control-allow-origin', '*');
     headers.set('x-content-type-options', 'nosniff');
     headers.set('x-robots-tag', 'noindex, nofollow, noarchive');
 
-    const length = upstream.headers.get('content-length');
-    if (length) headers.set('content-length', length);
-
-    return new Response(upstream.body, { status: 200, headers });
+    return new Response(bytes, { status: 200, headers });
   } catch (error) {
     const message = error?.name === 'AbortError'
       ? 'Image request timed out.'

@@ -1,48 +1,77 @@
-const ERROR_RECHECK_URL = 'https://errors.oceanliners.net/api/recheck-active';
+const ERROR_RECHECK_URL = 'https://errors.oceanliners.net/api/clear-recheck';
 const ERROR_STATUS_URL = 'https://errors.oceanliners.net/api/status';
 const TIMEOUT_MS = 90000;
 
 export async function onRequestPost() {
   const startedAt = Date.now();
 
-  const recheck = await fetchJson(ERROR_RECHECK_URL, {
+  const clearRecheck = await fetchJson(ERROR_RECHECK_URL, {
     method: 'POST',
     headers: {
       accept: 'application/json',
       'content-type': 'application/json',
-      'user-agent': 'CuratorOS-Hardware-Error-Recheck/1.0 (+https://curator.oceanliners.net/)'
+      'user-agent': 'CuratorOS-Hardware-Error-Recheck/1.1 (+https://curator.oceanliners.net/)'
     },
     body: '{}'
   });
 
-  if (!recheck.ok) {
+  if (!clearRecheck.ok) {
     return json({
       ok: false,
       service: 'CuratorOS Hardware Error Recheck',
-      error: recheck.error || 'Error Bus recheck failed.',
-      httpStatus: recheck.httpStatus ?? null,
+      error: clearRecheck.error || 'Error Bus Clear & Recheck failed.',
+      httpStatus: clearRecheck.httpStatus ?? null,
       responseTimeMs: Date.now() - startedAt,
       checkedAt: new Date().toISOString()
     }, 502);
   }
 
+  const result = clearRecheck.data || {};
+
+  const before = finiteInt(
+    result.clearedCount,
+    Array.isArray(result.activeIncidents) ? result.activeIncidents.length : 0
+  );
+
+  const after = finiteInt(
+    result.confirmedActiveCount,
+    Array.isArray(result.activeIncidents) ? result.activeIncidents.length : 0
+  );
+
+  const recovered = Math.max(0, before - after);
+
   const status = await fetchJson(ERROR_STATUS_URL, {
     method: 'GET',
     headers: {
       accept: 'application/json',
-      'user-agent': 'CuratorOS-Hardware-Error-Recheck/1.0 (+https://curator.oceanliners.net/)'
+      'user-agent': 'CuratorOS-Hardware-Error-Recheck/1.1 (+https://curator.oceanliners.net/)'
     }
   });
 
   const statusData = status.ok ? status.data : null;
+  const finalActive = statusData
+    ? finiteInt(statusData.activeIncidentCount, after)
+    : after;
 
   return json({
     ok: true,
     service: 'CuratorOS Hardware Error Recheck',
-    recheck: recheck.data,
+    recheck: {
+      mode: 'clear-and-recheck',
+      rateLimited: false,
+      checkedIncidentCount: before,
+      recoveredIncidentCount: recovered,
+      activeIncidentCountBefore: before,
+      activeIncidentCountAfter: finalActive,
+      browserArchivedCount: finiteInt(result.browserArchivedCount, 0),
+      serverIncidentCount: finiteInt(result.serverIncidentCount, 0),
+      quiet: Boolean(result.quiet),
+      note: result.note || null,
+      checkedAt: result.checkedAt || new Date().toISOString()
+    },
     errors: {
-      status: statusData?.status || null,
-      activeIncidentCount: Number(statusData?.activeIncidentCount || 0),
+      status: statusData?.status || (finalActive ? 'attention' : 'healthy'),
+      activeIncidentCount: finalActive,
       counts: statusData?.counts || null,
       publicSiteAvailability: statusData?.publicSiteAvailability || null,
       generatedAt: statusData?.generatedAt || null
@@ -99,11 +128,18 @@ async function fetchJson(url, options) {
     return {
       ok: false,
       httpStatus: null,
-      error: error?.name === 'AbortError' ? `Upstream timed out after ${TIMEOUT_MS} ms.` : (error instanceof Error ? error.message : String(error))
+      error: error?.name === 'AbortError'
+        ? `Upstream timed out after ${TIMEOUT_MS} ms.`
+        : (error instanceof Error ? error.message : String(error))
     };
   } finally {
     clearTimeout(timer);
   }
+}
+
+function finiteInt(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : fallback;
 }
 
 function corsHeaders() {

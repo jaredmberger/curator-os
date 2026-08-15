@@ -1,10 +1,11 @@
-const ARCHIVE_URL = 'https://www.oceanliners.net/ships/ships';
+const ARCHIVE_SOURCE_URL = 'https://raw.githubusercontent.com/jaredmberger/Ocean-Liner-Curator/main/ships/ships.html';
+const REPO_RAW_BASE = 'https://raw.githubusercontent.com/jaredmberger/Ocean-Liner-Curator/main';
 const SITE_ORIGIN = 'https://www.oceanliners.net';
 const TIMEOUT_MS = 10000;
 
 export async function onRequestGet() {
   try {
-    const archive = await fetchText(ARCHIVE_URL);
+    const archive = await fetchText(ARCHIVE_SOURCE_URL);
     const ships = parseArchiveCards(archive);
 
     if (!ships.length) {
@@ -15,15 +16,16 @@ export async function onRequestGet() {
     const order = shuffledIndexes(ships.length);
     let lastError = null;
 
-    for (const index of order.slice(0, 8)) {
+    for (const index of order.slice(0, 12)) {
       const ship = ships[index];
       try {
-        const pageUrl = absoluteUrl(ship.href);
-        const pageHtml = await fetchText(pageUrl);
+        const pageUrl = absoluteSiteUrl(ship.href);
+        const sourceUrl = rawRepoUrl(ship.href);
+        const pageHtml = await fetchText(sourceUrl);
         const imagePath = parseHeroImage(pageHtml);
         if (!imagePath) continue;
 
-        const image = absoluteUrl(imagePath);
+        const image = absoluteSiteUrl(imagePath);
         const imageSmall = `https://curator.oceanliners.net/api/ship-image?src=${encodeURIComponent(image)}`;
 
         return json({
@@ -108,7 +110,7 @@ function isAllowedImage(value) {
   }
 }
 
-function absoluteUrl(value) {
+function absoluteSiteUrl(value) {
   const url = new URL(value, SITE_ORIGIN);
   if (url.protocol !== 'https:') throw new Error('Non-HTTPS Ship Archive URL rejected.');
   const host = url.hostname.toLowerCase();
@@ -119,6 +121,12 @@ function absoluteUrl(value) {
   return url.toString();
 }
 
+function rawRepoUrl(href) {
+  const path = String(href || '').replace(/^\/+/, '');
+  if (!path.startsWith('ships/')) throw new Error('Unexpected ship page path.');
+  return `${REPO_RAW_BASE}/${path}`;
+}
+
 async function fetchText(url) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -126,14 +134,13 @@ async function fetchText(url) {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        accept: 'text/html,*/*;q=0.8',
-        'user-agent': 'CuratorOS-Random-Ship/1.0 (+https://curator.oceanliners.net/)'
+        accept: 'text/plain,text/html,*/*;q=0.8',
+        'user-agent': 'CuratorOS-Random-Ship/1.1 (+https://curator.oceanliners.net/)'
       },
       cache: 'no-store',
-      signal: controller.signal,
-      cf: { cacheTtl: 0, cacheEverything: false }
+      signal: controller.signal
     });
-    if (!response.ok) throw new Error(`Ship Archive returned HTTP ${response.status}.`);
+    if (!response.ok) throw new Error(`Source returned HTTP ${response.status}.`);
     return await response.text();
   } finally {
     clearTimeout(timer);

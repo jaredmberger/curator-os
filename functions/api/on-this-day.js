@@ -14,7 +14,7 @@ export async function onRequestGet(context) {
     const dateKey = requestedDate || chicagoDateKey();
 
     const sources = await Promise.all(
-      THIS_DAY_SOURCE_URLS.map((url) => fetchText(url, 'CuratorOS-On-This-Day/1.1'))
+      THIS_DAY_SOURCE_URLS.map((url) => fetchText(url, 'CuratorOS-On-This-Day/1.2'))
     );
     const events = sources.flatMap((source) => parseEventsForDate(source, dateKey));
 
@@ -36,13 +36,13 @@ export async function onRequestGet(context) {
     let page = absoluteSiteUrlOrEmpty(event.relatedUrl);
 
     try {
-      const archiveHtml = await fetchText(ARCHIVE_SOURCE_URL, 'CuratorOS-On-This-Day/1.1');
+      const archiveHtml = await fetchText(ARCHIVE_SOURCE_URL, 'CuratorOS-On-This-Day/1.2');
       const ships = parseArchiveCards(archiveHtml);
       const match = findShipMatch(ships, event.ship);
 
       if (match) {
         const pageUrl = absoluteSiteUrl(match.href);
-        const pageHtml = await fetchText(rawRepoUrl(match.href), 'CuratorOS-On-This-Day/1.1');
+        const pageHtml = await fetchText(rawRepoUrl(match.href), 'CuratorOS-On-This-Day/1.2');
         const imagePath = parseHeroImage(pageHtml);
 
         if (imagePath) {
@@ -219,8 +219,16 @@ function parseEventObject(text) {
   };
 }
 
+function fieldPattern(field) {
+  // Accept both the original object-literal style:
+  //   title: "..."
+  // and the additions file's JSON-style quoted keys:
+  //   "title": "..."
+  return `(?:"${field}"|${field})`;
+}
+
 function readStringField(text, field) {
-  const re = new RegExp(`\\b${field}\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`, 's');
+  const re = new RegExp(`${fieldPattern(field)}\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`, 's');
   const match = text.match(re);
   if (!match) return '';
   try {
@@ -231,7 +239,7 @@ function readStringField(text, field) {
 }
 
 function readNumberField(text, field) {
-  const re = new RegExp(`\\b${field}\\s*:\\s*(\\d+)`);
+  const re = new RegExp(`${fieldPattern(field)}\\s*:\\s*(\\d+)`);
   const match = text.match(re);
   return match ? Number(match[1]) : 0;
 }

@@ -1,4 +1,7 @@
-const THIS_DAY_SOURCE_URL = 'https://raw.githubusercontent.com/jaredmberger/Ocean-Liner-Curator/main/assets/this-day-ocean-liners.js';
+const THIS_DAY_SOURCE_URLS = [
+  'https://raw.githubusercontent.com/jaredmberger/Ocean-Liner-Curator/main/assets/this-day-ocean-liners.js',
+  'https://raw.githubusercontent.com/jaredmberger/Ocean-Liner-Curator/main/assets/this-day-ocean-liners-additions.js'
+];
 const ARCHIVE_SOURCE_URL = 'https://raw.githubusercontent.com/jaredmberger/Ocean-Liner-Curator/main/ships/ships.html';
 const REPO_RAW_BASE = 'https://raw.githubusercontent.com/jaredmberger/Ocean-Liner-Curator/main';
 const SITE_ORIGIN = 'https://www.oceanliners.net';
@@ -10,8 +13,10 @@ export async function onRequestGet(context) {
     const requestedDate = normalizeRequestedDate(requestUrl.searchParams.get('date'));
     const dateKey = requestedDate || chicagoDateKey();
 
-    const source = await fetchText(THIS_DAY_SOURCE_URL, 'CuratorOS-On-This-Day/1.0');
-    const events = parseEventsForDate(source, dateKey);
+    const sources = await Promise.all(
+      THIS_DAY_SOURCE_URLS.map((url) => fetchText(url, 'CuratorOS-On-This-Day/1.1'))
+    );
+    const events = sources.flatMap((source) => parseEventsForDate(source, dateKey));
 
     if (!events.length) {
       return json({
@@ -31,13 +36,13 @@ export async function onRequestGet(context) {
     let page = absoluteSiteUrlOrEmpty(event.relatedUrl);
 
     try {
-      const archiveHtml = await fetchText(ARCHIVE_SOURCE_URL, 'CuratorOS-On-This-Day/1.0');
+      const archiveHtml = await fetchText(ARCHIVE_SOURCE_URL, 'CuratorOS-On-This-Day/1.1');
       const ships = parseArchiveCards(archiveHtml);
       const match = findShipMatch(ships, event.ship);
 
       if (match) {
         const pageUrl = absoluteSiteUrl(match.href);
-        const pageHtml = await fetchText(rawRepoUrl(match.href), 'CuratorOS-On-This-Day/1.0');
+        const pageHtml = await fetchText(rawRepoUrl(match.href), 'CuratorOS-On-This-Day/1.1');
         const imagePath = parseHeroImage(pageHtml);
 
         if (imagePath) {

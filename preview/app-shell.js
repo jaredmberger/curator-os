@@ -24,6 +24,10 @@ function installOpsHealthStrip(){
       <span class="ops-health-label">Visitor Journey</span>
       <span class="ops-health-state"><span class="ops-health-dot unknown" aria-hidden="true"></span><span data-ops-state>Checking…</span></span>
     </a>
+    <a class="ops-health-card" href="https://ops.oceanlinercurator.com/browser-search-journey" target="_blank" rel="noopener" data-ops-health="browser-search">
+      <span class="ops-health-label">Browser Search</span>
+      <span class="ops-health-state"><span class="ops-health-dot unknown" aria-hidden="true"></span><span data-ops-state>Checking…</span></span>
+    </a>
     <a class="ops-health-card" href="https://ops.oceanlinercurator.com/self-test" target="_blank" rel="noopener" data-ops-health="self-test">
       <span class="ops-health-label">Monitoring Self-Test</span>
       <span class="ops-health-state"><span class="ops-health-dot unknown" aria-hidden="true"></span><span data-ops-state>Checking…</span></span>
@@ -34,6 +38,7 @@ function installOpsHealthStrip(){
 
   const checks=[
     ['journey','https://ops.oceanlinercurator.com/api/public-site-journey'],
+    ['browser-search','https://ops.oceanlinercurator.com/api/browser-search-journey'],
     ['self-test','https://ops.oceanlinercurator.com/api/self-test']
   ];
 

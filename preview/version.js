@@ -9,3 +9,4 @@ import('./ship-research-history.js').catch(error=>console.error('Ship Research H
 import('./record-activity.js').catch(error=>console.error('Ship Record Activity failed to load',error));
 import('./relationship-opportunities.js').catch(error=>console.error('Relationship opportunity intelligence failed to load',error));
 import('./class-sister-intelligence.js').catch(error=>console.error('Class and sister ship intelligence failed to load',error));
+import('./yard-intelligence.js').catch(error=>console.error('Yard location intelligence failed to load',error));

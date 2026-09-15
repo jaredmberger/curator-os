@@ -8,3 +8,4 @@ import('./research-focus.js').catch(error=>console.error('Research focus control
 import('./ship-research-history.js').catch(error=>console.error('Ship Research History failed to load',error));
 import('./record-activity.js').catch(error=>console.error('Ship Record Activity failed to load',error));
 import('./relationship-opportunities.js').catch(error=>console.error('Relationship opportunity intelligence failed to load',error));
+import('./class-sister-intelligence.js').catch(error=>console.error('Class and sister ship intelligence failed to load',error));

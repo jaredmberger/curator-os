@@ -1,5 +1,6 @@
 const recordsButton=document.querySelector('[data-view="records"]');
 const app=document.querySelector('#app');
+const knowledgeIntelligenceButton=document.querySelector('#knowledge-intelligence');
 
 recordsButton?.addEventListener('click',()=>{
   document.querySelectorAll('.nav .active').forEach(el=>el.classList.remove('active'));
@@ -74,6 +75,60 @@ async function loadOpsHealth(id,url){
     clearTimeout(timer);
   }
 }
+
+function escapeHtml(value){
+  return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+function installBuilderIntelligencePanel(){
+  if(!app||document.querySelector('#site-builder-intelligence'))return;
+  const anchor=document.querySelector('.intelligence-metrics');
+  if(!anchor)return;
+
+  const panel=document.createElement('section');
+  panel.className='panel';
+  panel.id='site-builder-intelligence';
+  panel.innerHTML='<span class="eyebrow">Site knowledge feed</span><h4>Shipbuilder intelligence</h4><p>Loading the canonical builder dataset from OceanLiners.net…</p>';
+  anchor.insertAdjacentElement('afterend',panel);
+  loadBuilderIntelligence(panel);
+}
+
+async function loadBuilderIntelligence(panel){
+  const controller=typeof AbortController==='function'?new AbortController():null;
+  const timer=setTimeout(()=>controller?.abort(),6500);
+  try{
+    const response=await fetch('/api/builder-intelligence',{cache:'no-store',credentials:'same-origin',signal:controller?.signal});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    const payload=await response.json();
+    if(!payload?.ok)throw new Error(payload?.error||'Feed unavailable');
+    const summary=payload.summary||{};
+    const topBuilders=Array.isArray(payload.topBuilders)?payload.topBuilders:[];
+    const generated=payload.generatedAt?new Date(payload.generatedAt).toLocaleString():'unknown';
+    panel.innerHTML=`
+      <span class="eyebrow">Site knowledge feed</span>
+      <h4>Shipbuilder intelligence</h4>
+      <p>CuratorOS is reading the builder identity layer generated from the public ship guides. This feed remains observational: OceanLiners.net is the source of truth.</p>
+      <section class="metrics intelligence-metrics">
+        <article><strong>${Number(summary.canonicalBuilders||0)}</strong><span>Canonical builders</span></article>
+        <article><strong>${Number(summary.guidesWithBuilder||0)}</strong><span>Guides with builder data</span></article>
+        <article><strong>${Number(summary.guidesMissingBuilder||0)}</strong><span>Unresolved builders</span></article>
+        <article><strong>${Number(summary.shipGuides||0)}</strong><span>Ship guides scanned</span></article>
+      </section>
+      <div class="intelligence-list">
+        ${topBuilders.map(builder=>`<article><div><strong>${escapeHtml(builder.name)}</strong><small>${escapeHtml([builder.firstLaunchYear&&builder.lastLaunchYear?`${builder.firstLaunchYear}–${builder.lastLaunchYear}`:'',...(builder.locations||[]).slice(0,2)].filter(Boolean).join(' · '))}</small></div><span>${Number(builder.shipCount||0)} ships</span></article>`).join('')||'<p class="empty">No builder groups were returned.</p>'}
+      </div>
+      <small>Dataset generated: ${escapeHtml(generated)}</small>
+    `;
+  }catch(error){
+    panel.innerHTML='<span class="eyebrow">Site knowledge feed</span><h4>Shipbuilder intelligence</h4><p class="empty">The site builder feed is temporarily unavailable. Local Corpus Intelligence remains fully functional.</p>';
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+knowledgeIntelligenceButton?.addEventListener('click',()=>{
+  window.setTimeout(installBuilderIntelligencePanel,0);
+});
 
 installOpsHealthStrip();
 setTimeout(()=>recordsButton?.click(),0);

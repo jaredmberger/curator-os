@@ -10,3 +10,4 @@ import('./record-activity.js').catch(error=>console.error('Ship Record Activity 
 import('./relationship-opportunities.js').catch(error=>console.error('Relationship opportunity intelligence failed to load',error));
 import('./class-sister-intelligence.js').catch(error=>console.error('Class and sister ship intelligence failed to load',error));
 import('./yard-intelligence.js').catch(error=>console.error('Yard location intelligence failed to load',error));
+import('./era-service-intelligence.js').catch(error=>console.error('Era and service period intelligence failed to load',error));

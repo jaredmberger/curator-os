@@ -1,6 +1,5 @@
 const THIS_DAY_SOURCE_URLS = [
-  'https://raw.githubusercontent.com/jaredmberger/Ocean-Liner-Curator/main/assets/this-day-ocean-liners.js',
-  'https://raw.githubusercontent.com/jaredmberger/Ocean-Liner-Curator/main/assets/this-day-ocean-liners-additions.js'
+  'https://raw.githubusercontent.com/jaredmberger/Ocean-Liner-Curator/main/assets/this-day-ocean-liners.js'
 ];
 const ARCHIVE_SOURCE_URL = 'https://raw.githubusercontent.com/jaredmberger/Ocean-Liner-Curator/main/ships/ships.html';
 const REPO_RAW_BASE = 'https://raw.githubusercontent.com/jaredmberger/Ocean-Liner-Curator/main';

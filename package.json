@@ -10,12 +10,14 @@
     "validate": "node scripts/validate.js",
     "test:database": "node tests/database.test.js",
     "test:surface": "node tests/worker-era-findings.test.mjs",
-    "test": "npm run test:database && npm run test:surface && npm run test:recovery && npm run test:restore-safety",
+    "test": "npm run test:database && npm run test:surface && npm run test:recovery && npm run test:restore-safety && npm run test:recovery-manifest",
     "check": "npm run validate && npm run test",
     "recovery:validate": "node scripts/validate-recovery-backup.mjs",
     "test:recovery": "node --test tests/recovery-export.test.mjs",
     "recovery:restore": "node scripts/restore-recovery-backup.mjs",
-    "test:restore-safety": "node --test tests/recovery-restore-safety.test.mjs"
+    "test:restore-safety": "node --test tests/recovery-restore-safety.test.mjs",
+    "recovery:manifest:validate": "node scripts/validate-recovery-manifest.mjs",
+    "test:recovery-manifest": "node scripts/validate-recovery-manifest.mjs"
   },
   "engines": {
     "node": ">=20"

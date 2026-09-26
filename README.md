@@ -73,7 +73,7 @@ No interpretive conclusion silently becomes a canonical historical fact.
 
 ## Disaster recovery
 
-The authoritative reconstruction procedure for the public site and CuratorOS ecosystem is documented in [`DISASTER_RECOVERY_RUNBOOK.md`](DISASTER_RECOVERY_RUNBOOK.md). It covers repository recovery, Cloudflare deployments, KV bindings and durable state, secret-name inventory, restoration order, and final acceptance testing. CuratorOS also provides a read-only institutional-data backup at `/api/recovery-export`; its format and validation procedure are documented in [`KV_RECOVERY_EXPORT.md`](KV_RECOVERY_EXPORT.md).
+The authoritative reconstruction procedure for the public site and CuratorOS ecosystem is documented in [`DISASTER_RECOVERY_RUNBOOK.md`](DISASTER_RECOVERY_RUNBOOK.md). It covers repository recovery, Cloudflare deployments, KV bindings and durable state, secret-name inventory, restoration order, and final acceptance testing. CuratorOS also provides a read-only institutional-data backup at `/api/recovery-export`; its format and validation procedure are documented in [`KV_RECOVERY_EXPORT.md`](KV_RECOVERY_EXPORT.md). The ecosystem's machine-readable reconstruction inventory lives at [`recovery/infrastructure.json`](recovery/infrastructure.json) and is validated by `npm run recovery:manifest:validate`.
 
 ## Permanence and integrity
 

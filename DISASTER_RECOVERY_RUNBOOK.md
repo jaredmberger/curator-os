@@ -14,6 +14,8 @@ The recovery design assumes:
 
 The goal is not merely to restore pages. Recovery is complete only when the public site, CuratorOS, durable data, specialist services, monitoring, publishing paths, and scheduled jobs have been verified.
 
+The machine-readable companion to this runbook is [`recovery/infrastructure.json`](recovery/infrastructure.json). It is the structured inventory for repositories, production hosts, deployment models, KV bindings, namespace IDs, recovery ownership, schedules, secret names, and recovery order. Validate it with `npm run recovery:manifest:validate`.
+
 ---
 
 ## Recovery classes
@@ -158,6 +160,7 @@ Known recovery-sensitive secrets include:
 | `VERIFY_WRITE_KEY` | Verify | Authenticated verification writes |
 | `OPS_WRITE_KEY` | Ops | Authenticated operational writes |
 | `GITHUB_OPS_TOKEN` | Ops | Authenticated GitHub API access for browser-search monitoring |
+| `RECOVERY_EXPORT_TOKEN` | Stateful CuratorOS services with protected KV exports | Authenticates read-only full-state recovery exports |
 
 Additional secrets may exist in current Cloudflare project settings even when not listed here. During recovery, inspect each Cloudflare Worker/Pages project's **Variables and Secrets** configuration before declaring the service restored.
 
@@ -449,7 +452,9 @@ The highest-value non-GitHub data is the content of durable KV stores, especiall
 5. `CURATOR_OPS_RECORDS`
 6. Search/analytics/integrity/indexer/speed retained records where historical continuity matters
 
-`CURATOROS_RECORDS` now has a repeatable, read-only export path at `https://curator.oceanliners.net/api/recovery-export`. The export includes both `project-records` and `research-state`, refuses incomplete/malformed stores, and includes a SHA-256 integrity digest. Validate downloaded files with `npm run recovery:validate -- /path/to/backup.json`. Restoration remains intentionally separate. A disposable restore drill is documented in `KV_RECOVERY_RESTORE_DRILL.md` and implemented by `npm run recovery:restore -- ...`; it requires an explicit namespace ID and `--confirm-disposable`, writes only the two institutional keys, and reads them back for exact verification. Equivalent export/snapshot coverage should be added for the remaining stateful stores.
+`CURATOROS_RECORDS` has a repeatable, read-only export path at `https://curator.oceanliners.net/api/recovery-export`. The export includes both `project-records` and `research-state`, refuses incomplete/malformed stores, and includes a SHA-256 integrity digest. Validate downloaded files with `npm run recovery:validate -- /path/to/backup.json`. Restoration remains intentionally separate. A disposable restore drill is documented in `KV_RECOVERY_RESTORE_DRILL.md` and implemented by `npm run recovery:restore -- ...`; it requires an explicit namespace ID and `--confirm-disposable`, writes only the two institutional keys, and reads them back for exact verification.
+
+The other identified stateful CuratorOS stores now use service-owned read-only recovery exports with explicit authentication and SHA-256 integrity metadata. `CURATOR_ERROR_RECORDS` is backed up only through Error Bus even though several services consume it, preventing overlapping recovery authority. The canonical ownership map is recorded in `recovery/infrastructure.json`.
 
 ## Credentials
 
@@ -472,7 +477,7 @@ Run a non-destructive recovery review after major infrastructure changes and per
 A useful drill consists of:
 
 1. Download fresh repository snapshots.
-2. Compare this inventory with live GitHub repositories.
+2. Run `npm run recovery:manifest:validate` and compare `recovery/infrastructure.json` with live GitHub repositories.
 3. Compare recorded Worker/Pages bindings with Cloudflare.
 4. Confirm all required secret **names** are known.
 5. Confirm the production KV namespace identities.

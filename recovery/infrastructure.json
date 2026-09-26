@@ -1,0 +1,427 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-26",
+  "principles": {
+    "sourceOfTruth": "GitHub main",
+    "durableState": "Cloudflare KV",
+    "secretValuesInRepository": false,
+    "productionRestoreEndpointAllowed": false,
+    "recoveryExportHeader": "X-Curator-Recovery-Key"
+  },
+  "services": [
+    {
+      "id": "public-site",
+      "repository": "jaredmberger/Ocean-Liner-Curator",
+      "host": "oceanliners.net",
+      "deployment": "cloudflare-worker-static-assets",
+      "entrypoint": "wrangler.jsonc",
+      "schedule": [],
+      "secrets": [],
+      "kvBindings": [],
+      "recoveryPriority": "critical"
+    },
+    {
+      "id": "curator-os",
+      "repository": "jaredmberger/curator-os",
+      "host": "curator.oceanliners.net",
+      "deployment": "cloudflare-pages-functions",
+      "entrypoint": "functions",
+      "schedule": [],
+      "secrets": [],
+      "kvBindings": [
+        {
+          "binding": "CURATOROS_RECORDS",
+          "namespaceId": null,
+          "recoveryOwner": "curator-os",
+          "recoveryExport": "/api/recovery-export",
+          "priority": "critical",
+          "notes": "Namespace ID is account-side state and must be verified from the production Pages binding."
+        }
+      ],
+      "recoveryPriority": "critical"
+    },
+    {
+      "id": "research-capture",
+      "repository": "jaredmberger/research-capture",
+      "host": null,
+      "deployment": "cloudflare-worker",
+      "entrypoint": "worker.js",
+      "schedule": [],
+      "secrets": [
+        "CAPTURE_TOKEN"
+      ],
+      "kvBindings": [
+        {
+          "binding": "CURATOR_RESEARCH_CAPTURES",
+          "namespaceId": "b43b1006793f48d2a38bbd091dbdc8ef",
+          "recoveryOwner": "research-capture",
+          "recoveryExport": "/api/recovery-export",
+          "priority": "critical"
+        }
+      ],
+      "recoveryPriority": "critical"
+    },
+    {
+      "id": "content-opportunity",
+      "repository": "jaredmberger/content-opportunity",
+      "host": "content.oceanliners.net",
+      "deployment": "cloudflare-worker",
+      "entrypoint": "src/entry-v0.14.js",
+      "schedule": [],
+      "secrets": [
+        "RECOVERY_EXPORT_TOKEN"
+      ],
+      "kvBindings": [
+        {
+          "binding": "OPPORTUNITY_STATE",
+          "namespaceId": "afce711ea6844278b0d7fe059c739be2",
+          "recoveryOwner": "content-opportunity",
+          "recoveryExport": "/api/recovery-export",
+          "priority": "high"
+        }
+      ],
+      "recoveryPriority": "high"
+    },
+    {
+      "id": "errors",
+      "repository": "jaredmberger/errors",
+      "host": "errors.oceanliners.net",
+      "deployment": "cloudflare-worker",
+      "entrypoint": "src/entry-v1.31.js",
+      "schedule": [
+        "* * * * *",
+        "47 * * * *"
+      ],
+      "secrets": [
+        "RECOVERY_EXPORT_TOKEN"
+      ],
+      "kvBindings": [
+        {
+          "binding": "CURATOR_ERROR_RECORDS",
+          "namespaceId": "447306da3a754b44830d2ac8608322c0",
+          "recoveryOwner": "errors",
+          "recoveryExport": "/api/recovery-export",
+          "priority": "high"
+        }
+      ],
+      "recoveryPriority": "high"
+    },
+    {
+      "id": "verify",
+      "repository": "jaredmberger/verify",
+      "host": "verify.oceanlinercurator.com",
+      "deployment": "cloudflare-worker",
+      "entrypoint": "src/entry-v1.2.js",
+      "schedule": [],
+      "secrets": [
+        "VERIFY_WRITE_KEY",
+        "RECOVERY_EXPORT_TOKEN"
+      ],
+      "kvBindings": [
+        {
+          "binding": "CURATOR_VERIFY_RECORDS",
+          "namespaceId": "bf7fb04aa1754f729acd62595bf21004",
+          "recoveryOwner": "verify",
+          "recoveryExport": "/api/recovery-export",
+          "priority": "medium"
+        }
+      ],
+      "recoveryPriority": "high"
+    },
+    {
+      "id": "ops",
+      "repository": "jaredmberger/ops",
+      "host": "ops.oceanlinercurator.com",
+      "deployment": "cloudflare-worker",
+      "entrypoint": "src/entry-v1.18.js",
+      "schedule": [
+        "*/5 * * * *"
+      ],
+      "secrets": [
+        "OPS_WRITE_KEY",
+        "GITHUB_OPS_TOKEN",
+        "RECOVERY_EXPORT_TOKEN"
+      ],
+      "kvBindings": [
+        {
+          "binding": "CURATOR_OPS_RECORDS",
+          "namespaceId": "747c318b62fa479aa486130011d5670d",
+          "recoveryOwner": "ops",
+          "recoveryExport": "/api/recovery-export",
+          "priority": "high"
+        },
+        {
+          "binding": "CURATOR_ERROR_RECORDS",
+          "namespaceId": "447306da3a754b44830d2ac8608322c0",
+          "recoveryOwner": "errors",
+          "recoveryExport": null,
+          "priority": "high",
+          "shared": true
+        }
+      ],
+      "recoveryPriority": "high"
+    },
+    {
+      "id": "site-health",
+      "repository": "jaredmberger/site-health",
+      "host": "site-health.oceanliners.net",
+      "deployment": "cloudflare-worker",
+      "entrypoint": "src/entry-v2.1.js",
+      "schedule": [
+        "27 * * * *"
+      ],
+      "secrets": [
+        "AUDIT_TOKEN",
+        "GITHUB_TOKEN",
+        "RECOVERY_EXPORT_TOKEN"
+      ],
+      "kvBindings": [
+        {
+          "binding": "SITE_HEALTH_INTEGRATION_CACHE",
+          "namespaceId": "594632c804d045b589724f48dc72c08e",
+          "recoveryOwner": "site-health",
+          "recoveryExport": "/api/recovery-export",
+          "priority": "low"
+        },
+        {
+          "binding": "CURATOR_ERROR_RECORDS",
+          "namespaceId": "447306da3a754b44830d2ac8608322c0",
+          "recoveryOwner": "errors",
+          "recoveryExport": null,
+          "priority": "high",
+          "shared": true
+        }
+      ],
+      "recoveryPriority": "medium"
+    },
+    {
+      "id": "curator-indexer",
+      "repository": "jaredmberger/curator-indexer",
+      "host": "curator-indexer.oceanliners.net",
+      "deployment": "cloudflare-worker",
+      "entrypoint": "src/entry-v1.3.js",
+      "schedule": [
+        "7 * * * *"
+      ],
+      "secrets": [
+        "AUDIT_TOKEN",
+        "RECOVERY_EXPORT_TOKEN"
+      ],
+      "kvBindings": [
+        {
+          "binding": "CURATOR_INDEXER_RECORDS",
+          "namespaceId": "cdc9a84c8b364dcd9361d670c8db26b5",
+          "recoveryOwner": "curator-indexer",
+          "recoveryExport": "/api/recovery-export",
+          "priority": "medium"
+        },
+        {
+          "binding": "CURATOR_ERROR_RECORDS",
+          "namespaceId": "447306da3a754b44830d2ac8608322c0",
+          "recoveryOwner": "errors",
+          "recoveryExport": null,
+          "priority": "high",
+          "shared": true
+        }
+      ],
+      "recoveryPriority": "medium"
+    },
+    {
+      "id": "curator-integrity",
+      "repository": "jaredmberger/curator-integrity",
+      "host": "integrity.oceanliners.net",
+      "deployment": "cloudflare-worker",
+      "entrypoint": "src/index-v1.4.js",
+      "schedule": [
+        "17 * * * *"
+      ],
+      "secrets": [
+        "RECOVERY_EXPORT_TOKEN"
+      ],
+      "kvBindings": [
+        {
+          "binding": "CURATOR_INTEGRITY_RECORDS",
+          "namespaceId": "77798f0b676c4257bdd03fc656532c3f",
+          "recoveryOwner": "curator-integrity",
+          "recoveryExport": "/api/recovery-export",
+          "priority": "medium"
+        },
+        {
+          "binding": "CURATOR_ERROR_RECORDS",
+          "namespaceId": "447306da3a754b44830d2ac8608322c0",
+          "recoveryOwner": "errors",
+          "recoveryExport": null,
+          "priority": "high",
+          "shared": true
+        }
+      ],
+      "recoveryPriority": "medium"
+    },
+    {
+      "id": "speed",
+      "repository": "jaredmberger/speed",
+      "host": "speed.oceanliners.net",
+      "deployment": "cloudflare-worker-static-assets",
+      "entrypoint": "src/entry-v1.3.js",
+      "schedule": [
+        "37 * * * *"
+      ],
+      "secrets": [
+        "RECOVERY_EXPORT_TOKEN"
+      ],
+      "kvBindings": [
+        {
+          "binding": "CURATOR_SPEED_RECORDS",
+          "namespaceId": "6de4740a91b94f9a945ce12a9f5a2208",
+          "recoveryOwner": "speed",
+          "recoveryExport": "/api/recovery-export",
+          "priority": "medium"
+        },
+        {
+          "binding": "CURATOR_ERROR_RECORDS",
+          "namespaceId": "447306da3a754b44830d2ac8608322c0",
+          "recoveryOwner": "errors",
+          "recoveryExport": null,
+          "priority": "high",
+          "shared": true
+        }
+      ],
+      "recoveryPriority": "medium"
+    },
+    {
+      "id": "link-map",
+      "repository": "jaredmberger/link-map",
+      "host": "link-map.oceanliners.net",
+      "deployment": "cloudflare-pages-functions",
+      "entrypoint": "functions",
+      "schedule": [],
+      "secrets": [
+        "RECOVERY_EXPORT_TOKEN"
+      ],
+      "kvBindings": [
+        {
+          "binding": "LINK_MAP_CACHE",
+          "namespaceId": "9d3f33cd6d0940cfaf548649af119dfe",
+          "recoveryOwner": "link-map",
+          "recoveryExport": "/api/recovery-export",
+          "priority": "low"
+        },
+        {
+          "binding": "CURATOR_ERROR_RECORDS",
+          "namespaceId": "447306da3a754b44830d2ac8608322c0",
+          "recoveryOwner": "errors",
+          "recoveryExport": null,
+          "priority": "high",
+          "shared": true
+        }
+      ],
+      "recoveryPriority": "medium"
+    },
+    {
+      "id": "search-intelligence",
+      "repository": "jaredmberger/search-intelligence",
+      "host": "search-intelligence.oceanliners.net",
+      "deployment": "cloudflare-worker",
+      "entrypoint": "src/entry-v1.2.js",
+      "schedule": [
+        "17 7 * * *"
+      ],
+      "secrets": [
+        "RECOVERY_EXPORT_TOKEN"
+      ],
+      "kvBindings": [
+        {
+          "binding": "SEARCH_INTELLIGENCE_RECORDS",
+          "namespaceId": "b469b6c1bfc04b48b00c5d887bd16594",
+          "recoveryOwner": "search-intelligence",
+          "recoveryExport": "/api/recovery-export",
+          "priority": "medium"
+        },
+        {
+          "binding": "CURATOR_ERROR_RECORDS",
+          "namespaceId": "447306da3a754b44830d2ac8608322c0",
+          "recoveryOwner": "errors",
+          "recoveryExport": null,
+          "priority": "high",
+          "shared": true
+        }
+      ],
+      "recoveryPriority": "medium"
+    },
+    {
+      "id": "analytics",
+      "repository": "jaredmberger/analytics",
+      "host": "analytics.oceanliners.net",
+      "deployment": "cloudflare-worker",
+      "entrypoint": "src/entry-v1.1.js",
+      "schedule": [],
+      "secrets": [
+        "RECOVERY_EXPORT_TOKEN"
+      ],
+      "kvBindings": [
+        {
+          "binding": "CURATOR_ANALYTICS_RECORDS",
+          "namespaceId": "159b868253094d3db41c4698a636fc4c",
+          "recoveryOwner": "analytics",
+          "recoveryExport": "/api/recovery-export",
+          "priority": "medium"
+        }
+      ],
+      "recoveryPriority": "medium"
+    },
+    {
+      "id": "page-studio",
+      "repository": "jaredmberger/page-studio",
+      "host": "page-studio.oceanliners.net",
+      "deployment": "static-plus-cloudflare-worker",
+      "entrypoint": "worker/src/index.js",
+      "schedule": [],
+      "secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "kvBindings": [],
+      "recoveryPriority": "medium"
+    },
+    {
+      "id": "curator-tools",
+      "repository": "jaredmberger/curator-tools",
+      "host": "tools.oceanliners.net",
+      "deployment": "static-github-pages-compatible",
+      "entrypoint": null,
+      "schedule": [],
+      "secrets": [],
+      "kvBindings": [],
+      "recoveryPriority": "low"
+    },
+    {
+      "id": "launch",
+      "repository": "jaredmberger/launch",
+      "host": "launch.oceanliners.net",
+      "deployment": "static-launcher",
+      "entrypoint": null,
+      "schedule": [],
+      "secrets": [],
+      "kvBindings": [],
+      "recoveryPriority": "low"
+    }
+  ],
+  "recoveryOrder": [
+    "public-site",
+    "curator-os",
+    "errors",
+    "verify",
+    "ops",
+    "site-health",
+    "curator-indexer",
+    "curator-integrity",
+    "speed",
+    "link-map",
+    "search-intelligence",
+    "analytics",
+    "content-opportunity",
+    "research-capture",
+    "page-studio",
+    "curator-tools",
+    "launch"
+  ]
+}

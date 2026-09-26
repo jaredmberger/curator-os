@@ -1,0 +1,32 @@
+name: Recovery manifest
+
+on:
+  pull_request:
+    paths:
+      - 'recovery/infrastructure.json'
+      - 'scripts/validate-recovery-manifest.mjs'
+      - 'DISASTER_RECOVERY_RUNBOOK.md'
+      - 'package.json'
+      - '.github/workflows/recovery-manifest.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'recovery/infrastructure.json'
+      - 'scripts/validate-recovery-manifest.mjs'
+      - 'DISASTER_RECOVERY_RUNBOOK.md'
+      - 'package.json'
+      - '.github/workflows/recovery-manifest.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm run recovery:manifest:validate

@@ -10,8 +10,10 @@
     "validate": "node scripts/validate.js",
     "test:database": "node tests/database.test.js",
     "test:surface": "node tests/worker-era-findings.test.mjs",
-    "test": "npm run test:database && npm run test:surface",
-    "check": "npm run validate && npm run test"
+    "test": "npm run test:database && npm run test:surface && npm run test:recovery",
+    "check": "npm run validate && npm run test",
+    "recovery:validate": "node scripts/validate-recovery-backup.mjs",
+    "test:recovery": "node --test tests/recovery-export.test.mjs"
   },
   "engines": {
     "node": ">=20"

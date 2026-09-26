@@ -71,6 +71,10 @@ The research lifecycle is deliberately gated:
 
 No interpretive conclusion silently becomes a canonical historical fact.
 
+## Disaster recovery
+
+The authoritative reconstruction procedure for the public site and CuratorOS ecosystem is documented in [`DISASTER_RECOVERY_RUNBOOK.md`](DISASTER_RECOVERY_RUNBOOK.md). It covers repository recovery, Cloudflare deployments, KV bindings and durable state, secret-name inventory, restoration order, and final acceptance testing.
+
 ## Permanence and integrity
 
 Project Records are permanently stored in Cloudflare KV. Browser storage is a working cache, not the institutional source of truth.

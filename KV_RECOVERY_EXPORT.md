@@ -69,3 +69,7 @@ Restoration is a destructive/write operation and should first be tested against 
 7. only then consider a separately approved production restoration
 
 Never restore into production merely because a new deployment has an empty KV namespace.
+
+## Restore drill
+
+After creating and validating a backup, follow [`KV_RECOVERY_RESTORE_DRILL.md`](KV_RECOVERY_RESTORE_DRILL.md) to prove restoration into a disposable Cloudflare KV namespace. The drill never requires rebinding or writing to production.

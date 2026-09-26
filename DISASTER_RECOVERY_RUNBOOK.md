@@ -449,7 +449,7 @@ The highest-value non-GitHub data is the content of durable KV stores, especiall
 5. `CURATOR_OPS_RECORDS`
 6. Search/analytics/integrity/indexer/speed retained records where historical continuity matters
 
-`CURATOROS_RECORDS` now has a repeatable, read-only export path at `https://curator.oceanliners.net/api/recovery-export`. The export includes both `project-records` and `research-state`, refuses incomplete/malformed stores, and includes a SHA-256 integrity digest. Validate downloaded files with `npm run recovery:validate -- /path/to/backup.json`. Restoration remains intentionally separate and must first be tested against a disposable KV namespace. Equivalent export/snapshot coverage should be added for the remaining stateful stores.
+`CURATOROS_RECORDS` now has a repeatable, read-only export path at `https://curator.oceanliners.net/api/recovery-export`. The export includes both `project-records` and `research-state`, refuses incomplete/malformed stores, and includes a SHA-256 integrity digest. Validate downloaded files with `npm run recovery:validate -- /path/to/backup.json`. Restoration remains intentionally separate. A disposable restore drill is documented in `KV_RECOVERY_RESTORE_DRILL.md` and implemented by `npm run recovery:restore -- ...`; it requires an explicit namespace ID and `--confirm-disposable`, writes only the two institutional keys, and reads them back for exact verification. Equivalent export/snapshot coverage should be added for the remaining stateful stores.
 
 ## Credentials
 

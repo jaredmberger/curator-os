@@ -38,7 +38,17 @@
           "notes": "Namespace ID is account-side state and must be verified from the production Pages binding."
         }
       ],
-      "recoveryPriority": "critical"
+      "recoveryPriority": "critical",
+      "serviceBindings": [
+        {
+          "binding": "CURATOR_OPS",
+          "service": "ops",
+          "environment": "production",
+          "purpose": "Read-only dashboard monitoring summaries",
+          "requiredFor": "ops-health dashboard cards",
+          "notes": "Recreate in Pages settings and redeploy. Not required for records or research state."
+        }
+      ]
     },
     {
       "id": "research-capture",

@@ -39,43 +39,79 @@ function installOpsHealthStrip(){
   `;
   topbar.insertAdjacentElement('afterend',strip);
 
-  const checks=[
-    ['journey','https://ops.oceanlinercurator.com/api/public-site-journey'],
-    ['browser-search','https://ops.oceanlinercurator.com/api/browser-search-journey'],
-    ['self-test','https://ops.oceanlinercurator.com/api/self-test']
-  ];
-
-  checks.forEach(([id,url])=>loadOpsHealth(id,url));
+  const refresh=document.createElement('button');
+  refresh.type='button';
+  refresh.className='ops-health-refresh';
+  refresh.textContent='Refresh status';
+  strip.append(refresh);
+  let loading=false;
+  const update=async()=>{
+    if(loading)return;
+    loading=true;
+    refresh.disabled=true;
+    refresh.textContent='Refreshing…';
+    try{await loadOpsHealth(strip)}finally{
+      loading=false;
+      refresh.disabled=false;
+      refresh.textContent='Refresh status';
+    }
+  };
+  refresh.addEventListener('click',update);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)update()});
+  window.addEventListener('pageshow',event=>{if(event.persisted)update()});
+  setInterval(()=>{if(!document.hidden)update()},60000);
+  update();
 }
 
-async function loadOpsHealth(id,url){
-  const card=document.querySelector(`[data-ops-health="${id}"]`);
-  if(!card)return;
-  const stateEl=card.querySelector('[data-ops-state]');
-  const dot=card.querySelector('.ops-health-dot');
-  const controller=typeof AbortController==='function'?new AbortController():null;
-  const timer=setTimeout(()=>controller?.abort(),5000);
+async function loadOpsHealth(strip){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),8000);
   try{
-    const response=await fetch(url,{cache:'no-store',credentials:'omit',signal:controller?.signal});
-    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    const response=await fetch('/api/ops-health',{
+      cache:'no-store',credentials:'same-origin',redirect:'error',signal:controller.signal
+    });
+    if(!response.ok)throw new Error('Status unavailable');
     const payload=await response.json();
-    const snapshot=payload?.snapshot||{};
-    const state=String(snapshot.effectiveState||snapshot.summary?.status||'unknown').toLowerCase();
-    const allowed=['healthy','warming','observing','degraded','persistent','attention','unknown'];
-    const safeState=allowed.includes(state)?state:'unknown';
-    dot.className=`ops-health-dot ${safeState}`;
-    stateEl.textContent=safeState.charAt(0).toUpperCase()+safeState.slice(1);
-    card.dataset.state=safeState;
-    const checked=snapshot.generatedAt?new Date(snapshot.generatedAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'not yet run';
-    card.title=`Last Ops check: ${checked}`;
-  }catch(error){
-    dot.className='ops-health-dot unknown';
-    stateEl.textContent='Unavailable';
-    card.dataset.state='unknown';
-    card.title='Curator Ops status could not be loaded.';
+    if(payload?.schemaVersion!==1||!payload.checks)throw new Error('Invalid status response');
+    strip.querySelectorAll('[data-ops-health]').forEach(card=>renderOpsHealth(card,payload.checks[card.dataset.opsHealth]));
+  }catch{
+    strip.querySelectorAll('[data-ops-health]').forEach(card=>renderOpsHealth(card,null));
   }finally{
     clearTimeout(timer);
   }
+}
+
+function renderOpsHealth(card,check){
+  const labels={healthy:'Healthy',warming:'Warming',observing:'Observing',degraded:'Degraded',persistent:'Persistent',attention:'Attention',unknown:'Unknown'};
+  const reasons={
+    not_configured:'Status connection needs setup.',
+    access_required:'Status connection requires authorization.',
+    timeout:'Ops did not respond in time. Try refreshing.',
+    invalid_response:'Ops returned an unreadable status.',
+    upstream_error:'Ops status could not be retrieved.',
+    awaiting_check:'Waiting for a dated monitoring result.'
+  };
+  const checkedMs=Date.parse(check?.checkedAt||'');
+  const stale=check?.stale===true||(Number.isFinite(checkedMs)&&Date.now()-checkedMs>20*60*1000);
+  const available=check?.available===true;
+  const state=available&&Object.hasOwn(labels,check.state)?check.state:'unknown';
+  const displayState=available&&stale?'stale':state;
+  const label=!available?(check?.reason==='not_configured'?'Setup needed':'Unavailable'):stale?'Stale':labels[state];
+  const checked=Number.isFinite(checkedMs)?new Date(checkedMs).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):null;
+  const detail=!available?(reasons[check?.reason]||'Status could not be loaded. Try refreshing.')
+    :stale?`Last result: ${labels[state]}. Last Ops check: ${checked}.`
+    :checked?`Last Ops check: ${checked}.`:(reasons[check?.reason]||'Waiting for a monitoring result.');
+  card.querySelector('.ops-health-dot').className=`ops-health-dot ${displayState}`;
+  card.querySelector('[data-ops-state]').textContent=label;
+  card.dataset.state=displayState;
+  let detailEl=card.querySelector('.ops-health-detail');
+  if(!detailEl){
+    detailEl=document.createElement('small');
+    detailEl.className='ops-health-detail';
+    card.append(detailEl);
+  }
+  detailEl.textContent=detail;
+  card.title=detail;
 }
 
 function escapeHtml(value){

@@ -106,6 +106,12 @@ CuratorOS sits within a wider suite of purpose-built tools:
 
 These remain independent tools. CuratorOS should only claim an integration where an actual data handoff or shared workflow exists.
 
+## Dashboard monitoring
+
+Visitor Journey, Browser Search, and Monitoring Self-Test use the same-origin
+`/api/ops-health` endpoint. Production requires a `CURATOR_OPS` service binding
+to the `ops` Worker. See [setup and recovery instructions](docs/ops-health-connection.md).
+
 ## iPad and iPhone
 
 CuratorOS is designed to remain fully usable from Safari on iPad and iPhone.

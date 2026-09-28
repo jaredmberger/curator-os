@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-27",
+  "updatedAt": "2026-09-28",
   "principles": {
     "sourceOfTruth": "GitHub main",
     "durableState": "Cloudflare KV",
@@ -103,7 +103,9 @@
         "47 * * * *"
       ],
       "secrets": [
-        "RECOVERY_EXPORT_TOKEN"
+        "RECOVERY_EXPORT_TOKEN",
+        "ERROR_REPORT_KEY",
+        "VERIFY_WRITE_KEY"
       ],
       "kvBindings": [
         {
@@ -150,7 +152,9 @@
       "secrets": [
         "OPS_WRITE_KEY",
         "GITHUB_OPS_TOKEN",
-        "RECOVERY_EXPORT_TOKEN"
+        "RECOVERY_EXPORT_TOKEN",
+        "CF_ACCESS_CLIENT_ID",
+        "CF_ACCESS_CLIENT_SECRET"
       ],
       "kvBindings": [
         {

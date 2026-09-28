@@ -60,7 +60,7 @@ export async function onRequestGet({ env } = {}) {
       minimumSeconds: MINIMUM_POLL_SECONDS,
     },
     heartbeat: {
-      endpoint: 'https://ops.oceanlinercurator.com/api/heartbeat',
+      endpoint: 'https://ops.oceanlinercurator.com/api/device/v1/heartbeat',
       method: 'POST',
       authHeader: 'x-curator-ops-key',
     },

@@ -6,34 +6,81 @@ const SOURCES = {
 };
 
 const FETCH_TIMEOUT_MS = 7000;
+const OPS_TIMEOUT_MS = 5000;
+const DEVICE_CONTRACT_VERSION = 1;
+const RECOMMENDED_POLL_SECONDS = 60;
+const MINIMUM_POLL_SECONDS = 30;
 
-export async function onRequestGet() {
+export async function onRequestGet({ env } = {}) {
   const startedAt = Date.now();
 
-  const [siteHealthRaw, errorsRaw, speedRaw, integrityRaw] = await Promise.all([
+  const [siteHealthRaw, errorsRaw, speedRaw, integrityRaw, opsStateRaw, opsDevicesRaw] = await Promise.all([
     getJson(SOURCES.siteHealth),
     getJson(SOURCES.errors),
     getJson(SOURCES.speed),
     getJson(SOURCES.integrity),
+    getOpsJson(env, '/api/operational-state'),
+    getOpsJson(env, '/api/devices'),
   ]);
 
   const siteHealth = summarizeSiteHealth(siteHealthRaw);
   const errors = summarizeErrors(errorsRaw);
   const speed = summarizeSpeed(speedRaw);
   const integrity = summarizeIntegrity(integrityRaw);
+  const opsState = summarizeOpsState(opsStateRaw);
+  const deviceObservability = summarizeDeviceObservability(opsDevicesRaw);
 
   const sourceStates = [siteHealth, errors, speed, integrity];
   const unavailable = sourceStates.filter(item => item.available === false).length;
   const attention = sourceStates.filter(item => item.status === 'attention').length;
 
+  const legacyOverallStatus = unavailable ? 'partial' : attention ? 'attention' : 'healthy';
+  const systemState = stableSystemState(opsState, legacyOverallStatus);
+  const publicSite = normalizePublicSite(errors.publicSiteAvailability);
+  const highestIncidentSeverity = errors.severity?.p0 > 0
+    ? 'p0'
+    : errors.severity?.p1 > 0
+      ? 'p1'
+      : errors.severity?.p2 > 0
+        ? 'p2'
+        : 'none';
+
   const payload = {
     ok: unavailable === 0,
     schemaVersion: 2,
+    contractVersion: DEVICE_CONTRACT_VERSION,
     service: 'CuratorOS Hardware Status',
+    contract: {
+      version: DEVICE_CONTRACT_VERSION,
+      compatibility: 'additive',
+      statusVocabulary: ['healthy', 'attention', 'degraded', 'partial', 'unknown'],
+    },
+    polling: {
+      recommendedSeconds: RECOMMENDED_POLL_SECONDS,
+      minimumSeconds: MINIMUM_POLL_SECONDS,
+    },
+    heartbeat: {
+      endpoint: 'https://ops.oceanlinercurator.com/api/heartbeat',
+      method: 'POST',
+      authHeader: 'x-curator-ops-key',
+    },
     generatedAt: new Date().toISOString(),
     responseTimeMs: Date.now() - startedAt,
+    system: {
+      state: systemState,
+      publicSite,
+      activeIncidentCount: errors.count,
+      highestIncidentSeverity,
+      opsAvailable: opsState.available,
+      generatedAt: opsState.generatedAt || null,
+    },
+    devices: {
+      ...deviceObservability.summary,
+      available: deviceObservability.available,
+      generatedAt: deviceObservability.generatedAt,
+    },
     overall: {
-      status: unavailable ? 'partial' : attention ? 'attention' : 'healthy',
+      status: legacyOverallStatus,
       availableSources: sourceStates.length - unavailable,
       sourceCount: sourceStates.length,
       attentionCount: attention,
@@ -42,6 +89,7 @@ export async function onRequestGet() {
     errors,
     speed,
     integrity,
+    ops: opsState,
   };
 
   return json(payload, 200);
@@ -174,6 +222,7 @@ function summarizeErrors(raw) {
     statusLabel: count > 0 ? 'Active incidents' : 'Clear',
     count,
     severity: { p0, p1, p2 },
+    publicSiteAvailability: data.publicSiteAvailability || null,
     updatedAt: data.generatedAt || data.updatedAt || data.checkedAt || null,
     upstreamResponseMs: raw.responseTimeMs,
   };
@@ -295,6 +344,126 @@ function unavailableSummary(id, name, raw) {
     upstreamResponseMs: raw.responseTimeMs ?? null,
     updatedAt: null,
   };
+}
+
+
+async function getOpsJson(env, path) {
+  if (typeof env?.CURATOR_OPS?.fetch !== 'function') {
+    return { available: false, error: 'CURATOR_OPS service binding is not configured.' };
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), OPS_TIMEOUT_MS);
+  const startedAt = Date.now();
+
+  try {
+    const response = await env.CURATOR_OPS.fetch(new Request(`https://ops.oceanlinercurator.com${path}`, {
+      method: 'GET',
+      headers: { accept: 'application/json' },
+      redirect: 'manual',
+      signal: controller.signal,
+    }));
+
+    const responseTimeMs = Date.now() - startedAt;
+    if (!response.ok) {
+      return {
+        available: false,
+        httpStatus: response.status,
+        responseTimeMs,
+        error: `Ops returned HTTP ${response.status}.`,
+      };
+    }
+
+    if (!(response.headers.get('content-type') || '').includes('application/json')) {
+      return {
+        available: false,
+        httpStatus: response.status,
+        responseTimeMs,
+        error: 'Ops returned non-JSON content.',
+      };
+    }
+
+    return {
+      available: true,
+      httpStatus: response.status,
+      responseTimeMs,
+      data: await response.json(),
+    };
+  } catch (error) {
+    return {
+      available: false,
+      httpStatus: null,
+      responseTimeMs: Date.now() - startedAt,
+      error: error?.name === 'AbortError'
+        ? `Ops timed out after ${OPS_TIMEOUT_MS} ms.`
+        : (error instanceof Error ? error.message : String(error)),
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function summarizeOpsState(raw) {
+  if (!raw.available) {
+    return {
+      available: false,
+      status: 'unknown',
+      generatedAt: null,
+      error: raw.error || 'Ops unavailable.',
+      upstreamResponseMs: raw.responseTimeMs ?? null,
+    };
+  }
+
+  const snapshot = raw.data?.snapshot || null;
+  return {
+    available: Boolean(snapshot),
+    status: String(snapshot?.status || 'unknown').toLowerCase(),
+    generatedAt: snapshot?.generatedAt || null,
+    error: snapshot ? null : 'Ops operational-state snapshot is unavailable.',
+    upstreamResponseMs: raw.responseTimeMs ?? null,
+  };
+}
+
+function summarizeDeviceObservability(raw) {
+  if (!raw.available) {
+    return {
+      available: false,
+      generatedAt: null,
+      summary: { total: 0, online: 0, quiet: 0, stale: 0, unknown: 0 },
+    };
+  }
+
+  const snapshot = raw.data?.snapshot || null;
+  const summary = snapshot?.summary || {};
+  return {
+    available: Boolean(snapshot),
+    generatedAt: snapshot?.generatedAt || null,
+    summary: {
+      total: firstFinite([summary.total], 0),
+      online: firstFinite([summary.online], 0),
+      quiet: firstFinite([summary.quiet], 0),
+      stale: firstFinite([summary.stale], 0),
+      unknown: firstFinite([summary.unknown], 0),
+    },
+  };
+}
+
+function stableSystemState(opsState, legacyOverallStatus) {
+  if (opsState.available) {
+    if (opsState.status === 'attention') return 'attention';
+    if (opsState.status === 'degraded') return 'degraded';
+    if (opsState.status === 'healthy') return 'healthy';
+  }
+  if (legacyOverallStatus === 'partial') return 'partial';
+  if (legacyOverallStatus === 'attention') return 'attention';
+  if (legacyOverallStatus === 'healthy') return 'healthy';
+  return 'unknown';
+}
+
+function normalizePublicSite(value) {
+  const status = String(value?.status || 'unknown').toLowerCase();
+  if (['online', 'offline', 'suspect'].includes(status)) return status;
+  return 'unknown';
 }
 
 function number(value) {

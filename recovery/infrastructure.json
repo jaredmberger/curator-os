@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-26",
+  "updatedAt": "2026-09-27",
   "principles": {
     "sourceOfTruth": "GitHub main",
     "durableState": "Cloudflare KV",
@@ -97,7 +97,7 @@
       "repository": "jaredmberger/errors",
       "host": "errors.oceanliners.net",
       "deployment": "cloudflare-worker",
-      "entrypoint": "src/entry-v1.31.js",
+      "entrypoint": "src/error-bus.js",
       "schedule": [
         "* * * * *",
         "47 * * * *"
@@ -143,7 +143,7 @@
       "repository": "jaredmberger/ops",
       "host": "ops.oceanlinercurator.com",
       "deployment": "cloudflare-worker",
-      "entrypoint": "src/entry-v1.18.js",
+      "entrypoint": "src/ops.js",
       "schedule": [
         "*/5 * * * *"
       ],

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-27",
+  "updatedAt": "2026-09-28",
   "principles": {
     "sourceOfTruth": "GitHub main",
     "durableState": "Cloudflare KV",
@@ -69,7 +69,12 @@
           "priority": "critical"
         }
       ],
-      "recoveryPriority": "critical"
+      "recoveryPriority": "critical",
+      "accessBoundary": {
+        "required": "cloudflare-access",
+        "scope": "human inbox routes / and /recent",
+        "note": "Machine capture and recent-history APIs also require CAPTURE_TOKEN headers."
+      }
     },
     {
       "id": "content-opportunity",
@@ -103,7 +108,9 @@
         "47 * * * *"
       ],
       "secrets": [
-        "RECOVERY_EXPORT_TOKEN"
+        "RECOVERY_EXPORT_TOKEN",
+        "ERROR_REPORT_KEY",
+        "VERIFY_WRITE_KEY"
       ],
       "kvBindings": [
         {
@@ -150,7 +157,8 @@
       "secrets": [
         "OPS_WRITE_KEY",
         "GITHUB_OPS_TOKEN",
-        "RECOVERY_EXPORT_TOKEN"
+        "RECOVERY_EXPORT_TOKEN",
+        "CF_ACCESS_CLIENT_SECRET"
       ],
       "kvBindings": [
         {
@@ -169,7 +177,10 @@
           "shared": true
         }
       ],
-      "recoveryPriority": "high"
+      "recoveryPriority": "high",
+      "vars": [
+        "CF_ACCESS_CLIENT_ID"
+      ]
     },
     {
       "id": "site-health",
@@ -390,7 +401,12 @@
         "GITHUB_TOKEN"
       ],
       "kvBindings": [],
-      "recoveryPriority": "medium"
+      "recoveryPriority": "medium",
+      "accessBoundary": {
+        "required": "cloudflare-access",
+        "scope": "publishing Worker hostname",
+        "note": "Origin allow-listing is CORS/request-origin control, not authentication."
+      }
     },
     {
       "id": "curator-tools",

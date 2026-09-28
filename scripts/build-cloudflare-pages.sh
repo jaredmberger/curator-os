@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/dist-pages"
-SITE_REPO="$ROOT/.build-oceanliners"
 VERSION="$(python - <<'PY'
 import re
 from pathlib import Path
@@ -15,8 +14,8 @@ print(match.group(1))
 PY
 )"
 
-rm -rf "$OUT" "$SITE_REPO"
-mkdir -p "$OUT/link-map" "$OUT/src"
+rm -rf "$OUT"
+mkdir -p "$OUT/src"
 
 # Publish the complete CuratorOS application at the Pages root.
 cp -R "$ROOT/preview/." "$OUT/"
@@ -71,11 +70,11 @@ cat > "$OUT/_headers" <<EOF
   Cache-Control: no-cache, max-age=0, must-revalidate
 EOF
 
-# Build the Link Map from the current public Ocean Liner Curator repository.
-cp "$ROOT/link-map/static-index.html" "$OUT/link-map/index.html"
-git clone --depth 1 https://github.com/jaredmberger/Ocean-Liner-Curator.git "$SITE_REPO"
-node "$ROOT/scripts/build-link-map-data.js" "$SITE_REPO" "$OUT/link-map/link-map-data.json"
-rm -rf "$SITE_REPO"
+# Retire the former embedded Link Map surface while preserving old bookmarks.
+cat > "$OUT/_redirects" <<EOF
+/link-map https://link-map.oceanliners.net/ 301
+/link-map/* https://link-map.oceanliners.net/:splat 301
+EOF
 
 # Cloudflare Pages serves these files directly; Functions are deployed separately
 # from the repository's root /functions directory.
@@ -92,8 +91,9 @@ test -f "$OUT/version.js"
 test -f "$OUT/_headers"
 test -f "$OUT/src/core/database.js"
 test -f "$OUT/src/core/storage.js"
-test -f "$OUT/link-map/link-map-data.json"
 grep -q "version.js?v=$VERSION" "$OUT/index.html"
 grep -q "Cache-Control: no-cache" "$OUT/_headers"
+test -f "$OUT/_redirects"
+grep -q "link-map.oceanliners.net" "$OUT/_redirects"
 
 echo "Built Cloudflare Pages artifact in dist-pages/ (CuratorOS v$VERSION)"

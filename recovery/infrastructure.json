@@ -69,7 +69,12 @@
           "priority": "critical"
         }
       ],
-      "recoveryPriority": "critical"
+      "recoveryPriority": "critical",
+      "accessBoundary": {
+        "required": "cloudflare-access",
+        "scope": "human inbox routes / and /recent",
+        "note": "Machine capture and recent-history APIs also require CAPTURE_TOKEN headers."
+      }
     },
     {
       "id": "content-opportunity",
@@ -394,7 +399,12 @@
         "GITHUB_TOKEN"
       ],
       "kvBindings": [],
-      "recoveryPriority": "medium"
+      "recoveryPriority": "medium",
+      "accessBoundary": {
+        "required": "cloudflare-access",
+        "scope": "publishing Worker hostname",
+        "note": "Origin allow-listing is CORS/request-origin control, not authentication."
+      }
     },
     {
       "id": "curator-tools",

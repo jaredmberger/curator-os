@@ -158,7 +158,6 @@
         "OPS_WRITE_KEY",
         "GITHUB_OPS_TOKEN",
         "RECOVERY_EXPORT_TOKEN",
-        "CF_ACCESS_CLIENT_ID",
         "CF_ACCESS_CLIENT_SECRET"
       ],
       "kvBindings": [
@@ -178,7 +177,10 @@
           "shared": true
         }
       ],
-      "recoveryPriority": "high"
+      "recoveryPriority": "high",
+      "vars": [
+        "CF_ACCESS_CLIENT_ID"
+      ]
     },
     {
       "id": "site-health",

@@ -10,7 +10,7 @@ This document records the intended trust boundary for operator-facing and machin
 - Operator history and retained evidence are private operational data, not public status surfaces.
 - Browser `Origin` checks are CORS/request-origin controls, not authentication.
 - Browser-facing operator tools should use Cloudflare Access rather than embedding shared secrets in JavaScript or URLs.
-- Secret values never belong in GitHub. The recovery manifest inventories secret names only.
+- Secret values never belong in GitHub. The recovery manifest inventories secret names and separately records non-secret deployment variables such as credential identifiers.
 
 ## Machine-write boundaries
 

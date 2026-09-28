@@ -15,7 +15,7 @@ Its purpose is to transform accumulated research into connected, interrogable, e
 - **Canonical Project Records:** Cloudflare KV binding `CURATOROS_RECORDS`
 - **Durable research state:** Cloudflare KV via `/api/research-state`
 
-GitHub Pages and the former standalone CuratorOS Worker are retired production paths.
+GitHub Pages and the former standalone CuratorOS Worker are retired production paths and are no longer deployed by this repository.
 
 Cloudflare Pages builds from `main` with:
 
@@ -95,16 +95,15 @@ A canonical Ship Record keeps three concepts separate:
 
 ## Related Ocean Liner Curator tools
 
-CuratorOS sits within a wider suite of purpose-built tools:
+The canonical human-facing directory for the wider CuratorOS suite is **CuratorOS Launch**:
 
-- `https://site-health.oceanliners.net/`
-- `https://integrity.oceanliners.net/`
-- `https://search-intelligence.oceanliners.net/`
-- `https://curator-indexer.oceanliners.net/`
-- `https://speed.oceanliners.net/`
-- `https://page-studio.oceanliners.net/`
+`https://launch.oceanliners.net/`
 
-These remain independent tools. CuratorOS should only claim an integration where an actual data handoff or shared workflow exists.
+Launch is the authoritative place to discover and open operator-facing tools. The machine-readable recovery inventory remains `recovery/infrastructure.json`, while Curator Ops intentionally monitors a narrower operational fleet.
+
+Research Capture and Curator Verify are supporting backend/evidence services rather than standalone operator destinations, so they are intentionally absent from Launch.
+
+CuratorOS should only claim an integration where an actual data handoff or shared workflow exists. The former embedded CuratorOS Link Map has been retired; legacy `/link-map` routes redirect to the canonical standalone Link Map at `https://link-map.oceanliners.net/`.
 
 ## Dashboard monitoring
 

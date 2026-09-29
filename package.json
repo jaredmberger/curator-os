@@ -21,7 +21,8 @@
     "test:ops-health": "node --test tests/ops-health.test.mjs",
     "test:device-api": "node --test tests/device-api-contract.test.mjs",
     "test:overview": "node tests/overview.test.mjs",
-    "test:runtime": "node --test tests/runtime-contract.test.mjs",\n    "test:project-records-sync": "node --test tests/project-records-archive-sync.test.mjs"
+    "test:runtime": "node --test tests/runtime-contract.test.mjs",
+    "test:project-records-sync": "node --test tests/project-records-archive-sync.test.mjs"
   },
   "engines": {
     "node": ">=20"

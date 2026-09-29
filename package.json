@@ -1,6 +1,6 @@
 {
   "name": "curator-os",
-  "version": "1.0.0-rc.4",
+  "version": "1.0.0-rc.5",
   "private": true,
   "description": "Evidence-first, iPad-first institutional research operating system for Ocean Liner Curator",
   "scripts": {

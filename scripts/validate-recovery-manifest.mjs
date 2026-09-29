@@ -32,6 +32,18 @@ for(const service of manifest.services||[]){
     if(/token|key|secret/i.test(secret)===false)errors.push(`${service.id}: unusual secret name ${secret}; verify it is a name, not a value.`);
   }
 
+  if(service.runtimeIdentity){
+    const identity=service.runtimeIdentity;
+    if(identity.runtime==='static-assets'){
+      if(identity.contractVersion!==null)errors.push(`${service.id}: static runtimeIdentity contractVersion must be null.`);
+    }else{
+      if(identity.contractVersion!==1)errors.push(`${service.id}: runtimeIdentity contractVersion must be 1.`);
+      if(!['cloudflare-workers','cloudflare-pages'].includes(identity.runtime))errors.push(`${service.id}: invalid runtimeIdentity runtime ${identity.runtime}.`);
+      if(!identity.endpoint&&!identity.path)errors.push(`${service.id}: runtimeIdentity requires endpoint or path.`);
+      if(identity.endpoint&&!/^https:\/\//.test(identity.endpoint))errors.push(`${service.id}: runtimeIdentity endpoint must be https.`);
+    }
+  }
+
   for(const kv of service.kvBindings||[]){
     if(!kv.binding)errors.push(`${service.id}: KV binding name is required.`);
     if(kv.namespaceId!==null&&!/^[a-f0-9]{32}$/i.test(kv.namespaceId||''))errors.push(`${service.id}/${kv.binding}: namespaceId must be null or 32 hex chars.`);

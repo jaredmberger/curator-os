@@ -12,6 +12,8 @@ export function reconcileProjectRecordsWithArchive(records, archive, options = {
   const indexes = buildIndexes(next);
   const archiveExactCounts = countBy(ships, (ship) => normalizeTitle(ship?.name));
   const archiveLooseCounts = countBy(ships, (ship) => looseTitle(ship?.name));
+  const archiveExactPaths = groupPaths(ships, (ship) => normalizeTitle(ship?.name));
+  const archiveLoosePaths = groupPaths(ships, (ship) => looseTitle(ship?.name));
 
   const added = [];
   const repaired = [];
@@ -20,7 +22,7 @@ export function reconcileProjectRecordsWithArchive(records, archive, options = {
 
   for (const ship of ships) {
     if (!ship || !ship.name || !ship.page) continue;
-    const match = findMatch(ship, indexes, archiveExactCounts, archiveLooseCounts);
+    const match = findMatch(ship, indexes, archiveExactCounts, archiveLooseCounts, archiveExactPaths, archiveLoosePaths);
 
     if (match?.index != null) {
       matched += 1;
@@ -92,7 +94,7 @@ export function reconcileProjectRecordsWithArchive(records, archive, options = {
   };
 }
 
-function findMatch(ship, indexes, archiveExactCounts, archiveLooseCounts) {
+function findMatch(ship, indexes, archiveExactCounts, archiveLooseCounts, archiveExactPaths, archiveLoosePaths) {
   const path = normalizePath(ship.page);
   if (path && indexes.byPath.has(path)) {
     return { index: indexes.byPath.get(path), matchedBy: 'canonical-url' };
@@ -121,6 +123,11 @@ function findMatch(ship, indexes, archiveExactCounts, archiveLooseCounts) {
 
   const competing = Math.max(exactMatches.length, looseMatches.length, archiveExactCounts.get(exact) || 0, archiveLooseCounts.get(loose) || 0);
   if (competing > 1) {
+    const exactSiblingPaths = archiveExactPaths.get(exact) || [];
+    const looseSiblingPaths = archiveLoosePaths.get(loose) || [];
+    const representedSibling = [...new Set([...exactSiblingPaths, ...looseSiblingPaths])]
+      .some((candidatePath) => candidatePath && candidatePath !== path && indexes.byPath.has(candidatePath));
+    if (id && path && representedSibling) return null;
     return { ambiguous: true, reason: 'Multiple records or archive entries share the same normalized ship identity.' };
   }
 
@@ -213,6 +220,19 @@ function countBy(values, getter) {
     const key = getter(value);
     if (!key) continue;
     map.set(key, (map.get(key) || 0) + 1);
+  }
+  return map;
+}
+
+function groupPaths(values, getter) {
+  const map = new Map();
+  for (const value of values) {
+    const key = getter(value);
+    const path = normalizePath(value?.page);
+    if (!key || !path) continue;
+    const list = map.get(key) || [];
+    list.push(path);
+    map.set(key, list);
   }
   return map;
 }

@@ -22,3 +22,14 @@ test('Create Ship Record uses delegated click handling that survives Project Rec
   assert.doesNotMatch(source, /stopPropagation\(\)/);
   assert.doesNotMatch(source, /setTimeout\(\(\)=>openShipEditor\(null\),0\)/);
 });
+
+
+test('Discovery Candidate uses an explicit touch toggle backed by the saved checkbox boolean', () => {
+  assert.match(source, /data-discovery-toggle/);
+  assert.match(source, /function bindDiscoveryCandidateToggle\(root\)/);
+  assert.match(source, /input\.checked=!input\.checked/);
+  assert.match(source, /aria-pressed/);
+  assert.match(source, /id="ship-discovery-candidate" type="checkbox" hidden/);
+  assert.match(css, /\.ship-discovery-toggle\{/);
+  assert.match(css, /touch-action:manipulation/);
+});

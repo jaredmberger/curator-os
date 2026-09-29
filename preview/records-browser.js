@@ -142,14 +142,18 @@ function openRecordInspector(recordId) {
   if (!record) return;
   browserState.selectedId = recordId;
   closeInspector();
-  const dialog = document.createElement('dialog');
+  const dialog = document.createElement('div');
   dialog.id = 'project-record-inspector';
+  dialog.setAttribute('role', 'dialog');
+  dialog.setAttribute('aria-modal', 'true');
+  dialog.setAttribute('aria-label', recordTitle(record));
   dialog.innerHTML = `<section class="record-inspector-card"><header class="record-inspector-header"><div><span class="eyebrow">Permanent Project Record</span><h3>${escapeHtml(recordTitle(record))}</h3><div class="badges"><span class="badge">${escapeHtml(label(record.type || 'record'))}</span><span class="badge">${escapeHtml(label(record.status || 'unknown'))}</span><span class="badge">Stored in CuratorOS</span>${record.metadata?.confidence ? `<span class="badge">${escapeHtml(label(record.metadata.confidence))} confidence</span>` : ''}</div></div><button type="button" class="record-inspector-close" data-close-inspector aria-label="Close record">×</button></header>${record.summary ? `<section class="record-inspector-section"><h4>Summary</h4><p>${escapeHtml(record.summary)}</p></section>` : ''}${renderIdentity(record)}${renderStructuredData(record)}${renderRelationships(record.relationships)}${renderSources(record.sources)}${renderNotes(record.notes)}${renderOrigin(record.origin)}${renderRawFields(record)}<footer class="record-inspector-actions">${getPublicUrl(record) ? `<a href="${escapeHtml(normalizePublicUrl(getPublicUrl(record)))}" target="_blank" rel="noopener">Open public page</a>` : ''}<button type="button" data-copy-record>Copy record JSON</button><button type="button" data-close-inspector>Close</button></footer></section>`;
   document.body.append(dialog);
   dialog.querySelectorAll('[data-close-inspector]').forEach((button) => button.addEventListener('click', closeInspector));
   dialog.querySelector('[data-copy-record]')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText(JSON.stringify(record, null, 2)); const button = dialog.querySelector('[data-copy-record]'); if (button) button.textContent = 'Copied'; } catch { alert('The record could not be copied on this device.'); } });
-  dialog.addEventListener('cancel', closeInspector);
-  dialog.showModal();
+  dialog.addEventListener('keydown', (event) => { if (event.key === 'Escape') { event.preventDefault(); closeInspector(); } });
+  document.documentElement.classList.add('project-record-inspector-open');
+  window.requestAnimationFrame(() => dialog.querySelector('[data-close-inspector]')?.focus());
 }
 
 function renderIdentity(record) { const publicUrl = getPublicUrl(record); return `<section class="record-inspector-section"><h4>Identity</h4><dl class="record-detail-grid">${detail('Record ID', record.id)}${detail('Type', label(record.type || 'record'))}${detail('Status', label(record.status || 'unknown'))}${detail('Storage', 'Permanent CuratorOS Project Records')}${detail('Public page', publicUrl || 'Not linked')}</dl></section>`; }
@@ -159,7 +163,7 @@ function renderSources(sources) { if (!Array.isArray(sources) || !sources.length
 function renderNotes(notes) { if (!Array.isArray(notes) || !notes.length) return ''; return `<section class="record-inspector-section"><h4>Curatorial notes <span>${notes.length}</span></h4><div class="record-inspector-list">${notes.map((note) => { const item = typeof note === 'string' ? { body: note } : note; return `<article>${item.kind ? `<strong>${escapeHtml(label(item.kind))}</strong>` : ''}<p>${escapeHtml(item.body || item.note || displayValue(item))}</p></article>`; }).join('')}</div></section>`; }
 function renderOrigin(origin) { if (!origin || typeof origin !== 'object') return ''; return `<section class="record-inspector-section"><h4>Origin</h4><dl class="record-detail-grid">${Object.entries(origin).map(([key, value]) => detail(label(key), displayValue(value))).join('')}</dl></section>`; }
 function renderRawFields(record) { const reserved = new Set(['id', 'type', 'title', 'status', 'summary', 'tags', 'relationships', 'sources', 'media', 'notes', 'data', 'metadata', 'origin']); const entries = Object.entries(record).filter(([key, value]) => !reserved.has(key) && value !== undefined && value !== null && value !== ''); if (!entries.length && !record.metadata && !record.tags?.length) return ''; return `<details class="record-inspector-section record-raw-fields"><summary>Additional imported fields</summary>${record.tags?.length ? `<p><strong>Tags:</strong> ${escapeHtml(record.tags.join(', '))}</p>` : ''}${record.metadata ? `<pre>${escapeHtml(JSON.stringify(record.metadata, null, 2))}</pre>` : ''}${entries.length ? `<pre>${escapeHtml(JSON.stringify(Object.fromEntries(entries), null, 2))}</pre>` : ''}</details>`; }
-function closeInspector() { const dialog = document.querySelector('#project-record-inspector'); if (!dialog) return; try { dialog.close(); } catch {} dialog.remove(); }
+function closeInspector() { const dialog = document.querySelector('#project-record-inspector'); if (!dialog) return; dialog.remove(); document.documentElement.classList.remove('project-record-inspector-open'); }
 function getPublicUrl(record) { return record.data?.pageUrl || record.url || record.path || record.canonical || record.href || ''; }
 function normalizePublicUrl(value) { const url = String(value || ''); if (/^https?:\/\//i.test(url)) return url; return `https://oceanliners.net${url.startsWith('/') ? '' : '/'}${url}`; }
 function recordHaystack(record) { return JSON.stringify(record).toLowerCase(); }

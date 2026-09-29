@@ -1,4 +1,5 @@
 const ROUTES={
+  overview:{selector:'#overview'},
   records:{selector:'[data-view="records"]'},
   'extract-knowledge':{selector:'#extract-knowledge'},
   'batch-extract-knowledge':{selector:'#batch-extract-knowledge'},

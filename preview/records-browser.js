@@ -35,7 +35,7 @@ function renderProjectRecords() {
         <h3>${records.length} project record${records.length === 1 ? '' : 's'}</h3>
         <p>Everything shown here is recorded inside CuratorOS. Other workspaces read from this same corpus. The browser copy is only a cache.</p>
       </div>
-      ${renderStoreSummary(storeMeta, importMetadata)}
+      <div class="project-records-hero-actions">${renderStoreSummary(storeMeta, importMetadata)}<button type="button" id="sync-ship-archive">Sync ship archive</button></div>
     </section>
 
     <section class="metrics project-record-metrics">
@@ -85,7 +85,31 @@ function bindBrowserControls() {
   document.querySelector('#record-status')?.addEventListener('change', (event) => { browserState.status = event.target.value; renderProjectRecords(); });
   document.querySelector('#record-sort')?.addEventListener('change', (event) => { browserState.sort = event.target.value; renderProjectRecords(); });
   document.querySelector('#clear-record-filters')?.addEventListener('click', () => { browserState.search = ''; browserState.type = ''; browserState.status = ''; browserState.sort = 'title-asc'; renderProjectRecords(); });
+  document.querySelector('#sync-ship-archive')?.addEventListener('click', syncShipArchive);
   document.querySelectorAll('[data-record-id]').forEach((button) => button.addEventListener('click', () => openRecordInspector(button.dataset.recordId)));
+}
+
+async function syncShipArchive() {
+  const button = document.querySelector('#sync-ship-archive');
+  const store = window.CuratorOSProjectRecordsStore;
+  if (!store?.syncArchive) return alert('Project Records archive synchronization is not available in this build.');
+  const proceed = confirm('Reconcile permanent Project Records with the current OceanLiners.net ship archive? Missing published entries will be added as indexed-only records and unambiguous moved page URLs will be repaired. Existing researched facts will not be overwritten.');
+  if (!proceed) return;
+
+  try {
+    if (button) { button.disabled = true; button.textContent = 'Syncing…'; }
+    const result = await store.syncArchive();
+    const detail = [
+      `${result.added || 0} record${Number(result.added || 0) === 1 ? '' : 's'} added`,
+      `${result.repaired || 0} canonical URL${Number(result.repaired || 0) === 1 ? '' : 's'} repaired`
+    ];
+    if (Number(result.ambiguous || 0) > 0) detail.push(`${result.ambiguous} ambiguous match${Number(result.ambiguous) === 1 ? '' : 'es'} left untouched`);
+    alert(`Project Records sync complete: ${detail.join(' · ')}. Permanent corpus: ${result.recordCount || result.nextRecords || readRecords().length} records.`);
+  } catch (error) {
+    alert(`Project Records sync failed. ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    renderProjectRecords();
+  }
 }
 
 function filterAndSort(records) {

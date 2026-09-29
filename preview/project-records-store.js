@@ -3,7 +3,7 @@ const STORE_META_KEY='curatoros.project.storeMeta';
 const API_PATH='/api/project-records';
 const HEALTH_PATH='/api/project-records/health';
 
-window.CuratorOSProjectRecordsStore={load,save,replace,getStatus,health};
+window.CuratorOSProjectRecordsStore={load,save,replace,getStatus,health,syncArchive};
 
 async function health(){
   const response=await fetch(HEALTH_PATH,{headers:{accept:'application/json'},cache:'no-store'});
@@ -11,6 +11,20 @@ async function health(){
   if(!response.ok||payload?.service!=='curatoros-project-records'||payload?.storage!=='kv'){
     throw new Error(payload?.error||`Durable Project Records backend is not active (${response.status}).`);
   }
+  return payload;
+}
+
+async function syncArchive(){
+  const response=await fetch('/api/project-records/sync',{
+    method:'POST',
+    headers:{accept:'application/json'},
+    cache:'no-store'
+  });
+  const payload=await readJsonResponse(response);
+  if(!response.ok||payload?.ok!==true){
+    throw new Error(payload?.error||`Project Records archive sync returned ${response.status}`);
+  }
+  await load();
   return payload;
 }
 

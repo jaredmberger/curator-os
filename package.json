@@ -1,6 +1,6 @@
 {
   "name": "curator-os",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "private": true,
   "description": "Evidence-first, iPad-first institutional research operating system for Ocean Liner Curator",
   "scripts": {
@@ -10,7 +10,7 @@
     "validate": "node scripts/validate.js",
     "test:database": "node tests/database.test.js",
     "test:surface": "node tests/worker-era-findings.test.mjs",
-    "test": "npm run test:database && npm run test:surface && npm run test:recovery && npm run test:restore-safety && npm run test:recovery-manifest && npm run test:ops-health && npm run test:device-api && npm run test:overview && npm run test:runtime",
+    "test": "npm run test:database && npm run test:surface && npm run test:recovery && npm run test:restore-safety && npm run test:recovery-manifest && npm run test:ops-health && npm run test:device-api && npm run test:overview && npm run test:runtime && npm run test:project-records-sync",
     "check": "npm run validate && npm run test",
     "recovery:validate": "node scripts/validate-recovery-backup.mjs",
     "test:recovery": "node --test tests/recovery-export.test.mjs",
@@ -21,7 +21,7 @@
     "test:ops-health": "node --test tests/ops-health.test.mjs",
     "test:device-api": "node --test tests/device-api-contract.test.mjs",
     "test:overview": "node tests/overview.test.mjs",
-    "test:runtime": "node --test tests/runtime-contract.test.mjs"
+    "test:runtime": "node --test tests/runtime-contract.test.mjs",\n    "test:project-records-sync": "node --test tests/project-records-archive-sync.test.mjs"
   },
   "engines": {
     "node": ">=20"

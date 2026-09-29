@@ -317,5 +317,4 @@ window.addEventListener('curatoros:records-changed',()=>{
   }
 });
 
-installOpsHealthStrip();
-setTimeout(()=>recordsButton?.click(),0);
+

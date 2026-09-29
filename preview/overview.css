@@ -1,0 +1,34 @@
+
+.overview-hero{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.overview-hero h3,.overview-attention h3,.overview-actions h3{margin:.25rem 0 .35rem;font-family:Georgia,serif;font-weight:500;font-size:1.45rem}
+.overview-hero p{margin:0;color:var(--muted);line-height:1.55}
+.overview-hero>button,.overview-status-card button,.overview-work-card button,.overview-attention-card button,.overview-attention-card a,.overview-action-grid button{
+  appearance:none;border:1px solid rgba(191,164,106,.42);background:#0f1b18;color:var(--text);border-radius:10px;padding:.65rem .8rem;font:inherit;text-decoration:none;cursor:pointer
+}
+.overview-status-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem;margin-bottom:1rem}
+.overview-status-card{min-width:0;padding:1rem;border:1px solid rgba(191,164,106,.28);border-radius:14px;background:linear-gradient(180deg,rgba(18,31,28,.96),rgba(10,20,18,.96))}
+.overview-status-card>span{display:block;color:var(--muted);font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.overview-status-card>strong{display:block;margin:.35rem 0 .2rem;font:500 1.55rem/1.15 Georgia,serif}
+.overview-status-card>small{display:block;min-height:2.7em;color:var(--muted);font-size:.75rem;line-height:1.45}
+.overview-status-card>a,.overview-status-card>button{display:inline-block;margin-top:.8rem;padding:0;border:0;background:transparent;color:#e0c98f;font-size:.75rem;text-decoration:none}
+.overview-status-card.attention,.overview-status-card.degraded{border-color:rgba(216,102,102,.48)}
+.overview-status-card.partial,.overview-status-card.unknown{border-color:rgba(214,173,88,.4)}
+.overview-status-card.healthy{border-color:rgba(88,199,122,.34)}
+.overview-attention-list{display:grid;gap:.65rem;margin-top:.85rem}
+.overview-attention-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1rem;align-items:center;padding:.85rem 1rem;border:1px solid rgba(191,164,106,.2);border-radius:12px;background:rgba(8,20,17,.58)}
+.overview-attention-card.warning{border-left:3px solid #d6ad58}.overview-attention-card.system{border-left:3px solid #d86666}.overview-attention-card.work{border-left:3px solid var(--accent)}
+.overview-attention-card strong{font-size:.9rem}.overview-attention-card p{margin:.25rem 0 0;color:var(--muted);font-size:.78rem;line-height:1.5}
+.overview-attention-card button,.overview-attention-card a{white-space:nowrap;font-size:.75rem}
+.overview-clear{margin:0;color:var(--muted);line-height:1.6}
+.overview-work-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}
+.overview-work-card{margin-bottom:1rem}
+.overview-work-card>strong{display:block;margin:.55rem 0 .1rem;font:500 2.1rem/1 Georgia,serif}
+.overview-work-card h4{margin:.2rem 0 .4rem;font-size:.95rem}.overview-work-card p{min-height:3.7em;margin:.3rem 0 .9rem;color:var(--muted);font-size:.78rem;line-height:1.55}
+.overview-work-card button{width:100%;text-align:center;font-size:.78rem}
+.overview-action-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.7rem;margin-top:.85rem}
+.overview-action-grid button{text-align:left;padding:.9rem}.overview-action-grid strong{display:block;margin-bottom:.3rem;font-size:.84rem}.overview-action-grid span{display:block;color:var(--muted);font-size:.72rem;line-height:1.45}
+.overview-action-grid button:hover,.overview-action-grid button:focus-visible,.overview-work-card button:hover,.overview-attention-card button:hover,.overview-attention-card a:hover{border-color:rgba(191,164,106,.68);background:rgba(191,164,106,.08)}
+.overview-loading p{color:var(--muted)}
+@media(max-width:1100px){.overview-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.overview-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.overview-work-grid{grid-template-columns:1fr}.overview-attention-card{grid-template-columns:1fr}.overview-attention-card button,.overview-attention-card a{justify-self:start}.overview-work-card p{min-height:0}}
+@media(max-width:560px){.overview-hero{align-items:flex-start;flex-direction:column}.overview-status-grid,.overview-action-grid{grid-template-columns:1fr}.overview-hero>button{width:100%;text-align:center}}

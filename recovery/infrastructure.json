@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-28",
+  "updatedAt": "2026-09-29",
   "principles": {
     "sourceOfTruth": "GitHub main",
     "durableState": "Cloudflare KV",
@@ -18,7 +18,12 @@
       "schedule": [],
       "secrets": [],
       "kvBindings": [],
-      "recoveryPriority": "critical"
+      "recoveryPriority": "critical",
+      "runtimeIdentity": {
+        "contractVersion": null,
+        "runtime": "static-assets",
+        "notes": "No synthetic runtime endpoint; deployment truth is checked through the static-site deployment audit."
+      }
     },
     {
       "id": "curator-os",
@@ -48,7 +53,12 @@
           "requiredFor": "ops-health dashboard cards",
           "notes": "Recreate in Pages settings and redeploy. Not required for records or research state."
         }
-      ]
+      ],
+      "runtimeIdentity": {
+        "endpoint": "https://curator.oceanliners.net/api/runtime",
+        "contractVersion": 1,
+        "runtime": "cloudflare-pages"
+      }
     },
     {
       "id": "research-capture",
@@ -74,6 +84,12 @@
         "required": "cloudflare-access",
         "scope": "human inbox routes / and /recent",
         "note": "Machine capture and recent-history APIs also require CAPTURE_TOKEN headers."
+      },
+      "runtimeIdentity": {
+        "path": "/api/runtime",
+        "contractVersion": 1,
+        "runtime": "cloudflare-workers",
+        "notes": "Worker hostname is deployment/account configuration rather than a custom host recorded here."
       }
     },
     {
@@ -95,7 +111,12 @@
           "priority": "high"
         }
       ],
-      "recoveryPriority": "high"
+      "recoveryPriority": "high",
+      "runtimeIdentity": {
+        "endpoint": "https://content.oceanliners.net/api/runtime",
+        "contractVersion": 1,
+        "runtime": "cloudflare-workers"
+      }
     },
     {
       "id": "errors",
@@ -121,7 +142,12 @@
           "priority": "high"
         }
       ],
-      "recoveryPriority": "high"
+      "recoveryPriority": "high",
+      "runtimeIdentity": {
+        "endpoint": "https://errors.oceanliners.net/api/runtime",
+        "contractVersion": 1,
+        "runtime": "cloudflare-workers"
+      }
     },
     {
       "id": "verify",
@@ -143,7 +169,12 @@
           "priority": "medium"
         }
       ],
-      "recoveryPriority": "high"
+      "recoveryPriority": "high",
+      "runtimeIdentity": {
+        "endpoint": "https://verify.oceanlinercurator.com/api/runtime",
+        "contractVersion": 1,
+        "runtime": "cloudflare-workers"
+      }
     },
     {
       "id": "ops",
@@ -180,7 +211,12 @@
       "recoveryPriority": "high",
       "vars": [
         "CF_ACCESS_CLIENT_ID"
-      ]
+      ],
+      "runtimeIdentity": {
+        "endpoint": "https://ops.oceanlinercurator.com/api/runtime",
+        "contractVersion": 1,
+        "runtime": "cloudflare-workers"
+      }
     },
     {
       "id": "site-health",
@@ -213,7 +249,12 @@
           "shared": true
         }
       ],
-      "recoveryPriority": "medium"
+      "recoveryPriority": "medium",
+      "runtimeIdentity": {
+        "endpoint": "https://site-health.oceanliners.net/api/runtime",
+        "contractVersion": 1,
+        "runtime": "cloudflare-workers"
+      }
     },
     {
       "id": "curator-indexer",
@@ -245,7 +286,12 @@
           "shared": true
         }
       ],
-      "recoveryPriority": "medium"
+      "recoveryPriority": "medium",
+      "runtimeIdentity": {
+        "endpoint": "https://curator-indexer.oceanliners.net/api/runtime",
+        "contractVersion": 1,
+        "runtime": "cloudflare-workers"
+      }
     },
     {
       "id": "curator-integrity",
@@ -276,7 +322,12 @@
           "shared": true
         }
       ],
-      "recoveryPriority": "medium"
+      "recoveryPriority": "medium",
+      "runtimeIdentity": {
+        "endpoint": "https://integrity.oceanliners.net/api/runtime",
+        "contractVersion": 1,
+        "runtime": "cloudflare-workers"
+      }
     },
     {
       "id": "speed",
@@ -307,7 +358,12 @@
           "shared": true
         }
       ],
-      "recoveryPriority": "medium"
+      "recoveryPriority": "medium",
+      "runtimeIdentity": {
+        "endpoint": "https://speed.oceanliners.net/api/runtime",
+        "contractVersion": 1,
+        "runtime": "cloudflare-workers"
+      }
     },
     {
       "id": "link-map",
@@ -336,7 +392,12 @@
           "shared": true
         }
       ],
-      "recoveryPriority": "medium"
+      "recoveryPriority": "medium",
+      "runtimeIdentity": {
+        "endpoint": "https://link-map.oceanliners.net/api/runtime",
+        "contractVersion": 1,
+        "runtime": "cloudflare-pages"
+      }
     },
     {
       "id": "search-intelligence",
@@ -367,7 +428,12 @@
           "shared": true
         }
       ],
-      "recoveryPriority": "medium"
+      "recoveryPriority": "medium",
+      "runtimeIdentity": {
+        "endpoint": "https://search-intelligence.oceanliners.net/api/runtime",
+        "contractVersion": 1,
+        "runtime": "cloudflare-workers"
+      }
     },
     {
       "id": "analytics",
@@ -388,7 +454,12 @@
           "priority": "medium"
         }
       ],
-      "recoveryPriority": "medium"
+      "recoveryPriority": "medium",
+      "runtimeIdentity": {
+        "endpoint": "https://analytics.oceanliners.net/api/runtime",
+        "contractVersion": 1,
+        "runtime": "cloudflare-workers"
+      }
     },
     {
       "id": "page-studio",
@@ -406,6 +477,12 @@
         "required": "cloudflare-access",
         "scope": "publishing Worker hostname",
         "note": "Origin allow-listing is CORS/request-origin control, not authentication."
+      },
+      "runtimeIdentity": {
+        "endpoint": "https://page-studio-loader.75tqx86g8q.workers.dev/api/runtime",
+        "contractVersion": 1,
+        "runtime": "cloudflare-workers",
+        "notes": "Runtime identity belongs to the protected publishing/loader Worker, not the static Page Studio frontend."
       }
     },
     {

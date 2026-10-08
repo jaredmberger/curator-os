@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="theme-color" content="#0a1110">
+<title>Editorial Audits · CuratorOS</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;background:#0a1110;color:#f2f1e9}
+*{box-sizing:border-box}body{margin:0}main{max-width:1000px;margin:0 auto;padding:28px 18px 60px}
+a{color:#d8bc7b}h1{font-family:Georgia,serif;font-size:clamp(2rem,5vw,3rem);margin:.4em 0}
+p{line-height:1.6;color:#bcc4bf}.eyebrow{color:#cbb47b;letter-spacing:.13em;text-transform:uppercase;font-size:.78rem}
+nav{padding:16px 20px;border-bottom:1px solid #36453e}nav a{margin-right:18px}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin:26px 0}
+.metric{border:1px solid #33433b;border-radius:12px;padding:18px;background:#111c18}
+.metric strong{display:block;font-size:2rem;font-variant-numeric:tabular-nums}.metric span{color:#c0c9c1}
+table{width:100%;border-collapse:collapse;font-size:.92rem}th{text-align:left;color:#e4d3ad}
+td,th{padding:13px 10px;border-bottom:1px solid #2c3a33;vertical-align:top}
+.scroll{overflow-x:auto}.note{border-left:3px solid #bfa46a;padding:6px 15px;background:#15211b}
+button{background:#1d2a23;color:#eee;border:1px solid #566b59;padding:9px 13px;border-radius:8px;cursor:pointer}
+.status{color:#e4d3ad;font-size:.9rem}footer{margin-top:28px;color:#bac3bb;font-size:.85rem}
+</style></head><body>
+<nav><a href="./">← CuratorOS</a><a href="https://oceanliners.net/ships/ships">Ship Archive</a></nav>
+<main><span class="eyebrow">Ocean Liner Curator · editorial stewardship</span>
+<h1>Editorial Audit Ledger</h1><p>Traceable record of selective historical editorial audits, their scope, corrections, and associated pull requests.</p>
+<div class="note"><p><strong>Scope:</strong> A guide appearing here has received a targeted review, not exhaustive certification of every historical claim or source. Batches 1–4 emphasize source specificity; later batches sample source-to-claim fidelity.</p></div>
+<div class="metrics" id="metrics" aria-live="polite"><div class="metric"><strong>8</strong><span>Batches recorded</span></div><div class="metric"><strong>40</strong><span>Guide reviews (not deduplicated)</span></div><div class="metric"><strong>12</strong><span>Targeted revisions</span></div></div>
+<h2>Review history</h2><p class="status" id="status">Published baseline: October 8, 2026. Historical entries are maintained in a version-controlled JSON ledger.</p>
+<div class="scroll"><table><thead><tr><th>Batch</th><th>Focus</th><th>Guides</th><th>Revisions</th><th>Findings / change</th><th>PR</th></tr></thead><tbody id="rows"></tbody></table></div>
+<footer>Data: <a href="./editorial-audits.json">editorial-audits.json</a>. Counts reflect sampled guide reviews; they do not represent verified unique guide coverage, automated link checking, or a live content-quality score.</footer></main>
+<script type="module">
+const tbody=document.getElementById('rows'),status=document.getElementById('status'),metrics=document.getElementById('metrics');
+try {
+ const response=await fetch('./editorial-audits.json',{cache:'no-store'});
+ if(!response.ok)throw new Error('HTTP '+response.status);
+ const data=await response.json();
+ if(!Array.isArray(data.batches))throw new Error('Invalid batch ledger');
+ const add=(tag,txt,parent)=>{const el=document.createElement(tag);el.textContent=String(txt);parent.append(el);return el};
+ tbody.replaceChildren();
+ for(const b of data.batches){const tr=document.createElement('tr');for(const key of ['number','focus','guides','changes','notes'])add('td',b[key],tr);const cell=document.createElement('td');if(b.pr){const a=document.createElement('a');a.href='https://github.com/jaredmberger/'+(b.number===8?'curator-os':'Ocean-Liner-Curator')+'/pull/'+b.pr;a.textContent='#'+b.pr;a.rel='noopener noreferrer';cell.append(a)}else{cell.textContent='No changes'}tr.append(cell);tbody.append(tr)}
+ metrics.replaceChildren();
+ for(const [n,label] of [[data.batches.length,'Batches recorded'],[data.batches.reduce((s,b)=>s+b.guides,0),'Guide reviews (not deduplicated)'],[data.batches.reduce((s,b)=>s+b.changes,0),'Targeted revisions']]){const box=document.createElement('div');box.className='metric';add('strong',n,box);add('span',label,box);metrics.append(box)}
+ status.textContent='Ledger updated '+data.updated+'. No automated certification is implied.';
+} catch(error){status.textContent='Live ledger unavailable. The published baseline above remains provisional.';console.error(error)}
+</script></body></html>

@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "updated": "2026-10-08",
   "scope": "Historical editorial spot audits; not complete factual certification.",
   "batches": [
@@ -73,7 +73,414 @@
       "guides": 5,
       "pr": 312,
       "changes": 1,
-      "notes": "Franconia (1910) maiden voyage distinguished from first Boston crossing; correction in PR #312, pending merge. Rotterdam (1908), Nieuw Amsterdam (1906), Etruria and Umbria sampled."
+      "notes": "Franconia (1910) maiden voyage distinguished from first Boston crossing; correction in PR #312, merged. Rotterdam (1908), Nieuw Amsterdam (1906), Etruria and Umbria sampled."
+    }
+  ],
+  "guide_reviews": [
+    {
+      "slug": "rms-titanic",
+      "batch": 1,
+      "scope": "Source specificity",
+      "outcome": "revision",
+      "source_pr": 305,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-olympic",
+      "batch": 1,
+      "scope": "Source specificity",
+      "outcome": "revision",
+      "source_pr": 305,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-mauretania",
+      "batch": 1,
+      "scope": "Source specificity",
+      "outcome": "revision",
+      "source_pr": 305,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-lucania",
+      "batch": 1,
+      "scope": "Source specificity",
+      "outcome": "reviewed_no_change",
+      "source_pr": 305,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-leviathan",
+      "batch": 1,
+      "scope": "Source specificity",
+      "outcome": "reviewed_no_change",
+      "source_pr": 305,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-campania",
+      "batch": 2,
+      "scope": "Source specificity",
+      "outcome": "reviewed_no_change",
+      "source_pr": 306,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-lusitania",
+      "batch": 2,
+      "scope": "Source specificity",
+      "outcome": "reviewed_no_change",
+      "source_pr": 306,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-normandie",
+      "batch": 2,
+      "scope": "Source specificity",
+      "outcome": "reviewed_no_change",
+      "source_pr": 306,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-queen-mary",
+      "batch": 2,
+      "scope": "Source specificity",
+      "outcome": "revision",
+      "source_pr": 306,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-bremen",
+      "batch": 2,
+      "scope": "Source specificity",
+      "outcome": "reviewed_no_change",
+      "source_pr": 306,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-aquitania",
+      "batch": 3,
+      "scope": "Source specificity",
+      "outcome": "revision",
+      "source_pr": 307,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-imperator",
+      "batch": 3,
+      "scope": "Source specificity",
+      "outcome": "revision",
+      "source_pr": 307,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-berengaria",
+      "batch": 3,
+      "scope": "Source specificity",
+      "outcome": "reviewed_no_change",
+      "source_pr": 307,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-ile-de-france",
+      "batch": 3,
+      "scope": "Source specificity",
+      "outcome": "reviewed_no_change",
+      "source_pr": 307,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-us",
+      "batch": 3,
+      "scope": "Source specificity",
+      "outcome": "reviewed_no_change",
+      "source_pr": 307,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-vaterland",
+      "batch": 4,
+      "scope": "Source specificity",
+      "outcome": "revision",
+      "source_pr": 308,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-kronprinz-wilhelm",
+      "batch": 4,
+      "scope": "Source specificity",
+      "outcome": "revision",
+      "source_pr": 308,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-campania",
+      "batch": 4,
+      "scope": "Source specificity",
+      "outcome": "revision",
+      "source_pr": 308,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-deutschland",
+      "batch": 4,
+      "scope": "Source specificity",
+      "outcome": "reviewed_no_change",
+      "source_pr": 308,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-celtic",
+      "batch": 4,
+      "scope": "Source specificity",
+      "outcome": "reviewed_no_change",
+      "source_pr": 308,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-stavangerfjord",
+      "batch": 5,
+      "scope": "Source-to-claim spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 309,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ms-oslofjord",
+      "batch": 5,
+      "scope": "Source-to-claim spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 309,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ms-dempo",
+      "batch": 5,
+      "scope": "Source-to-claim spot-check",
+      "outcome": "revision",
+      "source_pr": 309,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "heian-maru",
+      "batch": 5,
+      "scope": "Source-to-claim spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 309,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-lucania",
+      "batch": 5,
+      "scope": "Source-to-claim spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 309,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-president-cleveland",
+      "batch": 6,
+      "scope": "Source-to-claim spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 310,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-president-wilson",
+      "batch": 6,
+      "scope": "Source-to-claim spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 310,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ms-baloeran",
+      "batch": 6,
+      "scope": "Source-to-claim spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 310,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-strathallan",
+      "batch": 6,
+      "scope": "Source-to-claim spot-check",
+      "outcome": "revision",
+      "source_pr": 310,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-stratheden",
+      "batch": 6,
+      "scope": "Source-to-claim spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 310,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-europa",
+      "batch": 7,
+      "scope": "Renaming and chronology spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 311,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-leviathan",
+      "batch": 7,
+      "scope": "Renaming and chronology spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 311,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-berengaria",
+      "batch": 7,
+      "scope": "Renaming and chronology spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 311,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-pasteur",
+      "batch": 7,
+      "scope": "Renaming and chronology spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 311,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-republic",
+      "batch": 7,
+      "scope": "Renaming and chronology spot-check",
+      "outcome": "revision",
+      "source_pr": 311,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-rotterdam-1908",
+      "batch": 8,
+      "scope": "Same-name identity spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": null,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-rotterdam-1959",
+      "batch": 8,
+      "scope": "Same-name identity spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": null,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-nieuw-amsterdam-1906",
+      "batch": 8,
+      "scope": "Same-name identity spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": null,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-nieuw-amsterdam",
+      "batch": 8,
+      "scope": "Same-name identity spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": null,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-franconia-1910",
+      "batch": 8,
+      "scope": "Same-name identity spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": null,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-rotterdam-1908",
+      "batch": 9,
+      "scope": "Source-to-claim spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 312,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-franconia-1910",
+      "batch": 9,
+      "scope": "Source-to-claim spot-check",
+      "outcome": "revision",
+      "source_pr": 312,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "ss-nieuw-amsterdam-1906",
+      "batch": 9,
+      "scope": "Source-to-claim spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 312,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-etruria-1884",
+      "batch": 9,
+      "scope": "Source-to-claim spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 312,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
+    },
+    {
+      "slug": "rms-umbria-1884",
+      "batch": 9,
+      "scope": "Source-to-claim spot-check",
+      "outcome": "reviewed_no_change",
+      "source_pr": 312,
+      "reviewed_on": "2026-10-08",
+      "note": "Targeted batch spot-check only; individual claims checked are not itemized in legacy records."
     }
   ]
 }

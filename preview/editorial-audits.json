@@ -66,6 +66,14 @@
       "pr": null,
       "changes": 0,
       "notes": "Rotterdam (1908, 1959), Nieuw Amsterdam (1906, 1938), Franconia (1910); no verified corrections. Selected claims only, not exhaustive."
+    },
+    {
+      "number": 9,
+      "focus": "Source-to-claim spot-check",
+      "guides": 5,
+      "pr": 312,
+      "changes": 1,
+      "notes": "Franconia (1910) maiden voyage distinguished from first Boston crossing; correction in PR #312, pending merge. Rotterdam (1908), Nieuw Amsterdam (1906), Etruria and Umbria sampled."
     }
   ]
 }

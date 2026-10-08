@@ -16,17 +16,17 @@ td,th{padding:13px 10px;border-bottom:1px solid #2c3a33;vertical-align:top}
 .scroll{overflow-x:auto}.note{border-left:3px solid #bfa46a;padding:6px 15px;background:#15211b}
 button{background:#1d2a23;color:#eee;border:1px solid #566b59;padding:9px 13px;border-radius:8px;cursor:pointer}
 .status{color:#e4d3ad;font-size:.9rem}footer{margin-top:28px;color:#bac3bb;font-size:.85rem}
-</style></head><body>
+input{background:#111c18;color:#f2f1e9;border:1px solid #506052;border-radius:8px;padding:11px;max-width:100%;width:350px} .subtle{color:#bcc4bf;font-size:.85rem} .tag{display:inline-block;padding:3px 8px;border:1px solid #506052;border-radius:10px;font-size:.8rem} </style></head><body>
 <nav><a href="./">← CuratorOS</a><a href="https://oceanliners.net/ships/ships">Ship Archive</a></nav>
 <main><span class="eyebrow">Ocean Liner Curator · editorial stewardship</span>
 <h1>Editorial Audit Ledger</h1><p>Traceable record of selective historical editorial audits, their scope, corrections, and associated pull requests.</p>
 <div class="note"><p><strong>Scope:</strong> A guide appearing here has received a targeted review, not exhaustive certification of every historical claim or source. Batches 1–4 emphasize source specificity; later batches sample source-to-claim fidelity.</p></div>
 <div class="metrics" id="metrics" aria-live="polite"><div class="metric"><strong>8</strong><span>Batches recorded</span></div><div class="metric"><strong>40</strong><span>Guide reviews (not deduplicated)</span></div><div class="metric"><strong>12</strong><span>Targeted revisions</span></div></div>
-<h2>Review history</h2><p class="status" id="status">Published baseline: October 8, 2026. Historical entries are maintained in a version-controlled JSON ledger.</p>
+<h2>Individual guide reviews</h2><p>Search by ship or slug. Each entry represents one targeted review, not certification of a complete guide.</p><label for="guide-filter">Find a reviewed guide</label> <input type="search" id="guide-filter" placeholder="e.g. Franconia, Rotterdam" autocomplete="off"><p class="subtle" id="guide-count">Loading review records…</p><div class="scroll"><table><thead><tr><th>Guide</th><th>Batch</th><th>Audit focus</th><th>Outcome</th><th>Evidence trail</th></tr></thead><tbody id="guide-rows"></tbody></table></div><h2>Review history</h2><p class="status" id="status">Published baseline: October 8, 2026. Historical entries are maintained in a version-controlled JSON ledger.</p>
 <div class="scroll"><table><thead><tr><th>Batch</th><th>Focus</th><th>Guides</th><th>Revisions</th><th>Findings / change</th><th>PR</th></tr></thead><tbody id="rows"></tbody></table></div>
-<footer>Data: <a href="./editorial-audits.json">editorial-audits.json</a>. Counts reflect sampled guide reviews; they do not represent verified unique guide coverage, automated link checking, or a live content-quality score.</footer></main>
+<footer>Data: <a href="./editorial-audits.json">editorial-audits.json</a>. Counts reflect sampled guide reviews; the guide table deduplicates only for its distinct-slug count and does not represent comprehensive verification, automated link checking, or a live content-quality score.</footer></main>
 <script type="module">
-const tbody=document.getElementById('rows'),status=document.getElementById('status'),metrics=document.getElementById('metrics');
+const tbody=document.getElementById('rows'),status=document.getElementById('status'),metrics=document.getElementById('metrics'); const guideRows=document.getElementById('guide-rows'), guideFilter=document.getElementById('guide-filter'),guideCount=document.getElementById('guide-count');
 try {
  const response=await fetch('./editorial-audits.json',{cache:'no-store'});
  if(!response.ok)throw new Error('HTTP '+response.status);
@@ -37,6 +37,9 @@ try {
  for(const b of data.batches){const tr=document.createElement('tr');for(const key of ['number','focus','guides','changes','notes'])add('td',b[key],tr);const cell=document.createElement('td');if(b.pr){const a=document.createElement('a');a.href='https://github.com/jaredmberger/'+(b.number===8?'curator-os':'Ocean-Liner-Curator')+'/pull/'+b.pr;a.textContent='#'+b.pr;a.rel='noopener noreferrer';cell.append(a)}else{cell.textContent='No changes'}tr.append(cell);tbody.append(tr)}
  metrics.replaceChildren();
  for(const [n,label] of [[data.batches.length,'Batches recorded'],[data.batches.reduce((s,b)=>s+b.guides,0),'Guide reviews (not deduplicated)'],[data.batches.reduce((s,b)=>s+b.changes,0),'Targeted revisions']]){const box=document.createElement('div');box.className='metric';add('strong',n,box);add('span',label,box);metrics.append(box)}
+ const reviews=Array.isArray(data.guide_reviews)?data.guide_reviews:[];
+ const renderGuides=()=>{const term=guideFilter.value.trim().toLowerCase();const found=reviews.filter(r=>r.slug.toLowerCase().includes(term));guideRows.replaceChildren();for(const r of found){const tr=document.createElement('tr');const name=document.createElement('td');const link=document.createElement('a');link.href='https://oceanliners.net/ships/'+encodeURIComponent(r.slug);link.textContent=r.slug.replaceAll('-',' ');link.rel='noopener noreferrer';name.append(link);tr.append(name);add('td','#'+r.batch,tr);add('td',r.scope,tr);add('td',r.outcome==='revision'?'Revision documented':'No correction from sampled claims',tr);const cell=document.createElement('td');if(r.source_pr){const a=document.createElement('a');a.href='https://github.com/jaredmberger/Ocean-Liner-Curator/pull/'+r.source_pr;a.textContent='PR #'+r.source_pr;cell.append(a)}else cell.textContent='Batch 8: no PR';tr.append(cell);guideRows.append(tr)}guideCount.textContent=found.length+' review records shown · '+new Set(reviews.map(r=>r.slug)).size+' distinct guide slugs in ledger';};
+ guideFilter.addEventListener('input',renderGuides);renderGuides();
  status.textContent='Ledger updated '+data.updated+'. No automated certification is implied.';
 } catch(error){status.textContent='Live ledger unavailable. The published baseline above remains provisional.';console.error(error)}
 </script></body></html>

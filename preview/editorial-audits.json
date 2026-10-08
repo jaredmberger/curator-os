@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "updated": "2026-10-08",
+  "scope": "Historical editorial spot audits; not complete factual certification.",
+  "batches": [
+    {
+      "number": 1,
+      "focus": "Source specificity",
+      "guides": 5,
+      "pr": 305,
+      "changes": 3,
+      "notes": "Titanic, Olympic, Mauretania revised; Lucania and Leviathan retained"
+    },
+    {
+      "number": 2,
+      "focus": "Source specificity",
+      "guides": 5,
+      "pr": 306,
+      "changes": 1,
+      "notes": "Queen Mary National Register reference improved"
+    },
+    {
+      "number": 3,
+      "focus": "Source specificity",
+      "guides": 5,
+      "pr": 307,
+      "changes": 2,
+      "notes": "Aquitania and Imperator museum records"
+    },
+    {
+      "number": 4,
+      "focus": "Source specificity",
+      "guides": 5,
+      "pr": 308,
+      "changes": 3,
+      "notes": "Vaterland, Kronprinz Wilhelm, Campania primary records"
+    },
+    {
+      "number": 5,
+      "focus": "Source-to-claim spot-check",
+      "guides": 5,
+      "pr": 309,
+      "changes": 1,
+      "notes": "Dempo complement attribution corrected"
+    },
+    {
+      "number": 6,
+      "focus": "Source-to-claim spot-check",
+      "guides": 5,
+      "pr": 310,
+      "changes": 1,
+      "notes": "Strathallan tonnage and casualty attribution"
+    },
+    {
+      "number": 7,
+      "focus": "Renaming and chronology spot-check",
+      "guides": 5,
+      "pr": 311,
+      "changes": 1,
+      "notes": "Republic / Servian launch date corrected"
+    },
+    {
+      "number": 8,
+      "focus": "Same-name identity spot-check",
+      "guides": 5,
+      "pr": null,
+      "changes": 0,
+      "notes": "Rotterdam (1908, 1959), Nieuw Amsterdam (1906, 1938), Franconia (1910); no verified corrections. Selected claims only, not exhaustive."
+    }
+  ]
+}

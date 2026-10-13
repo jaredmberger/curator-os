@@ -3,6 +3,7 @@
 // STEWARDSHIP_OPS_READ_ENABLED=true and an independently trusted operator
 // authorizer binding. Do not treat an Access header or cookie as verified identity.
 import { projectSafeOperationalState } from '../../tools/stewardship/ops-safe-projection.mjs';
+import { createOperatorAuthorizationFromBindings } from '../../tools/stewardship/operator-runtime-adapter.mjs';
 
 const headers = { 'cache-control':'no-store', 'x-robots-tag':'noindex, nofollow, noarchive',
  'x-content-type-options':'nosniff' };
@@ -10,14 +11,15 @@ const reply = (status, reason) => new Response(JSON.stringify({available:false,r
  status,headers:{...headers,'content-type':'application/json; charset=utf-8'}});
 const UPSTREAM = 'https://ops.oceanlinercurator.com/api/operational-state';
 
-export async function onRequest({request,env}) {
+// Factory injection is for offline tests only. The deployed handler always uses
+// cryptographic Cloudflare Access verification from deployment-owned settings.
+export const createOpsHandler = (authorizerFactory = createOperatorAuthorizationFromBindings) => async ({request,env}) => {
  if(request.method!=='GET') return new Response(null,{status:405,headers:{...headers,allow:'GET'}});
  if(env?.STEWARDSHIP_OPS_READ_ENABLED!=='true') return reply(404,'disabled');
- // This authorizer is deliberately NOT bound in production. An operator-auth
- // review must implement and configure it separately; absence denies access.
- if(typeof env?.STEWARDSHIP_OPERATOR_AUTHZ?.authorize!=='function') return reply(403,'authorization_unavailable');
+ // No caller-provided authorizer object, email header, or service token is trusted.
+ // Missing deployment policy or invalid signed assertion denies before Ops fetch.
  let allowed=false;
- try { allowed=(await env.STEWARDSHIP_OPERATOR_AUTHZ.authorize(request))===true; }
+ try { allowed=(await authorizerFactory(env).authorize(request))===true; }
  catch { return reply(403,'authorization_unavailable'); }
  if(!allowed) return reply(403,'forbidden');
  if(typeof env?.CURATOR_OPS?.fetch!=='function') return reply(503,'source_unavailable');
@@ -42,3 +44,5 @@ export async function onRequest({request,env}) {
  }catch{return reply(503,'source_unavailable');}
  finally{clearTimeout(timeout);}
 }
+
+export const onRequest = createOpsHandler();

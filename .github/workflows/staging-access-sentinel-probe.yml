@@ -21,7 +21,13 @@ jobs:
           echo "Unauthenticated HTTP status: $code"
           if grep -Fq '"kind":"stewardship-access-sentinel"' /tmp/stewardship-probe-body 2>/dev/null; then
             echo 'ACCESS_BOUNDARY_RESULT=PUBLIC_SENTINEL_REACHABLE'
+            echo 'FAIL: unauthenticated caller reached staging sentinel'
+            exit 1
           else
             echo 'ACCESS_BOUNDARY_RESULT=SENTINEL_NOT_OBSERVED'
+            if [[ "$code" != 302 && "$code" != 303 && "$code" != 401 && "$code" != 403 ]]; then
+              echo 'INCONCLUSIVE: response was not an expected Access denial/challenge'
+              exit 1
+            fi
           fi
           echo 'This is a measurement only, not proof of authorization.'

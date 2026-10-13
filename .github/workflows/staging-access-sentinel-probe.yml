@@ -17,7 +17,7 @@ jobs:
         run: |
           set -euo pipefail
           url='https://staging-stewardship-access-s.curator-os.pages.dev/api/stewardship-access-sentinel'
-          code=$(curl --silent --show-error --max-time 15 --location-trusted=false -o /tmp/stewardship-probe-body -w '%{http_code}' "$url" || true)
+          code=$(curl --silent --show-error --max-time 15 -o /tmp/stewardship-probe-body -w '%{http_code}' "$url" || true)
           echo "Unauthenticated HTTP status: $code"
           if grep -Fq '"kind":"stewardship-access-sentinel"' /tmp/stewardship-probe-body 2>/dev/null; then
             echo 'ACCESS_BOUNDARY_RESULT=PUBLIC_SENTINEL_REACHABLE'

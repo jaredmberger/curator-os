@@ -6,7 +6,7 @@ export async function onRequest({request,env}) {
  if(request.method!=='GET') return new Response(null,{status:405,headers:{...headers,allow:'GET'}});
  if(env?.STAGING_STEWARDSHIP_AUTH_TEST_ENABLED!=='true')
   return new Response(JSON.stringify({available:false,reason:'disabled'}),{status:404,headers});
- const allowed=await createOperatorAuthorizationFromBindings(env).authorize(request);
+ // Diagnostic has no token, email, issuer, audience or key contents.\n if (!request.headers.get('Cf-Access-Jwt-Assertion')) return new Response(JSON.stringify({available:false,reason:'access_assertion_missing'}),{status:403,headers});\n const allowed=await createOperatorAuthorizationFromBindings(env).authorize(request);
  if(!allowed) return new Response(JSON.stringify({available:false,reason:'forbidden'}),{status:403,headers});
  return new Response(JSON.stringify({kind:'stewardship-auth-test',environment:'staging-test-only',sensitiveData:false,authorized:true}),{status:200,headers});
 }

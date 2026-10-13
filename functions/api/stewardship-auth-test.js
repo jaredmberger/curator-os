@@ -29,10 +29,11 @@ export async function onRequest({request,env}) {
     !/^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/.test(env.STEWARDSHIP_ACCESS_ISSUER) ||
     !/^[A-Za-z0-9_-]{8,160}$/.test(env.STEWARDSHIP_ACCESS_AUDIENCE) ||
     !/^[^@\s,]+@[^@\s,]+\.[^@\s,]+$/.test(env.STEWARDSHIP_OPERATOR_EMAIL)?'invalid_binding_format':'valid';
+  const bindingFormat = { issuer: own('STEWARDSHIP_ACCESS_ISSUER') && typeof env.STEWARDSHIP_ACCESS_ISSUER==='string' && /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/.test(env.STEWARDSHIP_ACCESS_ISSUER), audience: own('STEWARDSHIP_ACCESS_AUDIENCE') && typeof env.STEWARDSHIP_ACCESS_AUDIENCE==='string' && /^[A-Za-z0-9_-]{8,160}$/.test(env.STEWARDSHIP_ACCESS_AUDIENCE), operatorEmail: own('STEWARDSHIP_OPERATOR_EMAIL') && typeof env.STEWARDSHIP_OPERATOR_EMAIL==='string' && /^[^@\s,]+@[^@\s,]+\.[^@\s,]+$/.test(env.STEWARDSHIP_OPERATOR_EMAIL) };
   const assertion=request.headers.get('Cf-Access-Jwt-Assertion')||'';
   const assertionShape=assertion.includes(',')||assertion.length>16384?'invalid_header_format':'accepted_header_format';
   return new Response(JSON.stringify({available:false,reason:'forbidden',keyService:certs,
-   configShape,assertionShape}),{status:403,headers});
+   configShape,bindingFormat,assertionShape}),{status:403,headers});
  }
  return new Response(JSON.stringify({kind:'stewardship-auth-test',environment:'staging-test-only',sensitiveData:false,authorized:true}),{status:200,headers});
 }

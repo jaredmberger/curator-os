@@ -8,7 +8,19 @@ export async function onRequest({request,env}) {
   return new Response(JSON.stringify({available:false,reason:'disabled'}),{status:404,headers});
  // Diagnostic has no token, email, issuer, audience or key contents.
  if (!request.headers.get('Cf-Access-Jwt-Assertion')) return new Response(JSON.stringify({available:false,reason:'access_assertion_missing'}),{status:403,headers});
- const allowed=await createOperatorAuthorizationFromBindings(env).authorize(request);
- if(!allowed) return new Response(JSON.stringify({available:false,reason:'forbidden'}),{status:403,headers});
+ // Record only coarse public-key service health, never JWTs, identity or keys.
+ let certs='not_checked';
+ const tracedFetch=async(url, options)=>{
+  try {
+   const response=await fetch(url, options);
+   certs=response.status===200?'reachable':'unavailable';
+   return response;
+  } catch {
+   certs='unavailable';
+   throw new Error('access_key_fetch_failed');
+  }
+ };
+ const allowed=await createOperatorAuthorizationFromBindings(env,{fetchKeys:tracedFetch}).authorize(request);
+ if(!allowed) return new Response(JSON.stringify({available:false,reason:'forbidden',keyService:certs}),{status:403,headers});
  return new Response(JSON.stringify({kind:'stewardship-auth-test',environment:'staging-test-only',sensitiveData:false,authorized:true}),{status:200,headers});
 }

@@ -1,0 +1,20 @@
+name: Stewardship Offline Tests
+on:
+  pull_request:
+    paths:
+      - 'tools/stewardship/**'
+      - 'tests/stewardship-*.test.mjs'
+      - '.github/workflows/stewardship-offline-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify all offline Stewardship Mode tests
+        run: node --test tests/stewardship-*.test.mjs

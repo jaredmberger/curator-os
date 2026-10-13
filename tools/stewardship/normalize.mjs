@@ -6,6 +6,21 @@ const states = new Set(['active','cleared','stale','unavailable']);
 const safeString = (x) => typeof x === 'string' ? x : '';
 const validTime = (x) => typeof x === 'string' && Number.isFinite(Date.parse(x)) ? Date.parse(x) : null;
 const sanitized = (v) => typeof v === 'string' ? v.slice(0,500) : '';
+const coverageFields = ['complete_findings','inventory_count','audited_page_count','pending_initial_audit_count','reported_finding_count','returned_problem_pages','scope','source_count','reported_monitor_sources','ops_status','authoritative_correlation'];
+function safeCoverage(raw) {
+  if (raw === undefined) return { completeness:'unknown' };
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new TypeError('Invalid source coverage');
+  const result = { completeness: raw.complete_findings === true ? 'complete' : raw.complete_findings === false ? 'partial' : 'unknown' };
+  for (const field of coverageFields) {
+    const value = raw[field];
+    if (value === undefined) continue;
+    if (typeof value === 'boolean' || (Number.isSafeInteger(value) && value >= 0)) result[field] = value;
+    else if (typeof value === 'string') result[field] = sanitized(value);
+    else throw new TypeError('Invalid source coverage field: '+field);
+  }
+  // Deliberately do not copy nested monitor payloads or private source data.
+  return result;
+}
 export function normalizeStewardshipSnapshots(snapshots, { now, expectedSources = [] } = {}) {
   const clock = validTime(now);
   if (clock === null) throw new TypeError('A valid explicit now timestamp is required');
@@ -24,7 +39,7 @@ export function normalizeStewardshipSnapshots(snapshots, { now, expectedSources 
     const age = checked === null ? null : clock - checked;
     const fresh = raw.available === true && age !== null && age >= 0 && age <= maxAge;
     const state = raw.available !== true ? 'unavailable' : checked === null ? 'not_checked' : !fresh ? 'stale' : 'current';
-    sources.push({ source_system: source, state, checked_at: safeString(raw.checked_at)||null, age_ms: age, reason: state==='current' ? null : state==='stale' ? 'outside source-specific freshness window' : state==='unavailable' ? 'source unavailable' : 'check timestamp absent' });
+    sources.push({ source_system: source, state, checked_at: safeString(raw.checked_at)||null, age_ms: age, reason: state==='current' ? null : state==='stale' ? 'outside source-specific freshness window' : state==='unavailable' ? 'source unavailable' : 'check timestamp absent', coverage: safeCoverage(raw.coverage) });
     if (!fresh) continue;
     if (!Array.isArray(raw.findings)) throw new TypeError('Current snapshot findings must be an array');
     for (const f of raw.findings) {
@@ -43,7 +58,7 @@ export function normalizeStewardshipSnapshots(snapshots, { now, expectedSources 
   }
   for (const source of expectedSources) {
     if (typeof source !== 'string' || !source) throw new TypeError('Invalid expected source');
-    if (!seenSources.has(source)) sources.push({source_system:source,state:'not_checked',checked_at:null,age_ms:null,reason:'no snapshot supplied'});
+    if (!seenSources.has(source)) sources.push({source_system:source,state:'not_checked',checked_at:null,age_ms:null,reason:'no snapshot supplied',coverage:{completeness:'unknown'}});
   }
   sources.sort((a,b)=>a.source_system.localeCompare(b.source_system));
   const rows = [...findings.values()].sort((a,b)=>a.key.localeCompare(b.key));

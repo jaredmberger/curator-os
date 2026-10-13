@@ -21,3 +21,23 @@ jobs:
 
 # Production deployment is owned by Cloudflare Pages.
 # Stable Keel validates the repository; it does not package or deploy the retired standalone Worker.
+
+  staging-access-probe:
+    if: github.event_name == 'pull_request' && github.head_ref == 'staging/stewardship-access-sentinel'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check unauthenticated staging sentinel is denied
+        shell: bash
+        run: |
+          set -euo pipefail
+          target='https://staging-stewardship-access-s.curator-os.pages.dev/api/stewardship-access-sentinel'
+          code=$(curl -sS --max-time 20 --max-redirs 0 -o /tmp/sentinel-response -w '%{http_code}' "$target")
+          echo "Unauthenticated HTTP status: $code"
+          if grep -Fq '"kind":"stewardship-access-sentinel"' /tmp/sentinel-response; then
+            echo 'SECURITY FAILURE: sentinel publicly readable'
+            exit 1
+          fi
+          case "$code" in
+            302|303|401|403) echo 'PASS: sentinel not exposed; Access challenge/denial observed' ;;
+            *) echo 'FAIL: cannot verify expected Access denial'; exit 1 ;;
+          esac

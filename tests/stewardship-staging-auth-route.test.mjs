@@ -21,3 +21,28 @@ test('disallow write methods before any auth or upstream activity',async()=>{
  const r=await onRequest({request:req({},'POST'),env:{STAGING_STEWARDSHIP_AUTH_TEST_ENABLED:'true'}});
  assert.equal(r.status,405);
 });
+
+test('rollback switch denies even after prior enabled denial attempt',async()=>{
+ const env={STAGING_STEWARDSHIP_AUTH_TEST_ENABLED:'true'};
+ const attempt=await onRequest({request:req({'Cf-Access-Jwt-Assertion':'a.b.c'}),env});
+ assert.equal(attempt.status,403);
+ env.STAGING_STEWARDSHIP_AUTH_TEST_ENABLED='false';
+ const after=await onRequest({request:req({'Cf-Access-Jwt-Assertion':'a.b.c'}),env});
+ assert.equal(after.status,404);
+ assert.deepEqual(await after.json(),{available:false,reason:'disabled'});
+});
+test('missing assertion denies without sensitive diagnostics',async()=>{
+ const env={STAGING_STEWARDSHIP_AUTH_TEST_ENABLED:'true'};
+ const r=await onRequest({request:req(),env});
+ assert.equal(r.status,403);
+ assert.deepEqual(await r.json(),{available:false,reason:'access_assertion_missing'});
+});
+test('malformed assertion denies even with a correctly formatted operator configuration',async()=>{
+ const env={STAGING_STEWARDSHIP_AUTH_TEST_ENABLED:'true',
+  STEWARDSHIP_ACCESS_ISSUER:'https://example-team.cloudflareaccess.com',
+  STEWARDSHIP_ACCESS_AUDIENCE:'example-audience',
+  STEWARDSHIP_OPERATOR_EMAIL:'operator@example.org'};
+ const r=await onRequest({request:req({'Cf-Access-Jwt-Assertion':'a.b.c'}),env});
+ assert.equal(r.status,403);
+ assert.equal((await r.json()).available,false);
+});

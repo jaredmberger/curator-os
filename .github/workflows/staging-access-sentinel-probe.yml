@@ -1,0 +1,27 @@
+name: Staging Access Sentinel Probe
+on:
+  push:
+    branches:
+      - staging/stewardship-access-sentinel
+    paths:
+      - '.github/workflows/staging-access-sentinel-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unauthenticated:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe fixed staging alias with no credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://staging-stewardship-access-s.curator-os.pages.dev/api/stewardship-access-sentinel'
+          code=$(curl --silent --show-error --max-time 15 --location-trusted=false -o /tmp/stewardship-probe-body -w '%{http_code}' "$url" || true)
+          echo "Unauthenticated HTTP status: $code"
+          if grep -Fq '"kind":"stewardship-access-sentinel"' /tmp/stewardship-probe-body 2>/dev/null; then
+            echo 'ACCESS_BOUNDARY_RESULT=PUBLIC_SENTINEL_REACHABLE'
+          else
+            echo 'ACCESS_BOUNDARY_RESULT=SENTINEL_NOT_OBSERVED'
+          fi
+          echo 'This is a measurement only, not proof of authorization.'

@@ -28,7 +28,7 @@ export async function onRequest({request,env}) {
   const configShape=!configured?'missing_binding':
     !/^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/.test(env.STEWARDSHIP_ACCESS_ISSUER) ||
     !/^[A-Za-z0-9_-]{8,160}$/.test(env.STEWARDSHIP_ACCESS_AUDIENCE) ||
-    !/^[^@\\s,]+@[^@\\s,]+\\.[^@\\s,]+$/.test(env.STEWARDSHIP_OPERATOR_EMAIL)?'invalid_binding_format':'valid';
+    !/^[^@\s,]+@[^@\s,]+\.[^@\s,]+$/.test(env.STEWARDSHIP_OPERATOR_EMAIL)?'invalid_binding_format':'valid';
   const assertion=request.headers.get('Cf-Access-Jwt-Assertion')||'';
   const assertionShape=assertion.includes(',')||assertion.length>16384?'invalid_header_format':'accepted_header_format';
   return new Response(JSON.stringify({available:false,reason:'forbidden',keyService:certs,

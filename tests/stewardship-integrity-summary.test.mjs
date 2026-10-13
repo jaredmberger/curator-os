@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { integritySummaryToStewardship as adapt } from '../tools/stewardship/integrity-summary-adapter.mjs';
+import { normalizeStewardshipSnapshots as normalize } from '../tools/stewardship/normalize.mjs';
+const base=()=>({ok:true,mode:'incremental-site-monitor',generatedAt:'2026-10-13T20:00:00Z',inventoryCount:100,auditedPageCount:75,pendingInitialAuditCount:25,findingCount:12,problemPages:[{path:'/ships/test',findingCount:2,highestSeverity:'warning',checkedAt:'2026-10-13T19:45:00Z',error:null}]});
+const run=x=>adapt(x,{maxAgeMs:3600000});
+test('explicitly retains partial coverage and bounded nature',()=>{const s=run(base());assert.equal(s.coverage.complete_findings,false);assert.equal(s.coverage.pending_initial_audit_count,25);assert.equal(s.findings[0].confidence,'heuristic')});
+test('works with existing offline normalizer',()=>{const r=normalize([run(base())],{now:'2026-10-13T20:05:00Z'});assert.equal(r.findings.length,1);assert.equal(r.summary.review_candidates,1)});
+test('clean reported summary is not proof of full audit',()=>{const x=base();x.problemPages=[];x.findingCount=0;const s=run(x);assert.equal(s.findings.length,0);assert.equal(s.coverage.complete_findings,false)});
+test('incomplete or contradictory coverage fails closed',()=>{const x=base();x.pendingInitialAuditCount=0;assert.throws(()=>run(x),/coverage/);assert.throws(()=>run({...base(),problemPages:null}),/bounded/)});
+test('unavailable snapshot is not accepted as healthy',()=>{assert.throws(()=>run(null),/Invalid/);assert.throws(()=>run({ok:true,snapshot:null}),/Invalid/)});
+test('stale source retained as stale by normalizer',()=>{const r=normalize([run(base())],{now:'2026-10-15T00:00:00Z'});assert.equal(r.sources[0].state,'stale');assert.equal(r.findings.length,0)});
+test('unknown severity is rejected, not silently downgraded',()=>{const x=base();x.problemPages[0].highestSeverity='unknown';assert.throws(()=>run(x),/severity/)});
+test('more than 25 problem pages is rejected',()=>{const x=base();x.problemPages=Array.from({length:26},(_,i)=>({...x.problemPages[0],path:'/ships/test-'+i}));assert.throws(()=>run(x),/bounded/)});

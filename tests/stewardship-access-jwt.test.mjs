@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
 import {verifyStewardshipAccessJwt as verify} from '../tools/stewardship/access-jwt-verifier.mjs';
 if(!globalThis.crypto)globalThis.crypto=webcrypto;
-const b64=x=>Buffer.from(typeof x==='string'?x:JSON.stringify(x)).toString('base64url');
+const b64=x=>Buffer.isBuffer(x)?x.toString('base64url'):Buffer.from(typeof x==='string'?x:JSON.stringify(x)).toString('base64url');
 const policy={issuer:'https://example-team.cloudflareaccess.com',audience:'stewardship-test-aud',allowedEmails:['owner@example.com']};
 async function fixture(){
  const keys=await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']);

@@ -26,7 +26,7 @@ test('accepts only valid signature, matching issuer/audience and allowlisted hum
 });
 test('rejects forged/altered signatures and untrusted keys',async()=>{
  const f=await fixture(),token=await f.sign();
- assert.equal(await verify(token.replace(/.$/,token.endsWith('A')?'B':'A'),policy,f.jwks),false);
+ assert.equal(await verify(token.slice(0,token.lastIndexOf('.')+1)+(token[token.lastIndexOf('.')+1]==='A'?'B':'A')+token.slice(token.lastIndexOf('.')+2),policy,f.jwks),false);
  assert.equal(await verify(token,policy,{keys:[]}),false);
  assert.equal(await verify(token,policy,{keys:[f.jwks.keys[0],f.jwks.keys[0]]}),false);
  assert.equal(await verify(await f.sign(f.claims,{alg:'none',kid:'test-key'}),policy,f.jwks),false);

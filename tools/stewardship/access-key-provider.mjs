@@ -24,10 +24,10 @@ export function createStewardshipOperatorAuthorizer({policy, fetchKeys = fetch, 
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     let response;
     try {
-     response = await fetchKeys(fixedUrl, {
+     response = await Promise.race([fetchKeys(fixedUrl, {
       method: 'GET', headers: {accept: 'application/json'},
       redirect: 'manual', signal: controller.signal,
-     });
+     }), new Promise((_, reject) => { controller.signal.addEventListener('abort', () => reject(new Error('key fetch timeout')), {once:true}); })]);
      if (!response || response.status !== 200 ||
          !(response.headers.get('content-type') || '').toLowerCase().includes('application/json'))
        return false;

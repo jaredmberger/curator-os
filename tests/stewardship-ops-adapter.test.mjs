@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {opsOperationalStateToSnapshot as adapt} from '../tools/stewardship/ops-operational-state-adapter.mjs';
+import {normalizeStewardshipSnapshots as normalize} from '../tools/stewardship/normalize.mjs';
+const base=()=>({ok:true,snapshot:{generatedAt:'2026-10-13T20:00:00Z',status:'degraded',summary:{sources:2,activeFindings:2},sources:[{id:'reachability',freshnessState:'fresh',generatedAt:'2026-10-13T19:59:00Z'}],findings:[{id:'service:public-site',name:'Public Site',severity:'attention',role:'root',message:'Site unreachable'},{id:'monitor:public-site-journey',name:'Public Site Journey',severity:'degraded',role:'symptom',causedBy:'service:public-site',message:'Dependent check failed'}] }});
+const run=x=>adapt(x,{maxAgeMs:900000});
+test('preserves Ops authoritative roles and scoped coverage',()=>{const r=run(base());assert.equal(r.findings.length,2);assert.match(r.findings[0].evidence,/role: root/);assert.match(r.findings[1].evidence,/role: symptom/);assert.equal(r.coverage.authoritative_correlation,true)});
+test('offline normalization retains source and finding statuses',()=>{const r=normalize([run(base())],{now:'2026-10-13T20:05:00Z'});assert.equal(r.sources[0].state,'current');assert.equal(r.summary.active,2)});
+test('stale Ops snapshot does not pass through historical active findings',()=>{const r=normalize([run(base())],{now:'2026-10-14T20:05:00Z'});assert.equal(r.sources[0].state,'stale');assert.equal(r.findings.length,0)});
+test('source-specific stale or missing evidence is not hidden',()=>{const x=base();x.snapshot.sources[0].freshnessState='missing';assert.equal(run(x).coverage.source_freshness[0].freshness,'missing')});
+test('clean snapshot is only operational-state clean',()=>{const x=base();x.snapshot.status='healthy';x.snapshot.findings=[];x.snapshot.summary.activeFindings=0;const r=run(x);assert.equal(r.findings.length,0);assert.match(r.coverage.scope,/not every Error Bus/)});
+test('missing and incomplete snapshots fail closed',()=>{assert.throws(()=>run({ok:true,snapshot:null}),/Invalid/);const x=base();x.snapshot.summary.activeFindings=1;assert.throws(()=>run(x),/Incomplete/)});
+test('unexpected upstream classifications rejected',()=>{const x=base();x.snapshot.findings[0].role='unverified';assert.throws(()=>run(x),/Invalid Ops finding/)});
+test('Ops sources must carry classified freshness',()=>{const x=base();x.snapshot.sources[0].freshnessState='unknown';assert.throws(()=>run(x),/Invalid Ops source/)});

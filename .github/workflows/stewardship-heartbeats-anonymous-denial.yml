@@ -1,0 +1,24 @@
+name: Stewardship Heartbeats Anonymous Denial
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/stewardship-heartbeats-anonymous-denial.yml'
+permissions:
+  contents: read
+jobs:
+  deny-anonymous:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert anonymous production heartbeat requests are denied
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl --silent --show-error --max-time 20 --max-redirs 0 -o /tmp/anonymous-heartbeats -w '%{http_code}' 'https://curator.oceanliners.net/api/stewardship-heartbeats')
+          echo "Anonymous HTTP status: $status"
+          if grep -Eq '"available"[[:space:]]*:[[:space:]]*true|"scope"[[:space:]]*:[[:space:]]*"scheduled-monitor-heartbeats-only"' /tmp/anonymous-heartbeats; then
+            echo 'FAIL: heartbeat data returned to unauthenticated caller'; exit 1
+          fi
+          case "$status" in
+            302|303|401|403) echo 'PASS: Cloudflare Access denied or challenged anonymous request' ;;
+            *) echo 'FAIL: Access challenge was not established'; exit 1 ;;
+          esac

@@ -11,7 +11,7 @@ test('diagnostics disabled unless operator opt-in exists',async()=>{
 test('stage-only diagnostics distinguish missing, ambiguous, and config',async()=>{
  const a=await diagnoseAccessRequest(req(),env,()=>({authorize:async()=>false}));
  assert.equal(a.stage,'signed_assertion_missing');
- const b=await diagnoseAccessRequest(req({'Cf-Access-Jwt-Assertion':'a.b.c',cookie:'CF_Authorization=a.b.c'}),env,()=>({authorize:async()=>false}));
+ const b=await diagnoseAccessRequest(req({cookie:'CF_Authorization=a.b.c; CF_Authorization=a.b.c'}),env,()=>({authorize:async()=>false}));
  assert.equal(b.stage,'ambiguous_credentials');
  const c=await diagnoseAccessRequest(req(),{},()=>({authorize:async()=>false}));
  assert.equal(c.stage,'trusted_configuration_unavailable');

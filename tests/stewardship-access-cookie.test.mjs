@@ -21,7 +21,8 @@ test('valid signed cookie JWT authorizes with the identical operator policy',asy
  const authorizer=createStewardshipOperatorAuthorizer({policy,fetchKeys:async()=>new Response(JSON.stringify({keys:[jwk]}),{headers:{'content-type':'application/json'}})});
  assert.equal(await authorizer.authorize(request({cookie:'CF_Authorization='+token})),true);
  assert.equal(await authorizer.authorize(request({'Cf-Access-Jwt-Assertion':token})),true);
- assert.equal(await authorizer.authorize(request({cookie:'CF_Authorization='+token,'Cf-Access-Jwt-Assertion':token})),false);
+ assert.equal(await authorizer.authorize(request({cookie:'CF_Authorization='+token,'Cf-Access-Jwt-Assertion':token})),true);
+ assert.equal(await authorizer.authorize(request({cookie:'CF_Authorization='+token,'Cf-Access-Jwt-Assertion':'invalid.header.signature'})),false);
  assert.equal(await authorizer.authorize(request({cookie:'CF_Authorization='+token+'; CF_Authorization='+token})),false);
 });
 test('signed cookie for other identity or audience stays denied',async()=>{

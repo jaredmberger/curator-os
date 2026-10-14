@@ -11,7 +11,7 @@ export async function diagnoseAccessRequest(request,env,authorizerFactory,fetchK
  const assertion=request.headers.get('Cf-Access-Jwt-Assertion');
  const cookies=[...(request.headers.get('cookie')||'').matchAll(/(?:^|;\s*)CF_Authorization=([^;]*)/g)];
  if(!assertion&&!cookies.length)return result('signed_assertion_missing');
- if((assertion&&cookies.length)||cookies.length>1)return result('ambiguous_credentials');
+ if(!assertion&&cookies.length>1)return result('ambiguous_credentials');
  const token=assertion||cookies[0][1];
  if(typeof token!=='string'||token.length>16384||!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token))return result('malformed_assertion');
  let allowed=false;

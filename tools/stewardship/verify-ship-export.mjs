@@ -8,6 +8,8 @@ if(!validateInventory(report))throw new Error('Invalid ship stewardship report c
 if(report.coverage.listedGuides<300)throw new Error('Suspiciously incomplete ship inventory: '+report.coverage.listedGuides);
 if(report.coverage.linkObservations<300)throw new Error('Missing or substantially incomplete link observations: '+report.coverage.linkObservations);
 if(!/^[0-9a-f]{40}$/.test(report.revision||''))throw new Error('Missing 40-character source archive Git revision');
-if(report.coverage.historicalAuditSupplied!==false)throw new Error('Unreviewed chronology import was not expected');
+if(report.coverage.historicalAuditSupplied!==true)throw new Error('Expected a completed narrow historical chronology import');
+if(!report.guides.every(g=>g.checks.historicalConsistency==='narrow-rules-only'))throw new Error('Historical chronology coverage does not match supplied audit');
+if(!report.guides.every(g=>g.candidates.every(c=>c.verification==='unverified')))throw new Error('Chronology findings must remain unverified');
 if(!report.guides.every(g=>g.checks.historicalAccuracy==='not-assessed'&&g.checks.externalCitationValidity==='not-assessed'))throw new Error('Unsupported audit assurance');
 console.log('Validated read-only ship audit export:',report.coverage.listedGuides,'guides,',report.coverage.linkObservations,'static-link observations, revision',report.revision);

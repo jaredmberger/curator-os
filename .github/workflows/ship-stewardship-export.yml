@@ -1,0 +1,52 @@
+name: Ship Stewardship Archive Export
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/ship-stewardship-export.yml'
+      - 'tools/stewardship/**'
+      - 'tests/stewardship-ship-export.test.mjs'
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout CuratorOS inventory generator
+        uses: actions/checkout@v4
+        with:
+          path: curator-os
+      - name: Checkout authoritative Ocean Liner Curator archive
+        uses: actions/checkout@v4
+        with:
+          repository: jaredmberger/Ocean-Liner-Curator
+          ref: main
+          persist-credentials: false
+          path: archive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build source-scoped, read-only audit export
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output
+          cd archive
+          node tools/search/internal-link-audit.mjs --json > ../output/internal-link-audit.json
+          REVISION=$(git rev-parse HEAD)
+          node ../curator-os/tools/stewardship/build-ship-guide-inventory.mjs \
+            --sitemap sitemaps/sitemap-ships.xml \
+            --links ../output/internal-link-audit.json \
+            --revision "$REVISION" \
+            --output ../output/ship-stewardship.json
+          cd ..
+          node curator-os/tools/stewardship/verify-ship-export.mjs output/ship-stewardship.json
+          printf 'Archive revision: %s\n' "$REVISION" >> "$GITHUB_STEP_SUMMARY"
+          node -e "const d=require('./output/ship-stewardship.json');console.log(d.coverage);require('fs').appendFileSync(process.env.GITHUB_STEP_SUMMARY, 'Guides listed: '+d.coverage.listedGuides+'; link observations: '+d.coverage.linkObservations+'\\n')"
+      - name: Publish operator-downloadable audit snapshot (not website content)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ship-stewardship-audit-export
+          path: output/ship-stewardship.json
+          retention-days: 14
+          if-no-files-found: error

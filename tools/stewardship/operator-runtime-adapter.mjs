@@ -19,6 +19,10 @@ const readConfig = env => {
  return {issuer,audience,allowedEmails:[email]};
 };
 
+// A boolean-only status used when an already-denied protected request needs
+// a coarse diagnosis. Never return configured values or identity information.
+export const hasTrustedOperatorConfiguration = env => readConfig(env)!==null;
+
 // An injected fetch is intended for isolated test fixtures only.
 // In actual Cloudflare deployment omit options; runtime uses global fetch.
 export function createOperatorAuthorizationFromBindings(env, options={}) {

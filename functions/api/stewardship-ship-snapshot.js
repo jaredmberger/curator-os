@@ -1,7 +1,7 @@
 // Protected, read-only ship snapshot gateway. No publish/update methods.
 // The binding and the operator-controlled enable flag are deliberately absent
 // by default; deployment alone never activates access.
-import {createOperatorAuthorizationFromBindings} from '../../tools/stewardship/operator-runtime-adapter.mjs';
+import {createOperatorAuthorizationFromBindings,hasTrustedOperatorConfiguration} from '../../tools/stewardship/operator-runtime-adapter.mjs';
 import {validateInventory} from '../../preview/ship-inspector.js';
 const h={'cache-control':'private, no-store','x-content-type-options':'nosniff','x-robots-tag':'noindex, nofollow, noarchive'};
 const json=(status,body)=>new Response(JSON.stringify(body),{status,headers:{...h,'content-type':'application/json; charset=utf-8'}});
@@ -11,7 +11,14 @@ export const createShipSnapshotHandler=(authorizerFactory=createOperatorAuthoriz
  let allowed=false;
  try{allowed=(await authorizerFactory(env).authorize(request))===true;}
  catch{return json(403,{available:false,reason:'authorization_unavailable'});}
- if(!allowed)return json(403,{available:false,reason:'forbidden'});
+ if(!allowed){
+  // Only coarse failure categories, on a request that was already denied.
+  // Never reveal bound secrets, JWTs, emails, signing keys, or claim details.
+  const validConfig=hasTrustedOperatorConfiguration(env);
+  const hasHeader=!!request.headers.get('Cf-Access-Jwt-Assertion');
+  const hasCookie=/(?:^|;\s*)CF_Authorization=/.test(request.headers.get('cookie')||'');
+  return json(403,{available:false,reason:!validConfig?'trusted_configuration_unavailable':!hasHeader&&!hasCookie?'signed_assertion_missing':'signed_assertion_not_accepted'});
+ }
  if(typeof env?.STEWARDSHIP_SHIP_SNAPSHOTS?.get!=='function')return json(503,{available:false,reason:'snapshot_binding_unavailable'});
  try{
   const raw=await env.STEWARDSHIP_SHIP_SNAPSHOTS.get('verified:ship-stewardship:v1');

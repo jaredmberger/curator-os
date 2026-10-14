@@ -4,7 +4,7 @@ import {investigationDestination,referenceDashboards} from '../tools/stewardship
 import {readFileSync} from 'node:fs';
 test('Curator Ops candidates navigate only to fixed authoritative dashboard',()=>{
  const destination=investigationDestination('Curator Ops');
- assert.equal(destination.href,'https://ops.oceanlinercurator.com/');
+ assert.equal(destination.href,'https://ops.oceanlinercurator.com/operational-state');
  assert.equal(investigationDestination('Site Health'),null);
  assert.equal(investigationDestination('https://evil.example'),null);
  assert.equal(investigationDestination(''),null);

@@ -8,5 +8,5 @@
 <p class="stamp" id="stamp"></p><p class="scope" id="scope"></p><section id="review-notes" class="review-notes" aria-label="Coverage and freshness notices" hidden></section>
 <section><h2>Source freshness</h2><div id="sources" class="source-grid"></div></section>
 <section><h2>Findings requiring review</h2><p class="help">Findings are operational signals, not verified historical errors. Review their authoritative source before taking action.</p><div id="findings"></div></section>
-</section><footer>No automated actions · No raw Ops evidence · Operator access required</footer></main>
-<script type="module" src="./stewardship.js"></script></body></html>
+</section><section class="heartbeat-section" aria-label="Scheduled monitor heartbeats"><h2>Scheduled monitor heartbeats</h2><p class="help">A healthy heartbeat confirms a scheduled monitor ran recently; it does not establish scan completeness or zero findings.</p><p id="heartbeat-status" role="status" aria-live="polite">Not loaded</p><div id="heartbeat-sources" class="source-grid"></div></section><footer>No automated actions · No raw Ops evidence · Operator access required</footer></main>
+<script type="module" src="./stewardship.js"></script><script type="module" src="./stewardship-heartbeats.js"></script></body></html>

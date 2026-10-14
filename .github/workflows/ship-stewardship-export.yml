@@ -33,6 +33,8 @@ jobs:
           mkdir -p output
           cd archive
           node tools/search/internal-link-audit.mjs --json > ../output/internal-link-audit.json
+          python3 scripts/historical-consistency-monitor.py --root . --output ../output/historical-consistency-report.md --csv ../output/historical-consistency-findings.csv
+          python3 ../curator-os/tools/stewardship/normalize-chronology-csv.py ../output/historical-consistency-findings.csv ../output/chronology-normalized.json
           REVISION=$(git rev-parse HEAD)
           node ../curator-os/tools/stewardship/build-ship-guide-inventory.mjs \
             --sitemap sitemaps/sitemap-ships.xml \

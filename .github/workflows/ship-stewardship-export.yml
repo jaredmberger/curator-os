@@ -89,7 +89,7 @@ jobs:
           : "${CF_KV_NAMESPACE_ID:?Snapshot namespace not configured}"
           [[ "$CF_ACCOUNT_ID" =~ ^[0-9a-f]{32}$ ]]
           [[ "$CF_KV_NAMESPACE_ID" =~ ^[0-9a-f]{32}$ ]]
-          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 \
+          RESPONSE=$(curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 \
             --request PUT \
             --header "Authorization: Bearer ${CF_API_TOKEN}" \
             --header 'Content-Type: application/json' \

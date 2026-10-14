@@ -39,6 +39,28 @@ export async function loadInventoryFile(file,doc=document){
   status.textContent='Local export loaded for read-only inspection. No data uploaded.';
  }catch{status.textContent='Invalid or unsupported export. Nothing was loaded; observations remain unknown.';}
 }
+
+// The protected API is opt-in and never implied present by an existing export.
+export async function loadProtectedSnapshot({fetcher=fetch,doc=document}={}){
+ const status=doc.getElementById('inventory-status');
+ doc.getElementById('ship-inspection').hidden=true;
+ status.textContent='Checking protected archive snapshot…';
+ try{
+  const response=await fetcher('/api/stewardship-ship-snapshot',{method:'GET',credentials:'same-origin',cache:'no-store',redirect:'manual',headers:{accept:'application/json'}});
+  if(!response.ok||!(response.headers.get('content-type')||'').includes('application/json'))throw new Error('unavailable');
+  const raw=await response.text();if(raw.length>3000000)throw new Error('oversize');
+  const envelope=JSON.parse(raw);
+  if(envelope.available!==true||!validateInventory(envelope.snapshot))throw new Error('invalid');
+  const age=Date.now()-Date.parse(envelope.snapshot.observedAt);
+  if(!Number.isFinite(age)||age< -60000||age>7*86400000)throw new Error('stale');
+  renderInventory(envelope.snapshot,doc);
+  status.textContent='Protected snapshot loaded · archive revision '+envelope.snapshot.revision.slice(0,12)+' · generated '+new Date(envelope.snapshot.observedAt).toLocaleString()+' · historical accuracy not certified.';
+ }catch{
+  status.textContent='Protected snapshot unavailable, disabled or stale. No ship health can be inferred. Use a local export instead.';
+ }
+}
+
 if(typeof document!=='undefined'&&document.getElementById('inventory-file')){
+ document.getElementById('load-protected-snapshot')?.addEventListener('click',()=>loadProtectedSnapshot());
  document.getElementById('inventory-file').addEventListener('change',e=>loadInventoryFile(e.target.files?.[0]));
 }

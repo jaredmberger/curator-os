@@ -21,3 +21,23 @@ jobs:
 
 # Production deployment is owned by Cloudflare Pages.
 # Stable Keel validates the repository; it does not package or deploy the retired standalone Worker.
+
+  staging-ops-anonymous-denial:
+    if: github.event_name == 'pull_request' && github.head_ref == 'staging/stewardship-ops-read-validation'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify anonymous access cannot reach Ops
+        shell: bash
+        run: |
+          set -euo pipefail
+          target='https://staging-stewardship-ops-read.curator-os.pages.dev/api/stewardship-ops'
+          status=$(curl --silent --show-error --max-time 20 --max-redirs 0 -o /tmp/stewardship-ops-response -w '%{http_code}' "$target")
+          echo "Anonymous HTTP status: $status"
+          if grep -Eq '"available"[[:space:]]*:[[:space:]]*true|"scope"[[:space:]]*:[[:space:]]*"ops-operational-state-summary"' /tmp/stewardship-ops-response; then
+            echo 'FAIL: anonymous visitor received operational status'
+            exit 1
+          fi
+          case "$status" in
+            302|303|401|403) echo 'PASS: anonymous visitor challenged or denied' ;;
+            *) echo 'FAIL: external Access protection not established'; exit 1 ;;
+          esac

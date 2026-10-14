@@ -51,7 +51,7 @@ export async function loadProtectedSnapshot({fetcher=fetch,doc=document}={}){
   const raw=await response.text();if(raw.length>3000000)throw new Error('oversize');
   const envelope=JSON.parse(raw);
   if(!response.ok){
-   const allowed=new Set(['disabled','authorization_unavailable','forbidden','snapshot_binding_unavailable','snapshot_unavailable','snapshot_invalid','snapshot_stale']);
+   const allowed=new Set(['disabled','authorization_unavailable','forbidden','snapshot_binding_unavailable','snapshot_unavailable','snapshot_invalid','snapshot_stale','trusted_configuration_unavailable','signed_assertion_missing','signed_assertion_not_accepted']);
    throw new Error(allowed.has(envelope.reason)?envelope.reason:'request_failed');
   }
   if(envelope.available!==true||!validateInventory(envelope.snapshot))throw new Error('invalid');
@@ -60,7 +60,7 @@ export async function loadProtectedSnapshot({fetcher=fetch,doc=document}={}){
   renderInventory(envelope.snapshot,doc);
   status.textContent='Protected snapshot loaded · archive revision '+envelope.snapshot.revision.slice(0,12)+' · generated '+new Date(envelope.snapshot.observedAt).toLocaleString()+' · historical accuracy not certified.';
  }catch(error){
-  const messages={disabled:'Protected snapshot reading is disabled.',authorization_unavailable:'Operator authorization could not be verified.',forbidden:'Operator access was denied. Confirm the Cloudflare Access session for CuratorOS.',snapshot_binding_unavailable:'Protected snapshot storage is not bound to the currently serving deployment.',snapshot_unavailable:'The protected snapshot could not be retrieved.',snapshot_invalid:'The stored snapshot failed schema or provenance validation.',snapshot_stale:'The stored snapshot is too old or has an inconsistent timestamp.',non_json_response:'The API did not return JSON; an access challenge or routing problem may be intercepting the request.',oversize:'The snapshot response exceeded the permitted size.',request_failed:'Protected snapshot request failed.'};
+  const messages={disabled:'Protected snapshot reading is disabled.',authorization_unavailable:'Operator authorization could not be verified.',forbidden:'Operator access was denied. Confirm the Cloudflare Access session for CuratorOS.',trusted_configuration_unavailable:'Operator configuration is incomplete or invalid in the running deployment.',signed_assertion_missing:'No signed Cloudflare Access assertion reached the protected endpoint.',signed_assertion_not_accepted:'A signed Access credential reached the endpoint but failed verification. Check the active operator identity, application audience, or signing-key retrieval.',snapshot_binding_unavailable:'Protected snapshot storage is not bound to the currently serving deployment.',snapshot_unavailable:'The protected snapshot could not be retrieved.',snapshot_invalid:'The stored snapshot failed schema or provenance validation.',snapshot_stale:'The stored snapshot is too old or has an inconsistent timestamp.',non_json_response:'The API did not return JSON; an access challenge or routing problem may be intercepting the request.',oversize:'The snapshot response exceeded the permitted size.',request_failed:'Protected snapshot request failed.'};
   status.textContent=(messages[error?.message]||'Unable to load protected snapshot.')+' No ship health can be inferred. Local import remains available.';
  }
 }

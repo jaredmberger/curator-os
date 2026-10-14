@@ -4,7 +4,7 @@ import {investigationDestination,referenceDashboards} from '../tools/stewardship
 import {readFileSync} from 'node:fs';
 test('Curator Ops candidates navigate only to fixed authoritative dashboard',()=>{
  const destination=investigationDestination('Curator Ops');
- assert.equal(destination.href,'https://ops.oceanlinercurator.com/');
+ assert.equal(destination.href,'https://ops.oceanlinercurator.com/operational-state');
  assert.equal(investigationDestination('Site Health'),null);
  assert.equal(investigationDestination('https://evil.example'),null);
  assert.equal(investigationDestination(''),null);
@@ -12,7 +12,8 @@ test('Curator Ops candidates navigate only to fixed authoritative dashboard',()=
 test('all destinations are fixed HTTPS origins without query or hash input',()=>{
  for(const entry of referenceDashboards()){
   const url=new URL(entry.href);
-  assert.equal(url.protocol,'https:');assert.equal(url.pathname,'/');
+  assert.equal(url.protocol,'https:');
+  assert.ok(url.pathname==='/' || (url.hostname==='ops.oceanlinercurator.com' && url.pathname==='/operational-state'));
   assert.equal(url.search,'');assert.equal(url.hash,'');
   assert.ok(['ops.oceanlinercurator.com','site-health.oceanliners.net','integrity.oceanliners.net'].includes(url.hostname));
  }

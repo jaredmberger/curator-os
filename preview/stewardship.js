@@ -1,3 +1,4 @@
+import {deriveReviewQueue} from '../tools/stewardship/review-queue.mjs';
 const byId=id=>document.getElementById(id);
 const set=(id,value)=>{byId(id).textContent=String(value)};
 const el=(tag,className,text)=>{const n=document.createElement(tag);if(className)n.className=className;if(text!==undefined)n.textContent=String(text);return n};
@@ -46,7 +47,18 @@ export function renderReport(r,doc=document){
  for(const s of r.sources){const card=doc.createElement('article');card.className='source';const name=doc.createElement('span');name.textContent=s.id;const freshness=doc.createElement('strong');freshness.textContent=s.freshness;freshness.className='freshness '+s.freshness;card.append(name,freshness);sources.append(card);}
  const findings=node('findings');findings.replaceChildren();
  if(!r.findings.length){const empty=doc.createElement('p');empty.className='empty';empty.textContent='No active operational findings in this report. This does not certify historical accuracy or full system coverage.';findings.append(empty);}
- else for(const f of r.findings){const card=doc.createElement('article');card.className='finding';for(const value of [f.id,'Severity: '+f.severity,'Correlation: '+f.role]){const line=doc.createElement('p');line.textContent=value;card.append(line);}findings.append(card);}
+ else {
+  const queue=deriveReviewQueue(r);
+  const context=doc.createElement('p');context.className='help';context.textContent=queue.note;findings.append(context);
+  for(const f of queue.items){
+   const card=doc.createElement('article');card.className='finding review-candidate';
+   const heading=doc.createElement('strong');heading.textContent=f.id;card.append(heading);
+   for(const value of ['Severity: '+f.severity,'Correlation: '+f.correlation,'Source: '+f.source,'Verification: unverified','Report freshness: '+f.freshness,f.nextStep]){
+    const line=doc.createElement('p');line.textContent=value;card.append(line);
+   }
+   findings.append(card);
+  }
+ }
  node('report').hidden=false;
 }
 export async function loadReport({fetcher=fetch,doc=document}={}){

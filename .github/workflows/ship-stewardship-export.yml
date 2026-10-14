@@ -94,5 +94,6 @@ jobs:
             --header "Authorization: Bearer ${CF_API_TOKEN}" \
             --header 'Content-Type: application/json' \
             --data-binary @output/ship-stewardship.json \
-            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/storage/kv/namespaces/${CF_KV_NAMESPACE_ID}/values/verified%3Aship-stewardship%3Av1"
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/storage/kv/namespaces/${CF_KV_NAMESPACE_ID}/values/verified%3Aship-stewardship%3Av1")
+          node -e "const r=JSON.parse(process.argv[1]);if(r.success!==true)process.exit(1)" "$RESPONSE"
           echo 'Validated archive snapshot submitted to isolated protected KV key.' >> "$GITHUB_STEP_SUMMARY"

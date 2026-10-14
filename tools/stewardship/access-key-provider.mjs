@@ -18,8 +18,18 @@ export function createStewardshipOperatorAuthorizer({policy, fetchKeys = fetch, 
     if (!request || !(request.headers instanceof Headers)) return false;
     // Duplicate assertions, ambiguous comma-joined values and non-GET are denied.
     if (request.method !== 'GET') return false;
-    const assertion = request.headers.get('Cf-Access-Jwt-Assertion');
-    if (!assertion || assertion.includes(',') || assertion.length > 16384) return false;
+    // Pages Functions may receive a signed Cloudflare Access session cookie
+    // rather than the assertion header. Either source must pass the SAME
+    // cryptographic issuer, audience, expiry, and operator-email checks below.
+    const header = request.headers.get('Cf-Access-Jwt-Assertion');
+    const cookieHeader = request.headers.get('cookie') || '';
+    const matches = [...cookieHeader.matchAll(/(?:^|;\s*)CF_Authorization=([^;]*)/g)];
+    // Reject ambiguous/conflicting credentials, duplicate session cookies,
+    // and malformed JWT material. Never authorize on cookie presence alone.
+    if (matches.length > 1 || (header && matches.length)) return false;
+    const assertion = header || (matches.length === 1 ? matches[0][1] : null);
+    if (!assertion || assertion.includes(',') || assertion.length > 16384 ||
+        !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(assertion)) return false;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     let response;

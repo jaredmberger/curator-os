@@ -2,3 +2,5 @@
 .review-notes{margin:24px 0;padding:14px 20px;border:1px solid #897244;border-radius:10px;background:#28251c;color:#eddbb7;line-height:1.5}.review-notes p{margin:8px 0}.state-label.healthy{color:#88cfaf}.state-label.degraded{color:#e7b773}.state-label.attention{color:#ef9789}
 
 .heartbeat-section{margin-top:42px;padding-top:18px;border-top:1px solid #344840}.heartbeat-card{display:block;min-width:0}.heartbeat-card strong{font-size:17px}.heartbeat-card p{line-height:1.5;overflow-wrap:anywhere}.heartbeat-card .help{font-size:12px}#heartbeat-status{font-size:13px;color:#b3bfb9}
+
+.investigate-link{display:inline-block;margin-top:10px;color:#d8c28f;font-weight:600;text-underline-offset:3px}.investigate-link:focus-visible{outline:2px solid #d8c28f;outline-offset:4px}

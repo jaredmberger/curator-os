@@ -1,4 +1,5 @@
 import {deriveReviewQueue} from '../tools/stewardship/review-queue.mjs';
+import {investigationDestination} from '../tools/stewardship/investigation-destinations.mjs';
 const byId=id=>document.getElementById(id);
 const set=(id,value)=>{byId(id).textContent=String(value)};
 const el=(tag,className,text)=>{const n=document.createElement(tag);if(className)n.className=className;if(text!==undefined)n.textContent=String(text);return n};
@@ -55,6 +56,15 @@ export function renderReport(r,doc=document){
    const heading=doc.createElement('strong');heading.textContent=f.id;card.append(heading);
    for(const value of ['Severity: '+f.severity,'Correlation: '+f.correlation,'Source: '+f.source,'Verification: unverified','Report freshness: '+f.freshness,f.nextStep]){
     const line=doc.createElement('p');line.textContent=value;card.append(line);
+   }
+   const destination=investigationDestination(f.source);
+   if(destination){
+    const link=doc.createElement('a');
+    link.textContent=destination.label+' ↗';
+    link.href=destination.href;
+    link.rel='noopener noreferrer';link.target='_blank';
+    link.className='investigate-link';
+    card.append(link);
    }
    findings.append(card);
   }

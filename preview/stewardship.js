@@ -13,17 +13,35 @@ export function validateReport(r){
  if(!countOk(c.reportedSources)||!countOk(c.listedSources)||!countOk(c.reportedFindings)||c.listedSources!==r.sources.length||c.reportedFindings!==r.findings.length||c.listedSources>c.reportedSources||c.completeness!=='operational-state-only')return false;
  return r.sources.every(s=>s&&idOk(s.id)&&VALID_FRESHNESS.has(s.freshness))&&r.findings.every(f=>f&&idOk(f.id)&&VALID_ROLES.has(f.role)&&VALID_SEVERITIES.has(f.severity));
 }
+export function assessReport(r,nowMs=Date.now()){
+ if(!validateReport(r))throw Error('unexpected_contract');
+ const ageMs=nowMs-Date.parse(r.generatedAt);
+ const stale=ageMs>20*60*1000,clockSkew=ageMs< -60*1000;
+ const notFresh=r.sources.filter(s=>s.freshness!=='fresh');
+ const unlisted=r.coverage.reportedSources-r.coverage.listedSources;
+ return {ageMs,stale,clockSkew,notFresh:notFresh.length,unlisted,
+  needsReview:stale||clockSkew||notFresh.length>0||unlisted>0||r.findings.length>0};
+}
 export function renderReport(r,doc=document){
  if(!validateReport(r))throw Error('unexpected_contract');
  const node=id=>doc.getElementById(id);
  const write=(id,value)=>{node(id).textContent=String(value)};
  write('state',r.state);
+ node('state').className='state-label '+r.state;
  write('findings-count',r.coverage.reportedFindings);
  write('coverage-count',r.coverage.listedSources+' / '+r.coverage.reportedSources);
  const date=new Date(r.generatedAt);
- const minutes=Math.round((Date.now()-date.getTime())/60000);
- write('stamp','Report generated '+date.toLocaleString()+(minutes>=0?' · '+minutes+' min ago':' · clock discrepancy'));
+ const assessment=assessReport(r);
+ const minutes=Math.max(0,Math.floor(assessment.ageMs/60000));
+ write('stamp','Report generated '+date.toLocaleString()+(assessment.clockSkew?' · Clock discrepancy':' · '+minutes+' min ago'));
  write('scope','Coverage: operational-state-only. '+(r.coverage.listedSources<r.coverage.reportedSources?'Some reported sources are not individually listed; this is not full archive coverage.':'All reported sources are individually listed; this is not full archive coverage.'));
+ const notes=node('review-notes');notes.replaceChildren();
+ const addNote=(message)=>{const p=doc.createElement('p');p.textContent=message;notes.append(p);};
+ if(assessment.stale||assessment.clockSkew)addNote('Report freshness cannot be trusted. Refresh and check the authoritative Curator Ops source before interpreting operational status.');
+ if(assessment.unlisted>0)addNote(assessment.unlisted+' reported source(s) are not individually listed. Their state is unknown here.');
+ if(assessment.notFresh>0)addNote(assessment.notFresh+' listed source(s) are stale or missing. Review freshness in Curator Ops.');
+ if(!assessment.needsReview)addNote('No operational alerts in this scoped report. Historical accuracy and broader coverage are not assessed.');
+ node('review-notes').hidden=false;
  const sources=node('sources');sources.replaceChildren();
  for(const s of r.sources){const card=doc.createElement('article');card.className='source';const name=doc.createElement('span');name.textContent=s.id;const freshness=doc.createElement('strong');freshness.textContent=s.freshness;freshness.className='freshness '+s.freshness;card.append(name,freshness);sources.append(card);}
  const findings=node('findings');findings.replaceChildren();

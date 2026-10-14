@@ -24,9 +24,10 @@ export function createStewardshipOperatorAuthorizer({policy, fetchKeys = fetch, 
     const header = request.headers.get('Cf-Access-Jwt-Assertion');
     const cookieHeader = request.headers.get('cookie') || '';
     const matches = [...cookieHeader.matchAll(/(?:^|;\s*)CF_Authorization=([^;]*)/g)];
-    // Reject ambiguous/conflicting credentials, duplicate session cookies,
-    // and malformed JWT material. Never authorize on cookie presence alone.
-    if (matches.length > 1 || (header && matches.length)) return false;
+    // The Access proxy may send both header and cookie. Prefer its explicit
+    // assertion header; never fall back to a cookie if that header is invalid.
+    // Cookie fallback is allowed only without a header and with one cookie.
+    if (!header && matches.length > 1) return false;
     const assertion = header || (matches.length === 1 ? matches[0][1] : null);
     if (!assertion || assertion.includes(',') || assertion.length > 16384 ||
         !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(assertion)) return false;

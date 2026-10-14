@@ -1,0 +1,26 @@
+name: Stewardship Production Anonymous Denial
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/stewardship-prod-anonymous-denial.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  anonymous-denial:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe production endpoint without credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl --silent --show-error --max-time 20 --max-redirs 0 -o /tmp/stewardship-anonymous -w '%{http_code}' 'https://curator.oceanliners.net/api/stewardship-ops')
+          echo "Anonymous HTTP status: $status"
+          if grep -Eq '"available"[[:space:]]*:[[:space:]]*true|"scope"[[:space:]]*:[[:space:]]*"ops-operational-state-summary"' /tmp/stewardship-anonymous; then
+            echo 'FAIL: operational data publicly readable'
+            exit 1
+          fi
+          case "$status" in
+            302|303|401|403) echo 'PASS: unauthenticated requester challenged or denied' ;;
+            *) echo 'FAIL: outer Access denial not established'; exit 1 ;;
+          esac

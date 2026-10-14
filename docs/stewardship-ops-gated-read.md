@@ -1,14 +1,25 @@
-# Stewardship Ops gated read: activation contract
+# Stewardship Ops — production release gate
 
-**Default state: disabled.** This is a code-only preparatory change for review, not a production rollout. The endpoint `GET /api/stewardship-ops` requires two independent controls: `STEWARDSHIP_OPS_READ_ENABLED === 'true'` AND an operator authorization binding `STEWARDSHIP_OPERATOR_AUTHZ.authorize(request)` returning literal `true`. No production authorizer is supplied by this PR, and plain identity headers are never trusted.
+## Status
+The proposed `GET /api/stewardship-ops` route is **disabled by default**. A merge would deploy dormant route code, not activate live status access. Production enablement is a separate, explicit decision.
 
-Security review must first define and implement a real platform-compatible authorizer that verifies signed Access identity and approved operator role, rejecting service-token-only identities unless explicitly approved. An arbitrary Pages environment object or caller-supplied header must never be taken as authorization. Only then can someone separately approve enabling the switch.
+## Controls implemented
+- Strict `STEWARDSHIP_OPS_READ_ENABLED === 'true'` gate, checked before authorization and before any Ops fetch
+- Signed Cloudflare Access JWT verification using a trusted Access issuer and audience, with an explicit operator email allowlist
+- Deployment-owned configuration: `STEWARDSHIP_ACCESS_ISSUER`, `STEWARDSHIP_ACCESS_AUDIENCE`, `STEWARDSHIP_OPERATOR_EMAIL`
+- Fixed GET-only `CURATOR_OPS` service-binding request to `/api/operational-state`, redirect blocking, bounded timeout and source freshness checks
+- Strict allowlist projection; no raw messages, evidence, secret tokens or upstream diagnostics in the response
+- Generic failed-closed responses, no caching, no indexing
 
-The route subsequently uses existing `CURATOR_OPS` service binding with a fixed GET endpoint, redirect blocking, 5-second timeout, 20-minute freshness window, and strict `projectSafeOperationalState` allowlist. Errors return only generic unavailable reasons; no raw upstream data appears.
+## Staging evidence and limitations
+Staging experiment #267 demonstrated an authorized live read returning a sanitized report, anonymous denial, and successful switch-off rollback. #267 was closed **without merging**. Earlier operator verification #266 was also closed without merging. The production host/application Access configuration is distinct from Pages preview protection; its exact route and Access application audience must be verified independently.
 
-**Required before enablement:** verify exact production path is not matched by bypass, build real fail-closed verified authorization, test unauthenticated/operator/non-operator/service-token scenarios in staging, confirm secure service bindings and rollback. No new scheduler, KV changes, public site edits, or SEO change. Do not merge solely because CI is green if your release policy does not permit a disabled dormant production route.
+## Before production enablement
+1. Ensure this PR's Cloudflare Pages deployment compiles, especially the three imported Access helper modules. Offline CI alone is insufficient.
+2. Verify `curator.oceanliners.net/api/stewardship-ops` is covered by the identity-protected Access application, with no overlapping bypass (including wildcard/precedence review).
+3. Keep the production feature switch absent while merging any approved code. Confirm an authorized request returns `404 disabled`.
+4. Separately configure production issuer, **production application's** audience (not Pages preview AUD), and private authorized operator email. Ensure the upstream service binding is still `CURATOR_OPS -> ops (production)`.
+5. Test authenticated operator, anonymous, disallowed identity/service token, upstream errors and freshness; keep source data sanitized. Explicitly approve switch-on only after verification.
+6. Roll back by setting `STEWARDSHIP_OPS_READ_ENABLED` to `false` or removing it, redeploy, then verify `404 disabled`. Disable immediately on access-control or projection anomalies.
 
-## Post-staging authorization integration
-The dormant route now directly constructs the verified Access operator guard through `createOperatorAuthorizationFromBindings(env)`. The earlier placeholder `STEWARDSHIP_OPERATOR_AUTHZ` binding is no longer used. This removes any implication that an arbitrary environment object is a trusted authorizer. The route still requires literal `STEWARDSHIP_OPS_READ_ENABLED=true` and valid deployment-owned Access issuer, audience and operator email. Without them, no Curator Ops request occurs.
-
-**Deployment gate remains:** #266's staging authentication sentinel is closed without merge; this route has not yet been exercised against actual sanitized Ops data. No production switch, service binding, preview secret or Access policy has been changed. The first real-data test must use a separate staging-only path and fixed, allowlisted upstream endpoint, including denial and rollback checks.
+No data writes, scheduler, KV mutation, OceanLiners.net changes, or SEO changes belong to this release.

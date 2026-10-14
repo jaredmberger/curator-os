@@ -1,5 +1,5 @@
 import {deriveReviewQueue} from '../tools/stewardship/review-queue.mjs';
-import {investigationDestination,referenceDashboards} from '../tools/stewardship/investigation-destinations.mjs';
+import {investigationDestination} from '../tools/stewardship/investigation-destinations.mjs';
 const byId=id=>document.getElementById(id);
 const set=(id,value)=>{byId(id).textContent=String(value)};
 const el=(tag,className,text)=>{const n=document.createElement(tag);if(className)n.className=className;if(text!==undefined)n.textContent=String(text);return n};

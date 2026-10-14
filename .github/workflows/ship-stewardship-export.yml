@@ -39,6 +39,7 @@ jobs:
           node ../curator-os/tools/stewardship/build-ship-guide-inventory.mjs \
             --sitemap sitemaps/sitemap-ships.xml \
             --links ../output/internal-link-audit.json \
+            --chronology ../output/chronology-normalized.json \
             --revision "$REVISION" \
             --output ../output/ship-stewardship.json
           cd ..

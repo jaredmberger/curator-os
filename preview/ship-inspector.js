@@ -47,16 +47,21 @@ export async function loadProtectedSnapshot({fetcher=fetch,doc=document}={}){
  status.textContent='Checking protected archive snapshot…';
  try{
   const response=await fetcher('/api/stewardship-ship-snapshot',{method:'GET',credentials:'same-origin',cache:'no-store',redirect:'manual',headers:{accept:'application/json'}});
-  if(!response.ok||!(response.headers.get('content-type')||'').includes('application/json'))throw new Error('unavailable');
+  if(!(response.headers.get('content-type')||'').includes('application/json'))throw new Error('non_json_response');
   const raw=await response.text();if(raw.length>3000000)throw new Error('oversize');
   const envelope=JSON.parse(raw);
+  if(!response.ok){
+   const allowed=new Set(['disabled','authorization_unavailable','forbidden','snapshot_binding_unavailable','snapshot_unavailable','snapshot_invalid','snapshot_stale']);
+   throw new Error(allowed.has(envelope.reason)?envelope.reason:'request_failed');
+  }
   if(envelope.available!==true||!validateInventory(envelope.snapshot))throw new Error('invalid');
   const age=Date.now()-Date.parse(envelope.snapshot.observedAt);
   if(!Number.isFinite(age)||age< -60000||age>7*86400000)throw new Error('stale');
   renderInventory(envelope.snapshot,doc);
   status.textContent='Protected snapshot loaded · archive revision '+envelope.snapshot.revision.slice(0,12)+' · generated '+new Date(envelope.snapshot.observedAt).toLocaleString()+' · historical accuracy not certified.';
- }catch{
-  status.textContent='Protected snapshot unavailable, disabled or stale. No ship health can be inferred. Use a local export instead.';
+ }catch(error){
+  const messages={disabled:'Protected snapshot reading is disabled.',authorization_unavailable:'Operator authorization could not be verified.',forbidden:'Operator access was denied. Confirm the Cloudflare Access session for CuratorOS.',snapshot_binding_unavailable:'Protected snapshot storage is not bound to the currently serving deployment.',snapshot_unavailable:'The protected snapshot could not be retrieved.',snapshot_invalid:'The stored snapshot failed schema or provenance validation.',snapshot_stale:'The stored snapshot is too old or has an inconsistent timestamp.',non_json_response:'The API did not return JSON; an access challenge or routing problem may be intercepting the request.',oversize:'The snapshot response exceeded the permitted size.',request_failed:'Protected snapshot request failed.'};
+  status.textContent=(messages[error?.message]||'Unable to load protected snapshot.')+' No ship health can be inferred. Local import remains available.';
  }
 }
 

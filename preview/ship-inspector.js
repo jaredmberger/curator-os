@@ -118,7 +118,8 @@ export async function loadProtectedSnapshot({fetcher=fetch,doc=document}={}){
  }
 }
 
-if(typeof document!=='undefined'&&document.getElementById('inventory-file')){\n initializeLedger(document);
+if(typeof document!=='undefined'&&document.getElementById('inventory-file')){
+ initializeLedger(document);
  document.getElementById('load-protected-snapshot')?.addEventListener('click',()=>loadProtectedSnapshot());
  document.getElementById('inventory-file').addEventListener('change',e=>loadInventoryFile(e.target.files?.[0]));
 }

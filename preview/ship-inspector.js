@@ -1,3 +1,56 @@
+import {readLedger,saveLedger,mergeLedger,putDecision,decisionFor,validLedger,emptyLedger} from '../tools/stewardship/editorial-ledger.mjs';
+let ledger=emptyLedger();
+const localStore=()=>typeof localStorage!=='undefined'?localStorage:null;
+function ledgerCount(doc){
+ const el=doc.getElementById('ledger-count');
+ if(el)el.textContent=ledger.entries.length+' saved editorial decision'+(ledger.entries.length===1?'':'s')+' in this browser.';
+}
+export function createDecisionEditor(doc,path,c,rerender){
+ const section=doc.createElement('section');section.className='review-notes';
+ const heading=doc.createElement('p');heading.textContent='Review candidate ('+c.kind+'): '+c.note;
+ const previous=decisionFor(ledger,path,c);
+ const select=doc.createElement('select');
+ for(const [value,title] of [['','Unreviewed'],['needs-research','Needs research'],['accepted','Accepted for editorial action'],['not-warranted','Not warranted'],['resolved','Resolved after review']]){
+  const option=doc.createElement('option');option.value=value;option.textContent=title;select.append(option);
+ }
+ select.value=previous?.status||'';
+ const note=doc.createElement('textarea');note.rows=3;note.maxLength=2000;note.placeholder='Evidence, reasoning or research needed (optional; browser-local)';
+ note.value=previous?.note||'';
+ const save=doc.createElement('button');save.type='button';save.textContent='Save review';
+ const message=doc.createElement('p');message.className='help';message.setAttribute('role','status');
+ save.addEventListener('click',()=>{
+  if(!select.value){message.textContent='Choose a review decision first.';return;}
+  try{
+   const next=putDecision(ledger,path,c,select.value,note.value);
+   const storage=localStore();if(!storage)throw Error('storage_unavailable');
+   saveLedger(storage,next);ledger=next;ledgerCount(doc);
+   message.textContent='Saved in this browser only.';rerender?.();
+  }catch{message.textContent='Could not save locally. Export existing ledger before changing browser settings.';}
+ });
+ section.append(heading,select,note,save,message);
+ return section;
+}
+export function initializeLedger(doc=document){
+ const storage=localStore();ledger=storage?readLedger(storage):emptyLedger();ledgerCount(doc);
+ const status=doc.getElementById('ledger-status');
+ doc.getElementById('ledger-export')?.addEventListener('click',()=>{
+  if(!validLedger(ledger))return;
+  const blob=new Blob([JSON.stringify(ledger,null,2)+'\\n'],{type:'application/json'});
+  const url=URL.createObjectURL(blob),a=doc.createElement('a');a.href=url;a.download='curatoros-editorial-ledger.json';a.click();URL.revokeObjectURL(url);
+  status.textContent='Ledger backup exported. Keep the JSON file somewhere safe.';
+ });
+ doc.getElementById('ledger-import')?.addEventListener('change',async event=>{
+  const file=event.target.files?.[0];if(!file)return;
+  try{
+   if(file.size>2500000)throw Error('oversize');
+   const imported=JSON.parse(await file.text()),merged=mergeLedger(ledger,imported);
+   if(!storage)throw Error('storage_unavailable');
+   saveLedger(storage,merged);ledger=merged;ledgerCount(doc);
+   status.textContent='Validated ledger backup merged. Reload the archive snapshot to see updated decisions.';
+  }catch{status.textContent='Invalid or unsupported ledger backup; no decisions changed.';}
+  event.target.value='';
+ });
+}
 const pathOK=x=>typeof x==='string'&&/^\/ships\/[a-z0-9][a-z0-9-]{0,120}$/.test(x);
 const validCount=x=>Number.isSafeInteger(x)&&x>=0&&x<=1000000;
 export function validateInventory(x){
@@ -24,7 +77,7 @@ export function renderInventory(data,doc=document){
    const detail=doc.createElement('p');detail.textContent='Static link audit: '+g.checks.staticLinkAudit+' · Contextual incoming: '+(g.checks.contextualIncoming===null?'unknown':g.checks.contextualIncoming)+' · Historical accuracy: not assessed · Citations: not assessed';
    card.append(heading,doc.createElement('p'),link,detail);
    if(!g.candidates.length){const p=doc.createElement('p');p.textContent='No candidates in supplied observations; remaining checks may be unknown.';card.append(p);}
-   else for(const candidate of g.candidates){const p=doc.createElement('p');p.textContent='Review candidate ('+candidate.kind+'): '+candidate.note;card.append(p);}
+   else for(const candidate of g.candidates){card.append(createDecisionEditor(doc,g.path,candidate,()=>{}));}
    result.append(card);
   }
  };
@@ -66,6 +119,7 @@ export async function loadProtectedSnapshot({fetcher=fetch,doc=document}={}){
 }
 
 if(typeof document!=='undefined'&&document.getElementById('inventory-file')){
+ initializeLedger(document);
  document.getElementById('load-protected-snapshot')?.addEventListener('click',()=>loadProtectedSnapshot());
  document.getElementById('inventory-file').addEventListener('change',e=>loadInventoryFile(e.target.files?.[0]));
 }

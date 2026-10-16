@@ -3,15 +3,15 @@
 const KEY='stewardship-review-queue-v1';
 const decisions=new Set(['acknowledged','investigate','deferred','dismissed']);
 const reply=(x,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
-function authorized(c){const configured=c.env.STEWARDSHIP_REVIEW_TOKEN;const supplied=c.request.headers.get('Authorization');return !!configured&&supplied===`Bearer ${configured}`;}
+function authorized(c,role='review'){const configured=role==='ingest'?c.env.STEWARDSHIP_INGEST_TOKEN:c.env.STEWARDSHIP_REVIEW_TOKEN;const supplied=c.request.headers.get('Authorization');return !!configured&&supplied===`Bearer ${configured}`;}
 function storage(c){return c.env.CURATOROS_RECORDS;}
 async function load(kv){const d=await kv.get(KEY,'json');return d&&Array.isArray(d.cases)?d:{version:0,updatedAt:null,cases:[],auditHealth:'not-ingested'};}
 export async function onRequestGet(c){if(!authorized(c))return reply({ok:false,error:'Authorization required'},401);const kv=storage(c);if(!kv)return reply({ok:false,error:'Storage unavailable'},503);return reply({ok:true,...await load(kv)});}
 export async function onRequestPost(c){
- if(!authorized(c))return reply({ok:false,error:'Authorization required'},401);
  const kv=storage(c);if(!kv)return reply({ok:false,error:'Storage unavailable'},503);
  let body;try{body=await c.request.json()}catch{return reply({ok:false,error:'Invalid JSON'},400)}
  if(body?.action!=='ingest'&&!decisions.has(body?.action))return reply({ok:false,error:'Unknown action'},400);
+ if(!authorized(c,body.action==='ingest'?'ingest':'review'))return reply({ok:false,error:'Authorization required'},401);
  const current=await load(kv),now=new Date().toISOString();
  if(body.action==='ingest'){
    const snapshot=body.snapshot;

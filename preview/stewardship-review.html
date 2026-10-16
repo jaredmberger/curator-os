@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0a1110">
+<title>Stewardship Review Queue · CuratorOS</title>
+<style>
+:root{color-scheme:dark;background:#0a1110;color:#e6dfcf;font:16px system-ui,sans-serif}
+body{margin:0}main{max-width:1100px;margin:auto;padding:24px 18px 80px}a{color:#d7bb7e}
+h1{font:2.4rem Georgia,serif;margin:18px 0 8px}p{line-height:1.55;color:#bcbeb6}
+.panel,.case{border:1px solid #45564b;border-radius:12px;padding:16px;margin:14px 0;background:#13201b}
+label{display:block;margin:10px 0 5px}input,select,textarea,button{font:inherit;background:#0c1714;color:#eee;border:1px solid #617164;border-radius:8px;padding:10px;max-width:100%;box-sizing:border-box}
+input,textarea{width:100%}button{cursor:pointer;background:#2b3a30}button:disabled{opacity:.5}
+.case h3{margin:4px 0}small,.muted{color:#bec4ba}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.82rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.tag{border:1px solid #68766a;border-radius:999px;padding:3px 9px;font-size:.8rem}
+:focus-visible{outline:3px solid #c7a45e}#status{min-height:1.4em}
+</style></head>
+<body><main><a href="./stewardship.html">← Stewardship dashboard</a><h1>Human Review Queue</h1>
+<p>Evidence candidates from automated site audits. Review decisions do not change the historical archive or publish corrections.</p>
+<section class="panel"><label for="token">Operator review token (kept only in this open page)</label>
+<input id="token" type="password" autocomplete="off" placeholder="Enter configured review token">
+<div class="row" style="margin-top:12px"><button id="load">Load findings</button><button id="clear">Clear token</button><span id="status" role="status"></span></div></section>
+<section class="grid"><div class="panel"><strong id="total">—</strong><p>Total cases</p></div><div class="panel"><strong id="active">—</strong><p>Active observations</p></div><div class="panel"><strong id="awaiting">—</strong><p>Awaiting a decision</p></div></section>
+<div class="row"><label for="filter">Show</label><select id="filter"><option value="pending">Awaiting review</option><option value="all">All findings</option><option value="reviewed">Reviewed</option></select><span id="freshness" class="muted"></span></div>
+<div id="cases" aria-live="polite"></div><p>Human decisions require a reviewer and a reason. Disappearing from an audit does not establish that a historical question is settled.</p>
+</main><script type="module" src="./stewardship-review.js"></script></body></html>

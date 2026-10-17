@@ -6,6 +6,13 @@
 <p>Native performance history for OceanLiners.net. Search impressions and clicks are not proof of indexing status or Google penalties.</p>
 <section class="panel"><label for="token">Stewardship review token</label><div class="controls" style="margin:12px 0"><input id="token" type="password" autocomplete="off" placeholder="Enter review token"><button id="load" type="button">Load data</button></div><p id="status" role="status">Not loaded</p></section>
 <section class="tiles"><div class="panel"><span>Latest impressions</span><strong id="impressions">—</strong></div><div class="panel"><span>Latest clicks</span><strong id="clicks">—</strong></div><div class="panel"><span>Last 7 days avg. impressions</span><strong id="average">—</strong></div><div class="panel"><span>Latest avg. position</span><strong id="position">—</strong></div></section>
+<section class="panel" aria-label="Search recovery intelligence"><h2>Recovery intelligence</h2><p class="date-note">Impressions are compared using complete consecutive reporting windows. Signals are observations, not confirmed Google actions.</p><div class="tiles">
+<div><span>Pre-collapse avg. (Sep 18–23)</span><strong id="pre-baseline">—</strong></div>
+<div><span>Post-collapse avg. (Sep 24–30)</span><strong id="post-baseline">—</strong></div>
+<div><span>Recent 7-day avg.</span><strong id="recent-7">—</strong></div>
+<div><span>Prior 7-day avg.</span><strong id="prior-7">—</strong></div>
+</div><p id="trend" class="date-note">Awaiting data</p><p id="recovery" class="date-note">Awaiting data</p>
+<p id="signal" class="date-note">Awaiting data</p><p id="freshness" role="status" class="date-note">Awaiting data</p></section>
 <section class="panel"><h2>Google Search impressions</h2><svg id="chart" class="chart" viewBox="0 0 760 250" role="img" aria-label="Impression counts by reporting day"></svg><p id="data-note" class="date-note">Awaiting data</p></section>
 <section class="panel"><h2>Daily history</h2><div class="scroll"><table><thead><tr><th>Date</th><th>Impressions</th><th>Clicks</th><th>Average position</th></tr></thead><tbody id="rows"></tbody></table></div></section>
 <p class="date-note">Reference baseline: about 2,700–3,900 daily impressions September 18–23, 2026, with the sharp break on September 24. Later observations must be compared against complete reporting dates. No automatic conclusions about algorithmic penalties.</p>

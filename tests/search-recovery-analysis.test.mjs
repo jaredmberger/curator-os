@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {analyzeSearch} from '../preview/search-recovery-analysis.mjs';
+const date=(n)=>{const d=new Date('2026-09-18T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10).replaceAll('-','')};
+const rows=Array.from({length:30},(_,i)=>({date:date(i),impressions:i<6?3000:i<13?60:i<23?80:200,clicks:i<6?30:0,average_position:20}));
+const result=analyzeSearch({rows,updatedAt:'2026-10-17T00:00:00Z'},new Date('2026-10-17T08:00:00Z'));
+assert.equal(result.preMean,3000);
+assert.equal(result.postMean,60);
+assert.equal(result.recent7,200);
+assert.equal(result.freshness,'current');
+assert.equal(result.milestone,'sustained-gain-candidate');
+const gap=rows.filter(x=>x.date!==date(22));
+const result2=analyzeSearch({rows:gap,updatedAt:'2026-10-17T00:00:00Z'},new Date('2026-10-17T08:00:00Z'));
+assert.equal(result2.change,null);
+const stale=analyzeSearch({rows,updatedAt:'2026-10-01T00:00:00Z'},new Date('2026-10-17T08:00:00Z'));
+assert.equal(stale.freshness,'stale');
+assert.equal(stale.milestone,'insufficient-data');
+console.log('Recovery analysis tests passed');

@@ -34,3 +34,28 @@ function render(d){
  el('data-note').textContent=rows.length?'Latest reporting date '+last.date+' · '+rows.length+' dates · Source '+d.source+' · Last stored '+d.updatedAt:'No stored Search Console data. An authenticated ingest is required.';
 }
 el('load').addEventListener('click',async()=>{try{el('status').textContent='Loading…';const r=await fetch('/api/search-visibility',{headers:{Authorization:'Bearer '+el('token').value.trim()},cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error||'HTTP '+r.status);render(d);el('status').textContent='Loaded'}catch(e){el('status').textContent='Unable to load: '+e.message}});
+
+async function loadWatchtower(token){
+ const status=el('watchtower-status'),events=el('watchtower-events');
+ status.textContent='Loading Watchtower observations…';events.replaceChildren();
+ try{
+  const response=await fetch('/api/search-intelligence-bridge',{headers:{Authorization:'Bearer '+token},cache:'no-store'});
+  const data=await response.json();if(!response.ok||!data.ok)throw Error(data.error||'Unavailable');
+  el('watchtower-latest').textContent=data.latestDate||'Unknown';
+  el('watchtower-count').textContent=String(data.snapshotCount);
+  status.textContent=data.latestRange?
+   'Watchtower reporting range: '+data.latestRange.startDate+' to '+data.latestRange.endDate+
+   ' · checked '+new Date(data.observedAt).toLocaleString():
+   'Watchtower has no reporting range available.';
+  if(!data.events.length){const p=document.createElement('p');p.textContent='No Watchtower events in the current response.';events.append(p);}
+  for(const item of data.events){
+   const p=document.createElement('p');p.className='date-note';
+   p.textContent=(item.snapshotDate||'Undated')+' · '+item.type+' · '+item.label+(item.path?' · '+item.path:'');
+   events.append(p);
+  }
+ }catch(e){el('watchtower-latest').textContent='—';el('watchtower-count').textContent='—';
+  status.textContent='Watchtower could not be loaded: '+e.message;
+ }
+}
+const oldLoad=el('load');
+oldLoad.addEventListener('click',()=>{if(el('token').value.trim())void loadWatchtower(el('token').value.trim())});

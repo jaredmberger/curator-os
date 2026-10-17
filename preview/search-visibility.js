@@ -1,3 +1,4 @@
+import {analyzeSearch} from './search-recovery-analysis.mjs';
 const el=id=>document.getElementById(id);
 const fmt=n=>Number(n).toLocaleString('en-US');
 function draw(rows){
@@ -15,6 +16,19 @@ function render(d){
  const rows=d.rows||[],last=rows.at(-1),week=rows.slice(-7),average=week.length?week.reduce((s,r)=>s+r.impressions,0)/week.length:null;
  el('impressions').textContent=last?fmt(last.impressions):'—';el('clicks').textContent=last?fmt(last.clicks):'—';
  el('average').textContent=average===null?'—':fmt(Math.round(average));el('position').textContent=last?last.average_position.toFixed(1):'—';
+ const insight=analyzeSearch(d);
+ const formatMean=x=>x===null?'Not enough history':fmt(Math.round(x));
+ el('pre-baseline').textContent=formatMean(insight.preMean);
+ el('post-baseline').textContent=formatMean(insight.postMean);
+ el('recent-7').textContent=formatMean(insight.recent7);
+ el('prior-7').textContent=formatMean(insight.prior7);
+ el('trend').textContent=insight.change===null?'Not enough consecutive data':(insight.change>=0?'+':'')+(insight.change*100).toFixed(1)+'% versus previous 7 days';
+ el('recovery').textContent=insight.ratio===null?'Unavailable':(insight.ratio*100).toFixed(1)+'% of pre-drop impression level';
+ const labels={'no-data':'No data','stale':'Stale — inspect synchronization','current':'Recent data'};
+ el('freshness').textContent=labels[insight.freshness]+' · '+(insight.dataAgeDays===null?'no report date':insight.dataAgeDays+' days since latest report')+
+   (insight.ingestAgeHours===null?'':' · '+Math.round(insight.ingestAgeHours)+' hours since ingestion');
+ const states={'sustained-gain-candidate':'Significant 7-day improvement to review','sustained-decline-candidate':'Significant 7-day decline to review','no-clear-shift':'No major 7-day shift','insufficient-data':'Awaiting complete consecutive reporting windows'};
+ el('signal').textContent=states[insight.milestone];
  draw(rows);el('rows').replaceChildren();
  for(const r of [...rows].reverse().slice(0,90)){const tr=document.createElement('tr');for(const v of [r.date,fmt(r.impressions),fmt(r.clicks),r.average_position.toFixed(1)]){const td=document.createElement('td');td.textContent=v;tr.append(td)}el('rows').append(tr)}
  el('data-note').textContent=rows.length?'Latest reporting date '+last.date+' · '+rows.length+' dates · Source '+d.source+' · Last stored '+d.updatedAt:'No stored Search Console data. An authenticated ingest is required.';

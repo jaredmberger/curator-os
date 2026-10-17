@@ -14,6 +14,14 @@
 </div><p id="trend" class="date-note">Awaiting data</p><p id="recovery" class="date-note">Awaiting data</p>
 <p id="signal" class="date-note">Awaiting data</p><p id="freshness" role="status" class="date-note">Awaiting data</p></section>
 <section class="panel"><h2>Google Search impressions</h2><svg id="chart" class="chart" viewBox="0 0 760 250" role="img" aria-label="Impression counts by reporting day"></svg><p id="data-note" class="date-note">Awaiting data</p></section>
-<section class="panel"><h2>Daily history</h2><div class="scroll"><table><thead><tr><th>Date</th><th>Impressions</th><th>Clicks</th><th>Average position</th></tr></thead><tbody id="rows"></tbody></table></div></section>
+<section class="panel" aria-label="Search Intelligence Watchtower">
+<h2>Search Intelligence Watchtower</h2>
+<p class="date-note">Read-only observations from the existing Search Intelligence service. Daily snapshot totals are rolling page/query samples, not interchangeable with the Search Visibility daily totals.</p>
+<p id="watchtower-status" role="status">Load dashboard to retrieve Watchtower summary.</p>
+<div class="tiles"><div><span>Latest Watchtower snapshot</span><strong id="watchtower-latest">—</strong></div>
+<div><span>Retained snapshots</span><strong id="watchtower-count">—</strong></div></div>
+<div id="watchtower-events"></div>
+<p><a href="https://search-intelligence.oceanliners.net/" target="_blank" rel="noopener noreferrer">Open Search Intelligence ↗</a></p>
+</section><section class="panel"><h2>Daily history</h2><div class="scroll"><table><thead><tr><th>Date</th><th>Impressions</th><th>Clicks</th><th>Average position</th></tr></thead><tbody id="rows"></tbody></table></div></section>
 <p class="date-note">Reference baseline: about 2,700–3,900 daily impressions September 18–23, 2026, with the sharp break on September 24. Later observations must be compared against complete reporting dates. No automatic conclusions about algorithmic penalties.</p>
 </main><script type="module" src="./search-visibility.js"></script></body></html>

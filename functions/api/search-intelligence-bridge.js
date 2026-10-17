@@ -3,8 +3,10 @@ const reply=(value,status=200)=>new Response(JSON.stringify(value),{status,heade
 export async function onRequestGet(c){
  const authorized=!!c.env.STEWARDSHIP_REVIEW_TOKEN&&c.request.headers.get('Authorization')==='Bearer '+c.env.STEWARDSHIP_REVIEW_TOKEN;
  if(!authorized)return reply({ok:false,error:'Authorization required'},401);
+ if(!c.env.SEARCH_INTELLIGENCE_SERVICE?.fetch)return reply({ok:false,error:'Search Intelligence service binding is not configured in CuratorOS Pages production settings'},503);
  try{
-  const upstream=await fetch('https://search-intelligence.oceanliners.net/api/watchtower',{headers:{accept:'application/json'},signal:AbortSignal.timeout(12000)});
+  // Service binding avoids public-zone bot challenges. No public-host fallback.
+  const upstream=await c.env.SEARCH_INTELLIGENCE_SERVICE.fetch('https://search-intelligence.internal/api/watchtower',{headers:{accept:'application/json'},signal:AbortSignal.timeout(12000)});
   if(!upstream.ok)return reply({ok:false,error:'Search Intelligence Watchtower returned HTTP '+upstream.status},502);
   if(!(upstream.headers.get('content-type')||'').includes('application/json'))return reply({ok:false,error:'Upstream returned non-JSON content (possible challenge or redirect)'},502);
   const source=await upstream.json();

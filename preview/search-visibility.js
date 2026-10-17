@@ -48,6 +48,8 @@ async function loadWatchtower(token){
   if(!type.includes('application/json'))throw Error('Bridge returned HTTP '+response.status+' as '+(type||'unknown content type')+' (possibly a Cloudflare challenge or redirect).');
   let data;try{data=await response.json()}catch{throw Error('Bridge returned invalid JSON (HTTP '+response.status+').');}
   if(!response.ok||!data.ok)throw Error((data.error||'Bridge error')+' (HTTP '+response.status+').');
+  const triage=data.triage||{};
+  el('watchtower-triage').textContent=(triage.technical?.length||0)+' technical review candidates · '+(triage.ranking?.length||0)+' ranking observations · '+(triage.other?.length||0)+' unclassified. Ranking movements are not indexing problems.';
   el('watchtower-latest').textContent=data.latestDate||'Unknown';
   el('watchtower-count').textContent=String(data.snapshotCount);
   status.textContent=data.latestRange?
@@ -61,6 +63,7 @@ async function loadWatchtower(token){
    events.append(p);
   }
  }catch(e){el('watchtower-latest').textContent='—';el('watchtower-count').textContent='—';
+  el('watchtower-triage').textContent='Classification unavailable';
   status.textContent='Watchtower could not be loaded: '+e.message;
  }
 }

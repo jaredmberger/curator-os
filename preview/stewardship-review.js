@@ -2,7 +2,7 @@ const $=id=>document.getElementById(id);let state=null;
 const text=(tag,value)=>{const n=document.createElement(tag);n.textContent=String(value);return n};
 const status=s=>$('status').textContent=s;
 async function request(method,body){const r=await fetch('/api/stewardship-review',{method,headers:{Authorization:'Bearer '+$('token').value.trim(),...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store'});const x=await r.json();if(!r.ok)throw Error(x.error||'HTTP '+r.status);return x}
-async function load(){try{status('Loading…');state=await request('GET');render();status('Loaded')}catch(e){state=null;$('cases').replaceChildren();status('Unable to load: '+e.message)}}
+async function load(){try{status('Loading…');state=await request('GET');render();void loadTechnicalTriage();status('Loaded')}catch(e){state=null;$('cases').replaceChildren();status('Unable to load: '+e.message)}}
 function render(){
  const items=state.cases||[],filter=$('filter').value;
  $('total').textContent=items.length;$('active').textContent=items.filter(x=>x.lifecycle==='active').length;
@@ -24,4 +24,22 @@ function render(){
   box.append(form);$('cases').append(box);
  }
 }
-$('load').addEventListener('click',load);$('clear').addEventListener('click',()=>{$('token').value='';state=null;$('cases').replaceChildren();status('Token cleared')});$('filter').addEventListener('change',()=>{if(state)render()});
+$('load').addEventListener('click',load);$('clear').addEventListener('click',()=>{$('token').value='';state=null;$('cases').replaceChildren();$('watchtower-candidates').replaceChildren();$('watchtower-status').textContent='Token cleared';status('Token cleared')});$('filter').addEventListener('change',()=>{if(state)render()});
+
+async function loadTechnicalTriage(){
+ const panel=$('watchtower-candidates');panel.replaceChildren();$('watchtower-status').textContent='Checking Watchtower…';
+ try{
+  const r=await fetch('/api/search-intelligence-bridge',{headers:{Authorization:'Bearer '+$('token').value.trim()},cache:'no-store'});
+  const payload=await r.json();if(!r.ok||!payload.ok)throw Error(payload.error||'HTTP '+r.status);
+  const signals=payload.triage||{},candidates=signals.technical||[];
+  const date=payload.latestDate||'unknown';
+  $('watchtower-status').textContent='Latest snapshot '+date+' · '+candidates.length+' technical candidates · '+(signals.ranking||[]).length+' ranking observations kept separate · '+(signals.other||[]).length+' unclassified';
+  if(!candidates.length){panel.append(text('p','No explicitly classified technical findings in the current Watchtower response. This does not prove the site has no indexing problems.'));return}
+  for(const item of candidates){
+   const box=text('article','');box.className='case';box.append(text('h3',item.title));
+   box.append(text('small',item.type+' · '+(item.snapshotDate||'undated')+' · '+item.page));
+   box.append(text('p',item.detail));
+   const a=document.createElement('a');a.href='https://search-intelligence.oceanliners.net/';a.target='_blank';a.rel='noopener noreferrer';a.textContent='Investigate in Search Intelligence ↗';box.append(a);panel.append(box);
+  }
+ }catch(e){$('watchtower-status').textContent='Watchtower unavailable: '+e.message+' (existing saved reviews unaffected)'}
+}

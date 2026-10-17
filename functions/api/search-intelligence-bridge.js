@@ -5,7 +5,8 @@ export async function onRequestGet(c){
  if(!authorized)return reply({ok:false,error:'Authorization required'},401);
  try{
   const upstream=await fetch('https://search-intelligence.oceanliners.net/api/watchtower',{headers:{accept:'application/json'},signal:AbortSignal.timeout(12000)});
-  if(!upstream.ok)return reply({ok:false,error:'Search Intelligence Watchtower unavailable',status:upstream.status},502);
+  if(!upstream.ok)return reply({ok:false,error:'Search Intelligence Watchtower returned HTTP '+upstream.status},502);
+  if(!(upstream.headers.get('content-type')||'').includes('application/json'))return reply({ok:false,error:'Upstream returned non-JSON content (possible challenge or redirect)'},502);
   const source=await upstream.json();
   if(source?.ok!==true) return reply({ok:false,error:'Invalid Watchtower response'},502);
   const summary={ok:true,source:'Search Intelligence Watchtower',latestDate:source.latestDate||null,
@@ -19,5 +20,5 @@ export async function onRequestGet(c){
     path:String(e.path||e.page||'').slice(0,400)})),
    observedAt:new Date().toISOString()};
   return reply(summary);
- }catch{return reply({ok:false,error:'Search Intelligence unreachable or timed out'},502)}
+ }catch(e){return reply({ok:false,error:e?.name==='TimeoutError'?'Search Intelligence upstream timed out':'Search Intelligence upstream request failed ('+(e?.name||'network error')+')'},502)}
 }

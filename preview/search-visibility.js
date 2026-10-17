@@ -39,8 +39,15 @@ async function loadWatchtower(token){
  const status=el('watchtower-status'),events=el('watchtower-events');
  status.textContent='Loading Watchtower observations…';events.replaceChildren();
  try{
-  const response=await fetch('/api/search-intelligence-bridge',{headers:{Authorization:'Bearer '+token},cache:'no-store'});
-  const data=await response.json();if(!response.ok||!data.ok)throw Error(data.error||'Unavailable');
+  let response;
+  try{
+   const url=new URL('api/search-intelligence-bridge',window.location.origin+'/');
+   response=await fetch(url.toString(),{method:'GET',headers:{Authorization:'Bearer '+token},cache:'no-store'});
+  }catch(e){throw Error('Network request could not start ('+(e?.name||'network error')+'). Check host and browser network protections.');}
+  const type=response.headers.get('content-type')||'';
+  if(!type.includes('application/json'))throw Error('Bridge returned HTTP '+response.status+' as '+(type||'unknown content type')+' (possibly a Cloudflare challenge or redirect).');
+  let data;try{data=await response.json()}catch{throw Error('Bridge returned invalid JSON (HTTP '+response.status+').');}
+  if(!response.ok||!data.ok)throw Error((data.error||'Bridge error')+' (HTTP '+response.status+').');
   el('watchtower-latest').textContent=data.latestDate||'Unknown';
   el('watchtower-count').textContent=String(data.snapshotCount);
   status.textContent=data.latestRange?

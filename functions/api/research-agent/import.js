@@ -10,7 +10,7 @@ function validRegister(r){
  return r.claims.every(c=>c&&typeof c==='object'&&!Array.isArray(c)&&fields.every(f=>validString(c[f],f==='claim'?2500:1500))&&validString(c.claim,2500,true)&&comparisons.has(c.guide_comparison)&&types.has(c.source_type)&&access.has(c.access_status)&&(!c.source_url||(/^https?:\/\//i.test(c.source_url)&&(()=>{try{const u=new URL(c.source_url);return !!u.hostname&&!u.username&&!u.password}catch{return false}})()))&&(!('independently_verified' in c)||c.independently_verified===false)&&(!('editorial_status' in c)||c.editorial_status==='unverified_pending_editorial_review'));
 }
 async function digest(value){const data=new TextEncoder().encode(value);const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',data));return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('')}
-export async function onRequestPost(context){
+async function handleImportPost(context){
  const {request,env}=context;
  if(env.RESEARCH_AGENT_IMPORT_ENABLED!=='true')return reply({ok:false,error:'Import disabled'},503);
  const token=env.RESEARCH_AGENT_IMPORT_TOKEN;
@@ -39,4 +39,19 @@ export async function onRequestPost(context){
    created++;
  }
  return reply({ok:true,imported:created,already_present:alreadyPresent,claim_ids:identifiers,guide:reg.guide,storage:'kv'});
+}
+
+
+// Diagnostics intentionally record only arrival, a random correlation ID and status.
+export async function onRequestPost(context){
+ const diagnosticId=crypto.randomUUID();
+ console.log(JSON.stringify({event:'research_import_arrival',diagnostic_id:diagnosticId}));
+ try{
+  const response=await handleImportPost(context);
+  console.log(JSON.stringify({event:'research_import_response',diagnostic_id:diagnosticId,status:response.status}));
+  return response;
+ }catch(error){
+  console.log(JSON.stringify({event:'research_import_exception',diagnostic_id:diagnosticId,status:500}));
+  throw error;
+ }
 }

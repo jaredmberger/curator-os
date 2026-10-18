@@ -24,7 +24,7 @@ function render(){
   box.append(form);$('cases').append(box);
  }
 }
-$('load').addEventListener('click',load);$('clear').addEventListener('click',()=>{$('token').value='';state=null;$('cases').replaceChildren();$('watchtower-candidates').replaceChildren();$('watchtower-status').textContent='Token cleared';status('Token cleared')});$('filter').addEventListener('change',()=>{if(state)render()});
+$('load').addEventListener('click',load);$('clear').addEventListener('click',()=>{$('token').value='';state=null;$('cases').replaceChildren();$('watchtower-candidates').replaceChildren();$('watchtower-status').textContent='Token cleared';$('inspection-result').replaceChildren();$('inspection-status').textContent='';status('Token cleared')});$('filter').addEventListener('change',()=>{if(state)render()});
 
 async function loadTechnicalTriage(){
  const panel=$('watchtower-candidates');panel.replaceChildren();$('watchtower-status').textContent='Checking Watchtower…';
@@ -43,3 +43,28 @@ async function loadTechnicalTriage(){
   }
  }catch(e){$('watchtower-status').textContent='Watchtower unavailable: '+e.message+' (existing saved reviews unaffected)'}
 }
+
+async function inspectUrl(){
+ const btn=$('inspect-url'),out=$('inspection-result');out.replaceChildren();
+ const token=$('token').value.trim();if(!token){$('inspection-status').textContent='Enter review token first';return}
+ btn.disabled=true;$('inspection-status').textContent='Requesting Google inspection…';
+ try{
+  const r=await fetch('/api/index-inspection-review',{method:'POST',headers:{Authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify({url:$('inspection-url').value.trim()}),cache:'no-store'});
+  const data=await r.json();if(!r.ok||!data.ok)throw Error(data.error||'HTTP '+r.status);
+  const item=data.result||{},diagnostics=item.diagnostics||{},signals=diagnostics.signals||[];
+  $('inspection-status').textContent=item.ok?'Inspection received · '+data.inspectedAt:'Inspection unavailable · '+data.inspectedAt;
+  const box=text('article','');box.className='case';
+  box.append(text('h3',item.path||data.url));
+  box.append(text('p','Classification: '+(diagnostics.classification||'unverified')+' · Google verdict: '+(item.verdict||'unknown')));
+  for(const [label,value] of [['Coverage',item.coverageState],['Robots',item.robotsTxtState],['Indexing',item.indexingState],['Fetch',item.pageFetchState],['Last crawl',item.lastCrawlTime],['Google canonical',item.googleCanonical],['Declared canonical',item.userCanonical]]){
+   box.append(text('p',label+': '+(value||'not reported')));
+  }
+  if(!item.ok)box.append(text('p','Inspection request failed: '+(item.error||'unknown error')));
+  if(signals.length)for(const signal of signals)box.append(text('p','Review candidate: '+signal.type+' — '+signal.reason));
+  else box.append(text('p','No explicit blocker observed in these fields. This does not establish that the page is indexed or healthy.'));
+  box.append(text('small',diagnostics.note||'Verify before making changes.'));
+  out.append(box);
+ }catch(e){$('inspection-status').textContent='Inspection unavailable: '+e.message}
+ finally{btn.disabled=false}
+}
+$('inspect-url').addEventListener('click',inspectUrl);

@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Research Agent Evidence · CuratorOS</title>
+<style>
+:root{color-scheme:dark;--bg:#0a1110;--panel:#15231f;--gold:#bfa46a;--line:#5a4b32;--text:#e9e0d1}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,sans-serif}main,header{max-width:1050px;margin:auto;padding:25px 18px}header{border-bottom:1px solid var(--line)}h1,h2{font-family:Georgia,serif;font-weight:normal}h1{color:var(--gold)}a{color:#e2c98f}.note{border-left:3px solid var(--gold);padding:12px;background:var(--panel)}.toolbar{display:flex;flex-wrap:wrap;gap:12px;margin:18px 0}input{max-width:100%;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:12px}input[type=search]{flex:1;min-width:190px}input:focus-visible,a:focus-visible{outline:2px solid var(--gold)}.cards{display:grid;gap:14px}.card{background:var(--panel);padding:18px;border:1px solid var(--line);border-radius:12px;overflow-wrap:anywhere}dt{color:var(--gold);font-weight:650;margin-top:10px}dd{margin-left:0}small,.muted{color:#bdb4a2}.error{color:#ffb2a8}
+</style></head><body>
+<header><a href="/">← CuratorOS</a><p class="muted">RESEARCH LIFECYCLE · AGENT REVIEW</p><h1>Historical Research Agent Evidence</h1><p>Read-only claim inspection. Select the structured evidence JSON files from your downloaded GitHub Actions research artifact.</p></header>
+<main>
+<p class="note">Research leads are not established historical facts. Files are processed only inside this browser tab and are not uploaded, saved, approved, or incorporated into canonical Ship Records.</p>
+<label for="files">Evidence registers (.evidence.json)</label>
+<div class="toolbar"><input id="files" type="file" accept=".json,application/json" multiple><input id="search" type="search" placeholder="Filter claims, vessels and sources" aria-label="Filter claims"></div>
+<p id="status" role="status">No evidence registers loaded.</p><section id="cards" class="cards" aria-label="Candidate findings"></section>
+</main><script type="module" src="./research-agent-review.js"></script></body></html>

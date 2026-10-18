@@ -68,3 +68,39 @@ async function inspectUrl(){
  finally{btn.disabled=false}
 }
 $('inspect-url').addEventListener('click',inspectUrl);
+
+let recoveryAudit=null;
+$('run-recovery-audit').addEventListener('click',async()=>{
+ if(!$('token').value.trim()){$('recovery-audit-status').textContent='Enter review token first';return}
+ if(!window.confirm('Run 10 live Google URL Inspections? This consumes inspection quota.'))return;
+ const button=$('run-recovery-audit');button.disabled=true;$('copy-recovery-audit').disabled=true;recoveryAudit=null;
+ $('recovery-audit-results').replaceChildren();$('recovery-audit-status').textContent='Running 10 Google inspections…';
+ try{
+  const response=await fetch('/api/search-recovery-audit',{method:'POST',headers:{Authorization:'Bearer '+$('token').value.trim(),'content-type':'application/json'},body:JSON.stringify({confirm:true}),cache:'no-store'});
+  const data=await response.json();if(!response.ok||!data.ok)throw Error(data.error||'HTTP '+response.status);
+  recoveryAudit=data;
+  const table=document.createElement('table');table.style.width='100%';
+  table.style.borderCollapse='collapse';
+  const header=document.createElement('tr');
+  for(const label of ['Page','Google verdict','Coverage','Evidence'])header.append(text('th',label));
+  table.append(header);
+  for(const item of data.results){
+   const tr=document.createElement('tr');
+   const signals=item.diagnostics?.signals||[];
+   for(const value of [item.path||item.url,item.ok?(item.verdict||'Unknown'):'Inspection failed',item.coverageState||'Not reported',item.ok?(signals.map(x=>x.type).join(', ')||'No explicit blocker observed'):(item.error||'Unverified')]){
+    const td=text('td',value);td.style.padding='9px';td.style.borderBottom='1px solid #45564b';tr.append(td);
+   }
+   table.append(tr);
+  }
+  const wrapper=document.createElement('div');wrapper.style.overflowX='auto';wrapper.append(table);$('recovery-audit-results').append(wrapper);
+  const errors=data.results.filter(r=>!r.ok).length;
+  $('recovery-audit-status').textContent='Completed '+data.runAt+' · '+errors+' unsuccessful inspections (unverified).';
+  $('copy-recovery-audit').disabled=false;
+ }catch(e){$('recovery-audit-status').textContent='Audit could not complete: '+e.message}
+ finally{button.disabled=false}
+});
+$('copy-recovery-audit').addEventListener('click',async()=>{
+ if(!recoveryAudit)return;
+ try{await navigator.clipboard.writeText(JSON.stringify(recoveryAudit,null,2));$('recovery-audit-status').textContent='Complete evidence JSON copied. Paste it into the ChatGPT conversation for analysis.'}
+ catch(e){$('recovery-audit-status').textContent='Clipboard unavailable; use a supported browser to copy the evidence.'}
+});

@@ -47,7 +47,7 @@ async function showArchive(run,guide,box){
   if(!manifestRes.ok)throw Error(manifestRes.status===404?"Not archived yet":"Archive unavailable (HTTP "+manifestRes.status+")");
   const manifest=await manifestRes.json();
   if(manifest.run_id!==run||!Array.isArray(manifest.files))throw Error("Invalid archive manifest");
-  const base=guide.replace(/\\.html$/,"");
+  const base=guide.endsWith(".html")?guide.slice(0,-5):guide;
   const selected=manifest.files.find(f=>f.name===base+".md");
   if(!selected)throw Error("No matching dossier in archive");
   const fileRes=await fetch("/api/research-library/file?"+new URLSearchParams({run,file:selected.name}),{cache:"no-store"});

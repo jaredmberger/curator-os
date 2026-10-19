@@ -17,7 +17,7 @@ function render(){
    append("small","Investigated: "+(item.investigated_at||"Unknown"),box);
    append("p",item.notes||"Evidence requires editorial review.",box,"muted");
    const links=append("div",null,box,"actions"),url=safeRunUrl(item.dossier);
-   if(url){const a=append("a","Original GitHub research run",links);a.href=url;a.rel="noopener noreferrer";a.target="_blank";const found=/\\/actions\\/runs\\/(\\d+)/.exec(url);if(found){const archive=append("button","View archived dossier",links);archive.type="button";archive.addEventListener("click",()=>showArchive(found[1],item.guide,box));}}
+   if(url){const a=append("a","Original GitHub research run",links);a.href=url;a.rel="noopener noreferrer";a.target="_blank";const found=new URL(url).pathname.match(/^\/jaredmberger\/Ocean-Liner-Curator\/actions\/runs\/([0-9]+)(?:\/|$)/);if(found){const archive=append("button","View archived dossier",links);archive.type="button";archive.addEventListener("click",()=>showArchive(found[1],item.guide,box));}}
  }
  if(!selected.length)append("p","No investigations match your search.",cards,"muted");
 }

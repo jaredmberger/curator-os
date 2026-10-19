@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>Historical Research Library · CuratorOS</title>
+<style>
+:root{color-scheme:dark;--bg:#0a1110;--panel:#15231f;--gold:#bfa46a;--line:#5a4b32;--text:#e9e0d1;--muted:#bbb3a5}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,sans-serif}
+header,main,footer{max-width:1080px;margin:auto;padding:24px 18px}header{border-bottom:1px solid var(--line)}
+h1,h2{font-family:Georgia,serif;font-weight:normal}h1{color:var(--gold);margin:.3rem 0}h2{margin:.3rem 0;font-size:1.3rem}
+a{color:#e2c98f}a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.eyebrow{font-size:.8rem;letter-spacing:.16em;color:var(--gold)}.muted,small{color:var(--muted)}
+.note{border-left:3px solid var(--gold);padding:13px;background:var(--panel)}
+.tools{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}
+input,select{flex:1;min-width:185px;padding:12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text)}
+.cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr))}
+.card{padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow-wrap:anywhere}
+.status{font-size:.75rem;letter-spacing:.06em;color:var(--gold);font-weight:600}
+.actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:15px}
+#summary{color:var(--muted)}
+</style></head><body>
+<header><a href="/">← CuratorOS</a><p class="eyebrow">CURATOROS · EDITORIAL RESEARCH</p><h1>Historical Research Library</h1><p class="muted">Investigation index · evidence remains subject to independent verification.</p></header>
+<main>
+<p class="note">All records below are <strong>unverified research leads</strong>, not established historical facts. This library is read-only. Nothing here updates canonical ship guides.</p>
+<div class="tools"><input id="search" type="search" placeholder="Search ships and investigation notes" aria-label="Search investigations"><select id="status-filter" aria-label="Filter review status"><option value="">All review statuses</option><option value="pending_editorial_review">Pending editorial review</option></select></div>
+<p id="summary" role="status">Loading the research ledger…</p><section class="cards" id="cards" aria-label="Investigations"></section>
+<p class="muted">The ledger stores investigation metadata and original GitHub research-run links, not permanent copies of the full dossiers. GitHub Actions artifacts may expire. <a href="/research-agent-review.html">Open the manual evidence-register reviewer</a>.</p>
+</main><footer><small>Private CuratorOS editorial workspace · read-only · no automatic publication</small></footer>
+<script type="module" src="/research/library.js"></script></body></html>

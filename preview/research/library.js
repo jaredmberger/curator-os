@@ -17,7 +17,7 @@ function render(){
    append("small","Investigated: "+(item.investigated_at||"Unknown"),box);
    append("p",item.notes||"Evidence requires editorial review.",box,"muted");
    const links=append("div",null,box,"actions"),url=safeRunUrl(item.dossier);
-   if(url){const a=append("a","Original GitHub research run",links);a.href=url;a.rel="noopener noreferrer";a.target="_blank";const found=/\\/actions\\/runs\\/(\\d+)/.exec(url);if(found){const archive=append("button","View archived dossier",links);archive.type="button";archive.addEventListener("click",()=>showArchive(found[1],item.guide,box));}}
+   if(url){const a=append("a","Original GitHub research run",links);a.href=url;a.rel="noopener noreferrer";a.target="_blank";const found=new URL(url).pathname.match(/^\/jaredmberger\/Ocean-Liner-Curator\/actions\/runs\/([0-9]+)(?:\/|$)/);if(found){const archive=append("button","View archived dossier",links);archive.type="button";archive.addEventListener("click",()=>showArchive(found[1],item.guide,box));}}
  }
  if(!selected.length)append("p","No investigations match your search.",cards,"muted");
 }
@@ -47,7 +47,7 @@ async function showArchive(run,guide,box){
   if(!manifestRes.ok)throw Error(manifestRes.status===404?"Not archived yet":"Archive unavailable (HTTP "+manifestRes.status+")");
   const manifest=await manifestRes.json();
   if(manifest.run_id!==run||!Array.isArray(manifest.files))throw Error("Invalid archive manifest");
-  const base=guide.replace(/\\.html$/,"");
+  const base=guide.endsWith(".html")?guide.slice(0,-5):guide;
   const selected=manifest.files.find(f=>f.name===base+".md");
   if(!selected)throw Error("No matching dossier in archive");
   const fileRes=await fetch("/api/research-library/file?"+new URLSearchParams({run,file:selected.name}),{cache:"no-store"});

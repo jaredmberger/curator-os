@@ -17,7 +17,7 @@ function render(){
    append("small","Investigated: "+(item.investigated_at||"Unknown"),box);
    append("p",item.notes||"Evidence requires editorial review.",box,"muted");
    const links=append("div",null,box,"actions"),url=safeRunUrl(item.dossier);
-   if(url){const a=append("a","Research run / dossier artifact",links);a.href=url;a.rel="noopener noreferrer";a.target="_blank"}
+   if(url){const a=append("a","Original GitHub research run",links);a.href=url;a.rel="noopener noreferrer";a.target="_blank";const found=/\\/actions\\/runs\\/(\\d+)/.exec(url);if(found){const archive=append("button","View archived dossier",links);archive.type="button";archive.addEventListener("click",()=>showArchive(found[1],item.guide,box));}}
  }
  if(!selected.length)append("p","No investigations match your search.",cards,"muted");
 }
@@ -36,3 +36,26 @@ async function load(){
  }
 }
 search.addEventListener("input",render);filter.addEventListener("change",render);load();
+
+async function showArchive(run,guide,box){
+ const existing=box.querySelector(".archive-preview");
+ if(existing){existing.remove();return}
+ const panel=append("div",null,box,"archive-preview");
+ append("p","Checking private archived dossier…",panel,"muted");
+ try{
+  const manifestRes=await fetch("/api/research-library/file?"+new URLSearchParams({run,file:"manifest.json"}),{cache:"no-store"});
+  if(!manifestRes.ok)throw Error(manifestRes.status===404?"Not archived yet":"Archive unavailable (HTTP "+manifestRes.status+")");
+  const manifest=await manifestRes.json();
+  if(manifest.run_id!==run||!Array.isArray(manifest.files))throw Error("Invalid archive manifest");
+  const base=guide.replace(/\\.html$/,"");
+  const selected=manifest.files.find(f=>f.name===base+".md");
+  if(!selected)throw Error("No matching dossier in archive");
+  const fileRes=await fetch("/api/research-library/file?"+new URLSearchParams({run,file:selected.name}),{cache:"no-store"});
+  if(!fileRes.ok)throw Error("Unable to retrieve dossier (HTTP "+fileRes.status+")");
+  const content=await fileRes.text();
+  if(content.length>1024*1024)throw Error("Dossier exceeds display limit");
+  panel.replaceChildren();
+  append("p","UNVERIFIED RESEARCH · READ-ONLY",panel,"status");
+  const pre=append("pre",content,panel);pre.style.whiteSpace="pre-wrap";pre.style.overflowWrap="anywhere";pre.style.maxHeight="540px";pre.style.overflowY="auto";
+ }catch(error){panel.replaceChildren();append("p",error.message,panel,"muted")}
+}

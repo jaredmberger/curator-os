@@ -10,7 +10,7 @@
     "validate": "node scripts/validate.js",
     "test:database": "node tests/database.test.js",
     "test:surface": "node tests/worker-era-findings.test.mjs",
-    "test": "npm run test:database && npm run test:surface && npm run test:recovery && npm run test:restore-safety && npm run test:recovery-manifest && npm run test:ops-health && npm run test:device-api && npm run test:overview && npm run test:runtime && npm run test:project-records-sync && npm run test:ship-dialog && npm run test:record-inspector && node --test tests/research-agent-import.test.mjs && node --test tests/research-library.test.mjs && node --test tests/research-review.test.mjs && node --test tests/research-incorporation.test.mjs && node --test tests/research-publication.test.mjs",
+    "test": "npm run test:database && npm run test:surface && npm run test:recovery && npm run test:restore-safety && npm run test:recovery-manifest && npm run test:ops-health && npm run test:device-api && npm run test:overview && npm run test:runtime && npm run test:project-records-sync && npm run test:ship-dialog && npm run test:record-inspector && node --test tests/research-agent-import.test.mjs && node --test tests/research-library.test.mjs && node --test tests/research-review.test.mjs && node --test tests/research-incorporation.test.mjs && node --test tests/research-publication.test.mjs && node --test tests/research-pr-check.test.mjs",
     "check": "npm run validate && npm run test",
     "recovery:validate": "node scripts/validate-recovery-backup.mjs",
     "test:recovery": "node --test tests/recovery-export.test.mjs",

@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {webcrypto,createHash} from 'node:crypto';
+import {onRequestGet,onRequestPost} from '../functions/api/research-review.js';
+globalThis.crypto??=webcrypto;
+const register=JSON.stringify({schema_version:1,guide:'ss-test.html',claims:[{claim:'A candidate claim'}]});
+const hash=createHash('sha256').update(register).digest('hex');const map=new Map();
+const env={CURATOROS_RECORDS:{get:async k=>map.has(k)?JSON.parse(map.get(k)):null,put:async(k,v)=>{map.set(k,v)}},RESEARCH_DOSSIERS_R2:{get:async k=>k.endsWith('manifest.json')?{size:200,text:async()=>JSON.stringify({schema_version:1,run_id:'123',files:[{name:'ss-test.evidence.json',bytes:Buffer.byteLength(register),sha256:hash}]})}:k.endsWith('.evidence.json')?{size:Buffer.byteLength(register),arrayBuffer:async()=>Uint8Array.from(Buffer.from(register)).buffer}:null}};
+const url='https://curator.example/api/research-review?run=123&file=ss-test.evidence.json&claim=0';
+const get=()=>onRequestGet({env,request:new Request(url)});
+const post=body=>onRequestPost({env,request:new Request(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)})});
+test('archived claim reads as pending',async()=>{const r=await get();assert.equal(r.status,200);assert.equal((await r.json()).review.status,'pending');});
+test('verification requires checked original and written rationale',async()=>{const r=await post({status:'verified',source_status:'unverified',notes:'',reviewer:'Editor',expected_version:0});assert.equal(r.status,400);});
+test('persists decisions with version history and rejects stale saves',async()=>{const payload={status:'needs_research',source_status:'unverified',notes:'Need original source',reviewer:'Editor',expected_version:0};const r=await post(payload);assert.equal(r.status,200);assert.equal((await r.json()).review.events.length,1);assert.equal((await post(payload)).status,409);const verified=await post({...payload,status:'verified',source_status:'source_checked',notes:'Original record independently checked and supports the specific claim',expected_version:1});assert.equal(verified.status,200);assert.equal((await get()).status,200);assert.equal((await (await get()).json()).review.events.length,2);});
+test('does not create canonical record keys',()=>assert.ok([...map.keys()].every(k=>k.startsWith('research-library/review/v1/'))));

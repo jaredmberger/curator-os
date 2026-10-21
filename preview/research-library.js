@@ -53,6 +53,29 @@ async function renderReview(run,file,content,panel){
    showHistory(initial.review);state.textContent='Current: '+(initial.review.status||'pending')+' (version '+version+')';
    save.onclick=async()=>{save.disabled=true;try{const data=await reviewRequest(run,file,i,{status:decision.value,source_status:sourceStatus.value,notes:notes.value,reviewer:reviewer.value,expected_version:version});version=data.review.version;state.textContent='Saved: '+data.review.status+' (version '+version+')';showHistory(data.review);}catch(e){state.textContent='Not saved: '+e.message;}finally{save.disabled=false;}};
    block.append(el('p','Source verification'),sourceStatus,el('p','Claim decision'),decision,el('p','Reviewer'),reviewer,notes,save,history);
+   const incorporation=el('details'),summary=el('summary','Guide incorporation / publication record');incorporation.append(summary);
+   const pubState=el('p','Loading incorporation history…');incorporation.append(pubState);block.append(incorporation);
+   const pubUrl=new URL('/api/research-publication',location.origin);pubUrl.searchParams.set('run',run);pubUrl.searchParams.set('file',file);pubUrl.searchParams.set('claim',String(i));
+   try{
+    const response=await fetch(pubUrl,{credentials:'same-origin',cache:'no-store'}),initialPub=await response.json();
+    if(!response.ok||!initialPub.ok)throw Error(initialPub.error||'Unable to read status');
+    let pubVersion=initialPub.incorporation.version||0;
+    const pubSelect=el('select');for(const [code,title] of [['not_started','Not incorporated'],['pr_open','PR proposed'],['merged','PR merged (manually confirmed)'],['deployed','Deployment confirmed manually']]){const option=el('option',title);option.value=code;pubSelect.append(option);}
+    pubSelect.value=initialPub.incorporation.status;
+    const pubPR=el('input');pubPR.placeholder='https://github.com/jaredmberger/Ocean-Liner-Curator/pull/…';pubPR.style.width='100%';pubPR.value=initialPub.incorporation.pr_url||'';
+    const pubReviewer=el('input');pubReviewer.placeholder='Person recording this status';
+    const pubNotes=el('textarea');pubNotes.rows=3;pubNotes.style.width='100%';pubNotes.placeholder='Which assertion was incorporated? How was merge/deployment confirmed?';
+    const pubButton=el('button','Record incorporation status');const pubLog=el('ol');const pubHistory=el('details');pubHistory.append(el('summary','Incorporation history'),pubLog);
+    const renderPub=x=>{pubState.textContent='Recorded: '+x.status+' (manual attestation; deployment is not checked automatically)';pubLog.replaceChildren();for(const event of x.history||[])pubLog.append(el('li',event.recorded_at+' · '+event.reviewer+' · '+event.status+' · '+(event.pr_url||'no PR')+' — '+event.notes));};
+    renderPub(initialPub.incorporation);
+    pubButton.onclick=async()=>{pubButton.disabled=true;try{
+     const response=await fetch(pubUrl,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({status:pubSelect.value,pr_url:pubPR.value.trim(),reviewer:pubReviewer.value,notes:pubNotes.value,expected_version:pubVersion})});
+     const result=await response.json();if(!response.ok||!result.ok)throw Error(result.error||'Unable to save status');
+     pubVersion=result.incorporation.version;renderPub(result.incorporation);
+    }catch(e){pubState.textContent='Not recorded: '+e.message;}finally{pubButton.disabled=false;}};
+    incorporation.append(el('p','Tracking only: this never verifies GitHub status, edits a guide, or triggers deployment.'),pubSelect,pubPR,pubReviewer,pubNotes,pubButton,pubHistory);
+   }catch(e){pubState.textContent='Incorporation status unavailable: '+e.message;}
+
   }catch(e){state.textContent='Review unavailable: '+e.message;}
  }
 }

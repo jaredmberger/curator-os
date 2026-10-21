@@ -18,6 +18,21 @@ async function renderReview(run,file,content,panel){
  if(!Array.isArray(register.claims))return;
  const section=el('section');section.append(el('h3','Editorial claim review'),el('p','Source checked means an original source was inspected. Verified additionally requires a written explanation supporting the specific claim. Nothing here changes a ship guide.'));
  panel.append(section);
+ const prepare=el('button','Prepare reviewed research package');
+ const pkgStatus=el('p','Only saved, source-checked verified claims are included. This does not publish or create a PR.');
+ section.append(prepare,pkgStatus);
+ prepare.onclick=async()=>{
+  prepare.disabled=true;
+  try{
+   const u=new URL('/api/research-incorporation',location.origin);u.searchParams.set('run',run);u.searchParams.set('file',file);
+   const r=await fetch(u,{credentials:'same-origin',cache:'no-store'}),packageData=await r.json();
+   if(!r.ok||!packageData.ok)throw Error(packageData.error||'Unable to prepare package');
+   if(!packageData.eligible_count){pkgStatus.textContent='No qualifying verified claims are saved in CuratorOS yet.';return;}
+   const payload='Ocean Liner Curator — reviewed research incorporation proposal\\nDo not edit or publish without explicit user authorization. Compare proposed changes with the current guide, cite original evidence, and prepare a diff for human review.\\n\\n'+JSON.stringify(packageData,null,2);
+   await navigator.clipboard.writeText(payload);
+   pkgStatus.textContent=packageData.eligible_count+' verified findings copied. Paste into ChatGPT to develop an editorial proposal.';
+  }catch(error){pkgStatus.textContent='Package not copied: '+error.message;}finally{prepare.disabled=false;}
+ };
  for(const [i,claim] of register.claims.entries()){
   const block=el('article');block.style.cssText='padding:1rem;margin:1rem 0;border:1px solid #485447;border-radius:10px;';
   const heading=el('h4','Claim '+(i+1)+': '+String(claim.claim||''));

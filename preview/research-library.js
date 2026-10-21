@@ -65,6 +65,13 @@ async function renderReview(run,file,content,panel){
     const pubPR=el('input');pubPR.placeholder='https://github.com/jaredmberger/Ocean-Liner-Curator/pull/…';pubPR.style.width='100%';pubPR.value=initialPub.incorporation.pr_url||'';
     const pubReviewer=el('input');pubReviewer.placeholder='Person recording this status';
     const pubNotes=el('textarea');pubNotes.rows=3;pubNotes.style.width='100%';pubNotes.placeholder='Which assertion was incorporated? How was merge/deployment confirmed?';
+    const checkButton=el('button','Check GitHub PR');const checkResult=el('p','Live GitHub verification not yet requested.');
+    checkButton.onclick=async()=>{checkButton.disabled=true;try{
+     const u=new URL('/api/research-pr-check',location.origin);u.searchParams.set('pr',pubPR.value.trim());
+     const response=await fetch(u,{credentials:'same-origin',cache:'no-store'}),result=await response.json();
+     if(!response.ok||!result.ok)throw Error(result.error||'Unable to check GitHub');
+     checkResult.textContent='GitHub reports: '+(result.merged?'Merged on '+result.merged_at:result.draft?'Draft PR':'Open PR')+'; base '+result.base+'. This does NOT verify deployment or save an incorporation status.';
+    }catch(e){checkResult.textContent='Live status unavailable: '+e.message;}finally{checkButton.disabled=false;}};
     const pubButton=el('button','Record incorporation status');const pubLog=el('ol');const pubHistory=el('details');pubHistory.append(el('summary','Incorporation history'),pubLog);
     const renderPub=x=>{pubState.textContent='Recorded: '+x.status+' (manual attestation; deployment is not checked automatically)';pubLog.replaceChildren();for(const event of x.history||[])pubLog.append(el('li',event.recorded_at+' · '+event.reviewer+' · '+event.status+' · '+(event.pr_url||'no PR')+' — '+event.notes));};
     renderPub(initialPub.incorporation);
@@ -73,7 +80,7 @@ async function renderReview(run,file,content,panel){
      const result=await response.json();if(!response.ok||!result.ok)throw Error(result.error||'Unable to save status');
      pubVersion=result.incorporation.version;renderPub(result.incorporation);
     }catch(e){pubState.textContent='Not recorded: '+e.message;}finally{pubButton.disabled=false;}};
-    incorporation.append(el('p','Tracking only: this never verifies GitHub status, edits a guide, or triggers deployment.'),pubSelect,pubPR,pubReviewer,pubNotes,pubButton,pubHistory);
+    incorporation.append(el('p','Tracking only: this never verifies GitHub status, edits a guide, or triggers deployment.'),pubSelect,pubPR,checkButton,checkResult,pubReviewer,pubNotes,pubButton,pubHistory);
    }catch(e){pubState.textContent='Incorporation status unavailable: '+e.message;}
 
   }catch(e){state.textContent='Review unavailable: '+e.message;}

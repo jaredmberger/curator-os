@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createHash,webcrypto} from 'node:crypto';
+import {onRequestGet} from '../functions/api/research-incorporation.js';
+globalThis.crypto??=webcrypto;
+const evidence=JSON.stringify({schema_version:1,guide:'ss-test.html',claims:[{claim:'Claim 1',source_title:'Source',source_url:'https://example.org'},{claim:'Claim 2'}]});
+const hash=createHash('sha256').update(evidence).digest('hex');
+const reviews=new Map([['research-library/review/v1/123/ss-test.evidence.json/0',{status:'verified',source_status:'source_checked',events:[{status:'verified',source_status:'source_checked',notes:'Original checked',reviewer:'Editor',at:'2026-10-21'}]}],['research-library/review/v1/123/ss-test.evidence.json/1',{status:'needs_research',source_status:'unverified',events:[]}]]);
+const bucket={get:async key=>key.endsWith('manifest.json')?{size:100,text:async()=>JSON.stringify({schema_version:1,run_id:'123',files:[{name:'ss-test.evidence.json',bytes:Buffer.byteLength(evidence),sha256:hash}]})}:key.endsWith('.evidence.json')?{size:Buffer.byteLength(evidence),arrayBuffer:async()=>Uint8Array.from(Buffer.from(evidence)).buffer}:null};
+const context=(requestUrl,env={RESEARCH_DOSSIERS_R2:bucket,CURATOROS_RECORDS:{get:async key=>reviews.get(key)||null}})=>({env,request:new Request(requestUrl)});
+const url='https://curator.example/api/research-incorporation?run=123&file=ss-test.evidence.json';
+test('includes only fully reviewed verified claims',async()=>{const response=await onRequestGet(context(url)),data=await response.json();assert.equal(response.status,200);assert.equal(data.claims.length,1);assert.equal(data.claims[0].claim,'Claim 1');assert.equal(data.publication_status,'not_authorized');});
+test('rejects invalid identifiers',async()=>assert.equal((await onRequestGet(context(url.replace('run=123','run=..')))).status,400));
+test('requires private bindings',async()=>assert.equal((await onRequestGet(context(url,{}))).status,503));
+test('excludes unsupported verification',async()=>{const env={RESEARCH_DOSSIERS_R2:bucket,CURATOROS_RECORDS:{get:async()=>({status:'verified',source_status:'unverified',events:[{status:'verified',source_status:'unverified',notes:'',reviewer:'Editor'}]})}};const data=await (await onRequestGet(context(url,env))).json();assert.equal(data.eligible_count,0);});
